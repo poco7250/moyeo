@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "java-backend-skills@anthropic-plugin-directory": true,
+    "spring-tools-language-server-claude-code-plugin@anthropic-plugin-directory": true
+  }
+}
