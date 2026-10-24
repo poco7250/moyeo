@@ -1,0 +1,24 @@
+/* 기본 스타일 */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: #222; background: #fafafa; }
+a { color: inherit; }
+
+.site-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #fff; border-bottom: 1px solid #eee; }
+.site-header .logo { font-weight: 700; font-size: 1.25rem; text-decoration: none; }
+.site-header nav a { margin-left: 16px; text-decoration: none; }
+.site-footer { padding: 24px; text-align: center; color: #888; font-size: 0.875rem; }
+
+.container { max-width: 960px; margin: 40px auto; padding: 0 16px; }
+.container.narrow { max-width: 420px; }
+
+.btn { display: inline-block; padding: 10px 20px; border: 0; border-radius: 6px; background: #3b5bdb; color: #fff; font-size: 1rem; text-decoration: none; cursor: pointer; }
+.btn:hover { background: #364fc7; }
+
+/* 폼 */
+.field { margin-bottom: 16px; }
+.field label { display: block; margin-bottom: 6px; font-weight: 600; }
+.field input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
+.field input.invalid { border-color: #e03131; }
+.error { margin: 4px 0 0; color: #e03131; font-size: 0.875rem; }
+.alert { margin-bottom: 16px; padding: 12px; border-radius: 6px; background: #fff5f5; color: #c92a2a; }
+.alert p { margin: 0; }

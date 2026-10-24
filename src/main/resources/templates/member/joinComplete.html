@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('가입 완료')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header}"></header>
+<main class="container narrow">
+    <h1>가입 완료</h1>
+    <p th:if="${nickname}"><strong th:text="${nickname}"></strong>님, 환영해요!</p>
+    <p th:unless="${nickname}">회원가입이 완료되었어요.</p>
+    <a class="btn" th:href="@{/}">홈으로</a>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

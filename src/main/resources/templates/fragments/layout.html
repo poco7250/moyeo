@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!-- 공통 조각: 각 페이지에서 th:replace로 가져다 쓴다 -->
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' | moyeo'">moyeo</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<header th:fragment="header" class="site-header">
+    <a class="logo" th:href="@{/}">moyeo</a>
+    <nav>
+        <a th:href="@{/members/join}">회원가입</a>
+    </nav>
+</header>
+
+<footer th:fragment="footer" class="site-footer">
+    <p>&copy; moyeo</p>
+</footer>
+</body>
+</html>
