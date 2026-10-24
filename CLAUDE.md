@@ -50,6 +50,11 @@ Spring Boot 4는 스타터와 자동 구성이 모듈 단위로 쪼개져 있어
 - 트랜잭션 경계는 Service 계층에서 `@Transactional`로 관리
 - API 응답 형식과 예외 처리는 일관된 공통 구조로 통일
 
+## Git
+
+- 파일 수정 후 바로 커밋하지 않는다. 커밋은 사용자가 요청할 때만 한다.
+- 커밋 메시지는 한글, 브랜치명은 `feature/기능명` 형식.
+
 ## 도구
 
 - `.mcp.json`에 프로젝트 MCP 서버가 등록돼 있다: `idea`(IntelliJ 연동), `context7`(라이브러리 문서), `shrimp-task-manager`(작업 관리, 데이터는 `shrimp_data/`).
