@@ -39,3 +39,6 @@ out/
 ### Local config ###
 application-local.properties
 .claude/settings.local.json
+
+### Shrimp Task Manager ###
+shrimp_data/
