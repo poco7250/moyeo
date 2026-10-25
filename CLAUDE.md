@@ -4,12 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-`moyeo`는 Spring Boot 4.1 + Java 21 기반 백엔드 프로젝트다. 현재는 Spring Initializr로 생성한 직후의 뼈대 상태이며, 도메인 코드는 아직 없다.
+`moyeo`는 Spring Boot 4.1 + Java 21 기반 친구 모임 관리 웹앱의 백엔드 프로젝트다. 제품 요구사항은 `docs/PRD.md`에 있다.
 
 - 빌드 도구: Gradle 9 (wrapper 사용)
-- 주요 의존성: Spring Web MVC, Spring Data JPA, Bean Validation, Lombok, DevTools
+- 주요 의존성: Spring Web MVC, Spring Data JPA, Bean Validation, Thymeleaf, Spring Security Crypto, Lombok, DevTools
 - DB: MySQL (`mysql-connector-j`)
 - 베이스 패키지: `com.poco7250.moyeo`
+
+### 현재 코드 구조
+
+- `global/` — 공통 코드: `BaseTimeEntity`, `JpaAuditingConfig`, `PasswordEncoderConfig`, 예외 처리(`ErrorCode`, `BusinessException`, `GlobalExceptionHandler`), `HomeController`
+- `member/` — 이메일·비밀번호 회원가입(`domain` / `dto` / `repository` / `service` / `controller`), Thymeleaf 템플릿은 `templates/member/`
+- 도메인 패키지는 `<도메인>/{domain,dto,repository,service,controller}` 구조를 따른다.
+
+> PRD 결정에 따라 `member`는 카카오 로그인 기반으로 전환할 예정이다(비밀번호·`PasswordEncoderConfig` 제거, 서버 렌더링 → SPA용 REST API). 전환 계획은 `docs/PRD.md` 7장 참고.
 
 ## 명령어
 
@@ -37,7 +45,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Spring Boot 4는 스타터와 자동 구성이 모듈 단위로 쪼개져 있어 3.x와 의존성 이름이 다르다.
 
 - 웹: `spring-boot-starter-webmvc` (3.x의 `starter-web` 아님)
-- 테스트 슬라이스도 기능별 테스트 스타터로 분리돼 있다: `spring-boot-starter-data-jpa-test`, `spring-boot-starter-webmvc-test`, `spring-boot-starter-validation-test`
+- 테스트 슬라이스도 기능별 테스트 스타터로 분리돼 있다: `spring-boot-starter-data-jpa-test`, `spring-boot-starter-webmvc-test`, `spring-boot-starter-validation-test`, `spring-boot-starter-thymeleaf-test`
 - 3.x 기준 예제의 import 경로나 어노테이션 패키지가 다를 수 있으므로, API가 불확실하면 Context7로 Boot 4 문서를 확인한다.
 
 ## 아키텍처 방침
