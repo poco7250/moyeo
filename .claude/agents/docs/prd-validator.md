@@ -33,10 +33,10 @@ model: opus
 
 ### 1단계. 맥락 파악
 
-- 대상 PRD(기본값 `docs/PRD.md`, 요청에 경로가 있으면 그 파일)를 끝까지 읽는다.
-- 프로젝트 루트 `CLAUDE.md` (기술 스택, 아키텍처 방침, Spring Boot 4 주의점)
-- `.claude/agents/prd-generator.md` — PRD 표준 구조와 작성 규칙의 기준이다.
-- `src/main/java` 구조를 Glob으로 훑고 `build.gradle`을 읽어 실제 의존성·버전을 파악한다.
+- 대상 PRD (기본값 `../../../docs/PRD.md`, 요청에 경로가 있으면 그 파일)를 끝까지 읽는다.
+- 프로젝트 루트 `../../../CLAUDE.md` (기술 스택, 아키텍처 방침, Spring Boot 4 주의점)
+- `prd-generator.md` — PRD 표준 구조와 작성 규칙의 기준이다.
+- `../../../src/main/java` 구조를 Glob으로 훑고 `build.gradle`을 읽어 실제 의존성·버전을 파악한다.
 
 ### 2단계. 구조·완결성 검증
 
@@ -68,7 +68,7 @@ PRD에 등장하는 외부 API·라이브러리·플랫폼 기능을 목록으�
 
 1. **목록 작성** — 예: 카카오 로그인(OAuth2), 카카오톡 공유·OG 미리보기, 카카오 로컬 API(쿼터·캐싱 허용 범위), PWA·웹 푸시(브라우저·OS별 지원), Spring Boot 4 WebSocket/STOMP, JPA 낙관적 락, `HttpOnly` 쿠키 인증과 카카오톡 인앱 브라우저 동작 등. PRD에 실제로 적힌 것만 대상으로 한다.
 2. **문서 확인**
-   - 라이브러리·프레임워크(Spring, Hibernate 등): Context7로 확인한다. `resolve-library-id` → `query-docs` 순서로, 개념 하나당 한 번씩 질의한다. `build.gradle`의 버전에 맞는 문서인지 확인한다.
+   - 라이브러리·프레임워크 (Spring, Hibernate 등): Context7로 확인한다. `resolve-library-id` → `query-docs` 순서로, 개념 하나당 한 번씩 질의한다. `../../../build.gradle`의 버전에 맞는 문서인지 확인한다.
    - 외부 서비스(카카오 developers, MDN, WebKit, W3C 등): WebSearch로 공식 문서를 찾고 WebFetch로 원문을 읽는다. 블로그·Q&A는 보조 근거로만 쓰고 공식 문서를 우선한다.
 3. **판정** — 항목마다 근거 등급, 출처, PRD 요구사항과의 일치 여부를 적는다.
 4. **제약이 확인된 경우** — 곧바로 "불가"로 쓰지 않는다. 대안(다른 API, 폴백, 범위 축소, 단계적 도입)을 최소 하나 탐색하고, 대안도 근거 등급과 함께 적는다. 대안까지 모두 막힌 것이 문서로 확인될 때만 "실현 어려움"으로 판정한다.
