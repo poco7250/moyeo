@@ -1,16 +1,16 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-10-26
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-10-28 (dev `f1d47f1` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 0 (기반 정리). 코드에는 이메일·비밀번호 회원가입(`member/`)과 공통 코드(`global/`)만 있다. 그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 0 (기반 정리). Task 001(공통 API 응답·전역 예외 JSON 전환) 완료, 다음은 Task 002(테스트 기반과 설정 정리). 코드에는 이메일·비밀번호 회원가입(`member/`)과 공통 코드(`global/`)만 있고, 그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
 |---|---|---|---|---|---|
-| 0 | 기반 정리 | 0 | 3 | 0 | 🔄 진행 중 (기존 코드 일부 활용) |
+| 0 | 기반 정리 | 0 | 3 | 1 | 🔄 진행 중 (001 완료, 002 다음) |
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 0 | ⬜ 대기 |
 | 2 | 그룹·초대 | 2 | 3 | 0 | ⬜ 대기 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **0** | |
+| **합계** | | | **66** (MVP 43) | **1** | |
 
 ## 상태 범례
 
@@ -36,7 +36,7 @@
 | ⏸️ 보류 | 선행 조건(오픈 이슈 등) 미해결 — 사유 필수 |
 
 - ⚠️ = PRD에 모호하거나 누락된 부분이 있어 착수 전 확인이 필요한 항목(PRD는 수정하지 않음)
-- 체크박스 `[x]` = 현재 코드(2026-10-26)로 이미 충족된 항목
+- 체크박스 `[x]` = 현재 코드(2026-10-28, dev `f1d47f1`)로 이미 충족된 항목
 
 ## 공통 규칙 (모든 Task에 적용)
 
@@ -77,33 +77,37 @@ Phase 10 040 → 041, 042 → 043
 - **목표:** PRD 7장 "현재 코드와의 차이 → 전환 계획"을 처리하고, 모든 도메인이 쓰는 공통 응답·예외·테스트 기반을 만든다.
 - **포함 기능 ID:** G-3(전환 준비), 6장 아키텍처 방침(공통 응답·예외)
 
-### Task 001: 공통 API 응답 구조와 전역 예외 처리 JSON 전환   🔄 진행 중
+### Task 001: 공통 API 응답 구조와 전역 예외 처리 JSON 전환   ✅ 완료
+
+- **완료일:** 2026-10-27 · 커밋 `7a11c50`(구현), `d1c1e3b`(테스트) · merge `f1d47f1`
 
 - **관련 기능:** 6장 아키텍처 방침(일관된 API 응답·예외 구조), 7장 전환 계획(`GlobalExceptionHandler`, `ErrorCode`)
 - **선행 Task:** 없음
 - **구현 사항**
   - [x] `global/error/BusinessException`(ErrorCode 보유) — 기존 코드 존재
-  - [x] `global/error/ErrorCode` enum(HttpStatus + message) — 기존 코드 존재, 아래 항목대로 정리 필요
-  - [ ] `global/common/ApiResponse<T>` 공통 래퍼 `{ success, data, error: { code, message, fieldErrors? } }` + 정적 팩토리(`ok(data)`, `fail(errorCode)`)
-  - [ ] `global/error/ErrorResponse`(code, message, `List<FieldError>`) DTO
-  - [ ] `GlobalExceptionHandler`를 `@ControllerAdvice` + `ModelAndView` → `@RestControllerAdvice` + `ResponseEntity<ApiResponse<?>>`로 전환
-    - [ ] `BusinessException` → ErrorCode의 상태·코드
-    - [ ] `MethodArgumentNotValidException`·`HandlerMethodValidationException`·`ConstraintViolationException` → 400 `INVALID_INPUT` + 필드 에러 목록
-    - [ ] `HttpMessageNotReadableException`(정수 아닌 금액 등) → 400 `INVALID_INPUT`
-    - [ ] `DataIntegrityViolationException` → 409 `DUPLICATE_RESOURCE`(기존 처리 유지)
-    - [ ] `ObjectOptimisticLockingFailureException` → 409 `CONCURRENT_MODIFICATION`
-    - [ ] 그 외 `Exception` → 500 `INTERNAL_ERROR`(스택트레이스는 로그에만)
-  - [ ] `ErrorCode`에 공통 코드 추가: `INVALID_INPUT`(400), `UNAUTHORIZED`(401), `CONCURRENT_MODIFICATION`(409), `INTERNAL_ERROR`(500). `DUPLICATE_EMAIL`·`DUPLICATE_NICKNAME` 제거는 Task 003에서
-  - [ ] 도메인 에러 코드는 각 Task에서 추가한다(PRD 7장 목록 이름 그대로)
+  - [x] `global/error/ErrorCode` enum(HttpStatus + message) — 기존 코드 존재
+  - [x] `global/common/ApiResponse<T>` 공통 래퍼 `{ success, data, error: { code, message, fieldErrors? } }` + 정적 팩토리(`ok(data)`, `ok()`, `fail(errorCode)`, `fail(errorCode, fieldErrors)`)
+  - [x] `global/error/ErrorResponse`(code, message, `List<FieldError>`) DTO — record로 구현
+  - [x] `GlobalExceptionHandler`를 `@ControllerAdvice` + `ModelAndView` → `@RestControllerAdvice` + `ResponseEntity<ApiResponse<?>>`로 전환
+    - [x] `BusinessException` → ErrorCode의 상태·코드
+    - [x] `MethodArgumentNotValidException`·`HandlerMethodValidationException`·`ConstraintViolationException` → 400 `INVALID_INPUT` + 필드 에러 목록
+    - [x] `HttpMessageNotReadableException`(정수 아닌 금액 등) → 400 `INVALID_INPUT`
+    - [x] `DataIntegrityViolationException` → 409 `DUPLICATE_RESOURCE`(기존 처리 유지)
+    - [x] `ObjectOptimisticLockingFailureException` → 409 `CONCURRENT_MODIFICATION`
+    - [x] 그 외 `Exception` → 500 `INTERNAL_ERROR`(스택트레이스는 로그에만)
+    - [x] (추가) `MissingServletRequestParameterException`·`MethodArgumentTypeMismatchException` → 400 `INVALID_INPUT`, `NoResourceFoundException` → 404 `RESOURCE_NOT_FOUND`, `HttpRequestMethodNotSupportedException` → 405 `METHOD_NOT_ALLOWED`
+  - [x] `ErrorCode`에 공통 코드 추가: `INVALID_INPUT`(400), `UNAUTHORIZED`(401), `CONCURRENT_MODIFICATION`(409), `INTERNAL_ERROR`(500) + (추가) `RESOURCE_NOT_FOUND`(404), `METHOD_NOT_ALLOWED`(405). `DUPLICATE_EMAIL`·`DUPLICATE_NICKNAME` 제거는 Task 003에서
+  - 도메인 에러 코드는 각 Task에서 추가한다(PRD 7장 목록 이름 그대로)
 - **테스트**
-  - [ ] `@WebMvcTest` + 테스트 전용 더미 Controller로 예외 종류별 응답 검증: 상태 코드·`success=false`·`error.code`·필드 에러 목록
-  - [ ] 성공 응답이 `{ success: true, data: ..., error: null }` 형식인지 검증
-  - [ ] 500 응답 본문에 예외 메시지·스택트레이스가 노출되지 않는지 검증
+  - [x] `@WebMvcTest` + 테스트 전용 더미 Controller(`ExceptionTestController`)로 예외 종류별 응답 검증: 상태 코드·`success=false`·`error.code`·필드 에러 목록
+  - [x] 성공 응답이 `{ success: true, data: ..., error: null }` 형식인지 검증
+  - [x] 500 응답 본문에 예외 메시지·스택트레이스가 노출되지 않는지 검증
 - **수락 기준**
   - Given 필수 필드가 빠진 요청 / When 어떤 REST API를 호출하면 / Then 400과 `error.code = INVALID_INPUT`, 필드별 에러 목록을 JSON으로 받는다.
   - Given 낙관적 락 충돌 / When 예외가 Controller 밖으로 나가면 / Then 409 `CONCURRENT_MODIFICATION` JSON을 받는다(HTML 에러 페이지 아님).
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(`GlobalExceptionHandlerTest` 9건 포함 전체 17건) · [x] `/spring-tools:validate` 통과(에러 없음, `MemberController` info 1건은 Task 003에서 제거 예정) · [x] 수락 기준 충족
+- **참고:** `contextLoads`는 아직 로컬 MySQL(`application-local.properties`)에 기대어 통과한다 → Task 002에서 해소
 
 ### Task 002: 테스트 기반과 설정 정리   🔄 진행 중
 
