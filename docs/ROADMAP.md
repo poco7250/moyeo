@@ -5,12 +5,12 @@
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 0 (기반 정리). Task 001(공통 API 응답·전역 예외 JSON 전환) 완료, 다음은 Task 002(테스트 기반과 설정 정리). 코드에는 이메일·비밀번호 회원가입(`member/`)과 공통 코드(`global/`)만 있고, 그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 0 (기반 정리). Task 001(공통 API 응답·전역 예외 JSON 전환)·Task 002(테스트 기반과 설정 정리) 완료, 다음은 Task 003(member 카카오 기반 전환). 코드에는 이메일·비밀번호 회원가입(`member/`)과 공통 코드(`global/`)만 있고, 그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
 |---|---|---|---|---|---|
-| 0 | 기반 정리 | 0 | 3 | 1 | 🔄 진행 중 (001 완료, 002 다음) |
+| 0 | 기반 정리 | 0 | 3 | 2 | 🔄 진행 중 (001·002 완료, 003 다음) |
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 0 | ⬜ 대기 |
 | 2 | 그룹·초대 | 2 | 3 | 0 | ⬜ 대기 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **1** | |
+| **합계** | | | **66** (MVP 43) | **2** | |
 
 ## 상태 범례
 
@@ -109,25 +109,29 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew test` 통과(`GlobalExceptionHandlerTest` 9건 포함 전체 17건) · [x] `/spring-tools:validate` 통과(에러 없음, `MemberController` info 1건은 Task 003에서 제거 예정) · [x] 수락 기준 충족
 - **참고:** `contextLoads`는 아직 로컬 MySQL(`application-local.properties`)에 기대어 통과한다 → Task 002에서 해소
 
-### Task 002: 테스트 기반과 설정 정리   🔄 진행 중
+### Task 002: 테스트 기반과 설정 정리   ✅ 완료
+
+- **완료일:** 2026-10-28 · 브랜치 `feature/test-infra`
+
 
 - **관련 기능:** 기술 기반(전 기능 공통)
 - **선행 Task:** Task 001
 - **구현 사항**
   - [x] `global/common/BaseTimeEntity`(`createdAt`, `updatedAt`) + `global/config/JpaAuditingConfig` — 기존 코드 존재
   - [x] `application.properties`의 `spring.jpa.open-in-view=false`, 기본 프로필 `local` — 기존 설정 존재
-  - [ ] 테스트 DB 전략 결정 및 적용 — 권장: Testcontainers MySQL(`DATETIME(6)`, NULL 허용 유니크, `PESSIMISTIC_WRITE` 동작을 운영 DB와 같게 검증). 대안: H2 MySQL 모드(동시성·락 테스트는 별도). Boot 4 의존성 이름은 Context7로 확인
-  - [ ] `src/test/resources/application-test.properties`(또는 동등 설정)와 `test` 프로필 — 로컬 MySQL 없이 `contextLoads` 통과
-  - [ ] `global/config/ClockConfig` — `Clock` 빈(Asia/Seoul) 등록, 시간 의존 로직은 `Clock` 주입
-  - [ ] `global/config/SchedulingConfig` — `@EnableScheduling`(투표 마감·꽝뽑기 제한 시간용, 실제 사용은 Task 018·030)
-  - [ ] 테스트 공통 픽스처 위치 정리(`src/test/java/.../support/`): 엔티티 생성 헬퍼, 고정 `Clock`
+  - [x] 테스트 DB 전략 결정 및 적용 — Testcontainers MySQL(`mysql:8.4`) 채택. `spring-boot-testcontainers` + `testcontainers-mysql`·`testcontainers-junit-jupiter`(Testcontainers 2.x), `support/TestcontainersConfiguration`의 `@ServiceConnection`으로 datasource 연결
+  - [x] `src/test/resources/application-test.properties`(`create-drop`, `hibernate.jdbc.time_zone=Asia/Seoul`)와 `test` 프로필 — Gradle `test` 태스크의 `spring.profiles.active=test`로 적용(test 리소스에 `application.properties`를 두면 main 설정을 가리므로 금지)
+  - [x] `global/config/ClockConfig` — `Clock` 빈(Asia/Seoul) 등록, 시간 의존 로직은 `Clock` 주입
+  - [x] `global/config/SchedulingConfig` — `@EnableScheduling`(투표 마감·꽝뽑기 제한 시간용, 실제 사용은 Task 018·030)
+  - [x] 테스트 공통 픽스처 위치 정리(`src/test/java/.../support/`): `TestcontainersConfiguration`, 고정 `Clock`(`TestClocks.fixed`), 감사 검증용 `AuditingTestEntity`. 도메인 엔티티 생성 헬퍼는 각 도메인 Task에서 추가
 - **테스트**
-  - [ ] `MoyeoApplicationTests.contextLoads`가 로컬 MySQL 없이 통과
-  - [ ] `@DataJpaTest`로 `BaseTimeEntity` 감사 필드가 저장 시 채워지는지 검증
+  - [x] `MoyeoApplicationTests.contextLoads`가 로컬 MySQL 없이 통과(+ `Clock` 빈 시간대 검증)
+  - [x] `@DataJpaTest`로 `BaseTimeEntity` 감사 필드가 저장 시 채워지는지 검증(`BaseTimeEntityTest` 2건, 수정 시 `updatedAt` 갱신 포함)
 - **수락 기준**
   - Given 로컬 DB 설정이 없는 CI 환경 / When `./gradlew test`를 실행하면 / Then 모든 테스트가 외부 수동 설정 없이 통과한다.
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 20건) · [x] `/spring-tools:validate` 통과(에러 없음, `MemberController` info 1건은 Task 003에서 제거 예정) · [x] 수락 기준 충족
+- **참고:** 테스트 실행에 Docker가 필요하다(CI 러너도 Docker 사용 가능해야 함). DB를 쓰는 테스트는 `@Import(TestcontainersConfiguration.class)`, `@DataJpaTest`는 추가로 `@AutoConfigureTestDatabase(replace = NONE)`와 `JpaAuditingConfig` Import
 
 ### Task 003: member 카카오 기반 전환과 이메일 가입 코드 제거   ⬜ 대기
 
