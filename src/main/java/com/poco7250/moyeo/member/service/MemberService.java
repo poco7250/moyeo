@@ -1,16 +1,11 @@
 package com.poco7250.moyeo.member.service;
 
-import com.poco7250.moyeo.global.error.BusinessException;
-import com.poco7250.moyeo.global.error.ErrorCode;
-import com.poco7250.moyeo.member.domain.Member;
-import com.poco7250.moyeo.member.dto.MemberJoinRequest;
+import com.poco7250.moyeo.member.dto.KakaoProfile;
 import com.poco7250.moyeo.member.dto.MemberResponse;
-import com.poco7250.moyeo.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 회원 관련 비즈니스 로직.
@@ -18,36 +13,21 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class MemberService {
 
-	private final MemberRepository memberRepository;
-	private final PasswordEncoder passwordEncoder;
+	private final MemberKakaoRegistrar memberKakaoRegistrar;
 
 	/**
-	 * 회원가입. 이메일/닉네임 중복을 확인하고 비밀번호를 암호화해 저장한다.
+	 * kakaoId로 회원을 찾아 프로필을 갱신하고, 없으면 새로 만든다.
+	 * 같은 사용자의 동시 최초 로그인으로 kakaoId 유니크 위반이 나면, 먼저 생성된 회원을 다시 조회해 돌려준다.
+	 * 트랜잭션은 registrar가 호출마다 따로 연다(실패한 트랜잭션 안에서는 재조회할 수 없으므로).
 	 */
-	@Transactional
-	public MemberResponse join(MemberJoinRequest request) {
-		validateDuplicate(request);
-
-		String encodedPassword = passwordEncoder.encode(request.getPassword());
-		Member member = Member.create(request.getEmail(), encodedPassword, request.getNickname());
-		Member saved = memberRepository.save(member);
-
-		log.info("회원가입 완료: memberId={}", saved.getId());
-		return MemberResponse.from(saved);
-	}
-
-	/**
-	 * 이메일과 닉네임이 이미 쓰이고 있는지 확인한다.
-	 */
-	private void validateDuplicate(MemberJoinRequest request) {
-		if (memberRepository.existsByEmail(request.getEmail())) {
-			throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
-		}
-		if (memberRepository.existsByNickname(request.getNickname())) {
-			throw new BusinessException(ErrorCode.DUPLICATE_NICKNAME);
+	public MemberResponse findOrCreateByKakaoId(KakaoProfile profile) {
+		try {
+			return memberKakaoRegistrar.registerOrUpdate(profile);
+		} catch (DataIntegrityViolationException e) {
+			log.info("카카오 회원 동시 생성 감지, 재조회: {}", e.getMostSpecificCause().getClass().getSimpleName());
+			return memberKakaoRegistrar.registerOrUpdate(profile);
 		}
 	}
 }

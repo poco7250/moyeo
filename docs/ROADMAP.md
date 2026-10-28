@@ -1,16 +1,16 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-10-28 (dev `f1d47f1` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-10-28 (`feature/member-kakao` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 0 (기반 정리). Task 001(공통 API 응답·전역 예외 JSON 전환)·Task 002(테스트 기반과 설정 정리) 완료, 다음은 Task 003(member 카카오 기반 전환). 코드에는 이메일·비밀번호 회원가입(`member/`)과 공통 코드(`global/`)만 있고, 그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 0 (기반 정리) 완료. 다음은 Phase 1 Task 004(카카오 OAuth 클라이언트). 코드에는 카카오 기반 회원(`member/`)과 공통 코드(`global/`)만 있고, 인증 API·그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
 |---|---|---|---|---|---|
-| 0 | 기반 정리 | 0 | 3 | 2 | 🔄 진행 중 (001·002 완료, 003 다음) |
+| 0 | 기반 정리 | 0 | 3 | 3 | ✅ 완료 |
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 0 | ⬜ 대기 |
 | 2 | 그룹·초대 | 2 | 3 | 0 | ⬜ 대기 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **2** | |
+| **합계** | | | **66** (MVP 43) | **3** | |
 
 ## 상태 범례
 
@@ -36,7 +36,7 @@
 | ⏸️ 보류 | 선행 조건(오픈 이슈 등) 미해결 — 사유 필수 |
 
 - ⚠️ = PRD에 모호하거나 누락된 부분이 있어 착수 전 확인이 필요한 항목(PRD는 수정하지 않음)
-- 체크박스 `[x]` = 현재 코드(2026-10-28, dev `f1d47f1`)로 이미 충족된 항목
+- 체크박스 `[x]` = 현재 코드(2026-10-28, `feature/member-kakao`)로 이미 충족된 항목
 
 ## 공통 규칙 (모든 Task에 적용)
 
@@ -133,28 +133,33 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew test` 통과(전체 20건) · [x] `/spring-tools:validate` 통과(에러 없음, `MemberController` info 1건은 Task 003에서 제거 예정) · [x] 수락 기준 충족
 - **참고:** 테스트 실행에 Docker가 필요하다(CI 러너도 Docker 사용 가능해야 함). DB를 쓰는 테스트는 `@Import(TestcontainersConfiguration.class)`, `@DataJpaTest`는 추가로 `@AutoConfigureTestDatabase(replace = NONE)`와 `JpaAuditingConfig` Import
 
-### Task 003: member 카카오 기반 전환과 이메일 가입 코드 제거   ⬜ 대기
+### Task 003: member 카카오 기반 전환과 이메일 가입 코드 제거   ✅ 완료
+
+- **완료일:** 2026-10-28 · 브랜치 `feature/member-kakao`
 
 - **관련 기능:** G-3, 7장 전환 계획(Member·MemberService·MemberController·MemberJoinRequest·PasswordEncoderConfig·ErrorCode)
 - **선행 Task:** Task 001, Task 002
 - **구현 사항**
-  - [ ] `member/domain/Member` 전환: `password` 제거, `kakaoId`(Long, 유니크·필수) 추가, `nickname`(카카오 닉네임, 유니크 제거), `profileImageUrl` 추가, `email` nullable
-  - [ ] 정적 팩토리 `Member.ofKakao(kakaoId, nickname, profileImageUrl, email)` + `updateKakaoProfile(...)`
-  - [ ] `MemberRepository.findByKakaoId(Long)`
-  - [ ] `MemberService.findOrCreateByKakaoId(KakaoUserInfo)` — 없으면 생성, 있으면 프로필 갱신. 동시 최초 로그인은 `kakaoId` 유니크 위반 시 재조회로 처리
-  - [ ] 제거: `MemberService.join`, `MemberController`(`@Controller` 회원가입 폼), `MemberJoinRequest`, `templates/member/*`, `global/config/PasswordEncoderConfig`, `build.gradle`의 `spring-security-crypto`, `ErrorCode.DUPLICATE_EMAIL`·`DUPLICATE_NICKNAME`
-  - [ ] SPA 결정에 맞춰 `HomeController`·`templates/index.html`·`fragments/layout.html`·`static/css/style.css`·`templates/error/*` 정리(OG 메타 HTML용 Thymeleaf는 유지 — Task 019)
-  - [ ] `member/dto/MemberResponse`를 카카오 기반 필드(id, nickname, profileImageUrl)로 수정
-  - [ ] 기존 `MemberServiceTest`·`MemberControllerTest`를 새 구조에 맞게 교체
+  - [x] `member/domain/Member` 전환: `password` 제거, `kakaoId`(Long, 유니크·필수) 추가, `nickname`(카카오 닉네임, 유니크 제거), `profileImageUrl` 추가, `email` nullable
+  - [x] 정적 팩토리 `Member.ofKakao(kakaoId, nickname, profileImageUrl, email)` + `updateKakaoProfile(...)`
+  - [x] `MemberRepository.findByKakaoId(Long)`
+  - [x] `MemberService.findOrCreateByKakaoId(KakaoProfile)` — 없으면 생성, 있으면 프로필 갱신(로그인마다 카카오 최신 값으로 덮어씀). 입력은 member 소유 `member/dto/KakaoProfile`(auth DTO를 받으면 auth ↔ member 순환이 생겨서), Task 004의 `KakaoUserInfo`가 변환해 넘긴다
+    - [x] 동시 최초 로그인: 저장은 `MemberKakaoRegistrar`(`REQUIRES_NEW`)가 하고, `kakaoId` 유니크 위반이면 `MemberService`가 새 트랜잭션으로 1회 재호출해 기존 회원 반환
+  - [x] 제거: `MemberService.join`, `MemberController`(`@Controller` 회원가입 폼), `MemberJoinRequest`, `templates/member/*`, `global/config/PasswordEncoderConfig`, `build.gradle`의 `spring-security-crypto`, `ErrorCode.DUPLICATE_EMAIL`·`DUPLICATE_NICKNAME`
+  - [x] SPA 결정에 맞춰 `HomeController`·`templates/index.html`·`fragments/layout.html`·`static/css/style.css`·`templates/error/*` 제거(OG 메타 HTML용 Thymeleaf 의존성은 유지 — Task 019). `/`는 이제 404 JSON
+  - [x] `member/dto/MemberResponse`를 카카오 기반 필드(id, nickname, profileImageUrl)로 수정
+  - [x] 기존 `MemberServiceTest` 교체, `MemberControllerTest` 삭제(REST 컨트롤러는 Task 006)
 - **테스트**
-  - [ ] `@DataJpaTest`: `kakaoId` 유니크 제약, `email` null 저장 가능, 같은 `nickname` 2명 저장 가능
-  - [ ] 단위 테스트(`MemberService`, Repository 목): 신규 `kakaoId` → 생성, 기존 `kakaoId` → 생성 없이 프로필 갱신
-  - [ ] 단위 테스트: `kakaoId` 유니크 위반 발생 시 재조회해 같은 회원 반환
+  - [x] `@DataJpaTest`(`MemberRepositoryTest`): `kakaoId` 유니크 제약, `email` null 저장 가능, 같은 `nickname` 2명 저장 가능
+  - [x] 단위 테스트(`MemberKakaoRegistrarTest`, Repository 목): 신규 `kakaoId` → 생성, 기존 `kakaoId` → 생성 없이 프로필 갱신
+  - [x] 단위 테스트(`MemberServiceTest`): `kakaoId` 유니크 위반 발생 시 재조회해 같은 회원 반환, 재시도도 실패하면 예외 전파
+  - [x] 통합(`MemberServiceIntegrationTest`): 같은 `kakaoId`로 두 번 호출 시 회원 1건·같은 id
 - **수락 기준**
   - Given 처음 보는 카카오 사용자 / When `findOrCreateByKakaoId`를 호출하면 / Then `Member`가 1건 생성되고, 같은 `kakaoId`로 다시 호출하면 추가 생성 없이 같은 회원이 반환된다.
   - Given 전환 완료 코드 / When 프로젝트를 검색하면 / Then `password`, `PasswordEncoder`, `/members/join` 경로가 남아 있지 않다.
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 23건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족(남은 `password`는 datasource 설정·예외 테스트 더미 문자열뿐)
+- **참고:** 로컬 DB는 `ddl-auto=update`라 기존 `member` 테이블의 `password`·`email` NOT NULL 컬럼이 남는다 → 로컬에서 `member` 테이블을 한 번 drop 후 실행
 
 ---
 
@@ -170,7 +175,7 @@ Phase 10 040 → 041, 042 → 043
 - **구현 사항**
   - [ ] `auth/client/KakaoOAuthClient` — 인가 코드로 토큰 요청(`kauth.kakao.com/oauth/token`), 사용자 정보 조회(`kapi.kakao.com/v2/user/me`). `RestClient` 사용(Boot 4 스타터 이름은 Context7로 확인)
   - [ ] `auth/config/KakaoOAuthProperties`(`@ConfigurationProperties`: clientId, clientSecret, redirectUri, 타임아웃) — 비밀값은 `application-local.properties`·환경 변수로만
-  - [ ] `auth/dto/KakaoUserInfo`(kakaoId, nickname, profileImageUrl, email?) — 동의 안 한 항목은 null 허용
+  - [ ] `auth/dto/KakaoUserInfo`(kakaoId, nickname, profileImageUrl, email?) — 동의 안 한 항목은 null 허용. `toProfile()`로 `member/dto/KakaoProfile`로 변환해 `MemberService`에 넘긴다
   - [ ] 연결·읽기 타임아웃 설정
   - [ ] 에러 코드: `KAKAO_AUTH_FAILED`(401, 잘못된·만료된 인가 코드), `KAKAO_API_UNAVAILABLE`(502/503, 카카오 장애·타임아웃)
 - **테스트**

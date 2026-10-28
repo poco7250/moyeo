@@ -7,17 +7,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `moyeo`는 Spring Boot 4.1 + Java 21 기반 친구 모임 관리 웹앱의 백엔드 프로젝트다. 제품 요구사항은 `docs/PRD.md`에 있다.
 
 - 빌드 도구: Gradle 9 (wrapper 사용)
-- 주요 의존성: Spring Web MVC, Spring Data JPA, Bean Validation, Thymeleaf, Spring Security Crypto, Lombok, DevTools
+- 주요 의존성: Spring Web MVC, Spring Data JPA, Bean Validation, Thymeleaf(OG 메타 HTML용, Task 019), Lombok, DevTools
 - DB: MySQL (`mysql-connector-j`)
 - 베이스 패키지: `com.poco7250.moyeo`
 
 ### 현재 코드 구조
 
-- `global/` — 공통 코드: `BaseTimeEntity`, `JpaAuditingConfig`, `PasswordEncoderConfig`, 예외 처리(`ErrorCode`, `BusinessException`, `GlobalExceptionHandler`), `HomeController`
-- `member/` — 이메일·비밀번호 회원가입(`domain` / `dto` / `repository` / `service` / `controller`), Thymeleaf 템플릿은 `templates/member/`
+- `global/` — 공통 코드: `BaseTimeEntity`, 설정(`JpaAuditingConfig`, `ClockConfig`, `SchedulingConfig`), 공통 응답(`ApiResponse`), 예외 처리(`ErrorCode`, `BusinessException`, `GlobalExceptionHandler`)
+- `member/` — 카카오 기반 회원(`Member`의 `kakaoId` 유니크). `MemberService.findOrCreateByKakaoId(KakaoProfile)`로 조회·생성, 저장은 `MemberKakaoRegistrar`(`REQUIRES_NEW`). 비밀번호·서버 렌더링 화면은 없다(SPA용 REST API)
 - 도메인 패키지는 `<도메인>/{domain,dto,repository,service,controller}` 구조를 따른다.
-
-> PRD 결정에 따라 `member`는 카카오 로그인 기반으로 전환할 예정이다(비밀번호·`PasswordEncoderConfig` 제거, 서버 렌더링 → SPA용 REST API). 전환 계획은 `docs/PRD.md` 7장 참고.
+- 진행 상황과 다음 작업은 `docs/ROADMAP.md`를 본다.
 
 ## 명령어
 
