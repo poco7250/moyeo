@@ -5,13 +5,13 @@
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 0 (기반 정리) 완료. 다음은 Phase 1 Task 004(카카오 OAuth 클라이언트). 코드에는 카카오 기반 회원(`member/`)과 공통 코드(`global/`)만 있고, 인증 API·그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 1 진행 중 — Task 004(카카오 OAuth 클라이언트) 완료, 다음은 Task 005(자체 토큰 발급·검증). 코드에는 카카오 기반 회원(`member/`), 카카오 OAuth 클라이언트(`auth/`), 공통 코드(`global/`)만 있고, 인증 API·그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
 |---|---|---|---|---|---|
 | 0 | 기반 정리 | 0 | 3 | 3 | ✅ 완료 |
-| 1 | 카카오 로그인·토큰 | 1 | 3 | 0 | ⬜ 대기 |
+| 1 | 카카오 로그인·토큰 | 1 | 3 | 1 | 🔄 진행 중 |
 | 2 | 그룹·초대 | 2 | 3 | 0 | ⬜ 대기 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 0 | ⬜ 대기 |
 | 4 | 장소 결정 | 4 | 6 | 0 | ⏸️ 일부 보류 (오픈 이슈 5) |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **3** | |
+| **합계** | | | **66** (MVP 43) | **4** | |
 
 ## 상태 범례
 
@@ -168,25 +168,25 @@ Phase 10 040 → 041, 042 → 043
 - **목표:** 카카오 인가 코드 → 회원 조회/생성 → 자체 토큰(Access + Refresh, `HttpOnly` 쿠키) 발급, 이후 모든 API가 기대는 인증 주체(로그인 회원) 확보
 - **포함 기능 ID:** G-3, 6장 인증·인가
 
-### Task 004: 카카오 OAuth 클라이언트 (인가 코드 → 사용자 정보)   ⬜ 대기
+### Task 004: 카카오 OAuth 클라이언트 (인가 코드 → 사용자 정보)   ✅ 완료
 
 - **관련 기능:** G-3, 6장 인증
 - **선행 Task:** Task 003
 - **구현 사항**
-  - [ ] `auth/client/KakaoOAuthClient` — 인가 코드로 토큰 요청(`kauth.kakao.com/oauth/token`), 사용자 정보 조회(`kapi.kakao.com/v2/user/me`). `RestClient` 사용(Boot 4 스타터 이름은 Context7로 확인)
-  - [ ] `auth/config/KakaoOAuthProperties`(`@ConfigurationProperties`: clientId, clientSecret, redirectUri, 타임아웃) — 비밀값은 `application-local.properties`·환경 변수로만
-  - [ ] `auth/dto/KakaoUserInfo`(kakaoId, nickname, profileImageUrl, email?) — 동의 안 한 항목은 null 허용. `toProfile()`로 `member/dto/KakaoProfile`로 변환해 `MemberService`에 넘긴다
-  - [ ] 연결·읽기 타임아웃 설정
-  - [ ] 에러 코드: `KAKAO_AUTH_FAILED`(401, 잘못된·만료된 인가 코드), `KAKAO_API_UNAVAILABLE`(502/503, 카카오 장애·타임아웃)
+  - [x] `auth/client/KakaoOAuthClient` — 인가 코드로 토큰 요청(`kauth.kakao.com/oauth/token`), 사용자 정보 조회(`kapi.kakao.com/v2/user/me`). `RestClient` 사용(Boot 4 스타터 이름은 Context7로 확인)
+  - [x] `auth/config/KakaoOAuthProperties`(`@ConfigurationProperties`: clientId, clientSecret, redirectUri, 타임아웃) — 비밀값은 `application-local.properties`·환경 변수로만
+  - [x] `auth/dto/KakaoUserInfo`(kakaoId, nickname, profileImageUrl, email?) — 동의 안 한 항목은 null 허용. `toProfile()`로 `member/dto/KakaoProfile`로 변환해 `MemberService`에 넘긴다
+  - [x] 연결·읽기 타임아웃 설정
+  - [x] 에러 코드: `KAKAO_AUTH_FAILED`(401, 잘못된·만료된 인가 코드), `KAKAO_API_UNAVAILABLE`(502/503, 카카오 장애·타임아웃)
 - **테스트**
-  - [ ] 목 서버(`MockRestServiceServer` 등) 기반: 성공 시 `KakaoUserInfo` 매핑(이메일 없는 응답 포함)
-  - [ ] 실패: 토큰 요청 400/401 → `KAKAO_AUTH_FAILED`
-  - [ ] 실패: 5xx·타임아웃 → `KAKAO_API_UNAVAILABLE`
-  - [ ] 클라이언트 시크릿이 로그에 남지 않는지 확인
+  - [x] 목 서버(`MockRestServiceServer` 등) 기반: 성공 시 `KakaoUserInfo` 매핑(이메일 없는 응답 포함)
+  - [x] 실패: 토큰 요청 400/401 → `KAKAO_AUTH_FAILED`
+  - [x] 실패: 5xx·타임아웃 → `KAKAO_API_UNAVAILABLE`
+  - [x] 클라이언트 시크릿이 로그에 남지 않는지 확인
 - **수락 기준**
   - Given 유효한 인가 코드(스텁) / When 클라이언트를 호출하면 / Then kakaoId·닉네임·프로필 이미지가 담긴 `KakaoUserInfo`를 받는다. Given 카카오 응답 지연 / When 타임아웃이 지나면 / Then `KAKAO_API_UNAVAILABLE` 예외가 난다.
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 39건, `KakaoOAuthClientTest` 9건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족(타임아웃은 `SocketTimeoutException` 스텁으로 재현)
 
 ### Task 005: 자체 토큰(Access·Refresh) 발급·검증   ⬜ 대기
 
