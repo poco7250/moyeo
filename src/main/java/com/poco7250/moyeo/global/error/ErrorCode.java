@@ -22,7 +22,10 @@ public enum ErrorCode {
 
 	// 인증
 	KAKAO_AUTH_FAILED(HttpStatus.UNAUTHORIZED, "카카오 로그인에 실패했습니다. 다시 시도해 주세요."),
-	KAKAO_API_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "카카오 서버와 통신하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+	KAKAO_API_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "카카오 서버와 통신하지 못했습니다. 잠시 후 다시 시도해 주세요."),
+	INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 인증 정보입니다. 다시 로그인해 주세요."),
+	EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "인증이 만료되었습니다."),
+	INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "로그인 정보가 만료되었습니다. 다시 로그인해 주세요.");
 
 	private final HttpStatus status;
 	private final String message;

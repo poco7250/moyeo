@@ -1,17 +1,17 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-10-28 (`feature/member-kakao` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-10-30 (`feature/jwt-token` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 1 진행 중 — Task 004(카카오 OAuth 클라이언트) 완료, 다음은 Task 005(자체 토큰 발급·검증). 코드에는 카카오 기반 회원(`member/`), 카카오 OAuth 클라이언트(`auth/`), 공통 코드(`global/`)만 있고, 인증 API·그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 1 진행 중 — Task 005(자체 토큰 발급·검증) 완료, 다음은 Task 006(인증 API·인증 필터). 코드에는 카카오 기반 회원(`member/`), 카카오 OAuth 클라이언트·자체 토큰 발급/회전·쿠키(`auth/`), 공통 코드(`global/`)만 있고, 인증 API·그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
 |---|---|---|---|---|---|
 | 0 | 기반 정리 | 0 | 3 | 3 | ✅ 완료 |
-| 1 | 카카오 로그인·토큰 | 1 | 3 | 1 | 🔄 진행 중 |
+| 1 | 카카오 로그인·토큰 | 1 | 3 | 2 | 🔄 진행 중 |
 | 2 | 그룹·초대 | 2 | 3 | 0 | ⬜ 대기 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 0 | ⬜ 대기 |
 | 4 | 장소 결정 | 4 | 6 | 0 | ⏸️ 일부 보류 (오픈 이슈 5) |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **4** | |
+| **합계** | | | **66** (MVP 43) | **5** | |
 
 ## 상태 범례
 
@@ -188,24 +188,25 @@ Phase 10 040 → 041, 042 → 043
 - **완료 조건**
   - [x] `./gradlew test` 통과(전체 39건, `KakaoOAuthClientTest` 9건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족(타임아웃은 `SocketTimeoutException` 스텁으로 재현)
 
-### Task 005: 자체 토큰(Access·Refresh) 발급·검증   ⬜ 대기
+### Task 005: 자체 토큰(Access·Refresh) 발급·검증   ✅ 완료
 
 - **관련 기능:** G-3, 6장 인증
 - **선행 Task:** Task 004
 - **구현 사항**
-  - [ ] 인증 처리 방식 결정·적용 — 권장: `spring-boot-starter-security` 필터 체인 + JWT(라이브러리는 Context7로 Boot 4 호환 확인). CSRF: `HttpOnly` 쿠키 인증이므로 `SameSite` 설정과 CSRF 방어 방식을 함께 정한다
-  - [ ] `auth/token/JwtTokenProvider` — Access 발급·검증(subject = memberId), 만료 시간 설정값
-  - [ ] `auth/domain/RefreshToken` 엔티티(member, tokenHash, expiresAt) + `RefreshTokenRepository` — 재발급 시 회전(기존 토큰 폐기)
-  - [ ] `auth/token/TokenCookieFactory` — `HttpOnly`·`Secure`·`SameSite` 쿠키 생성/삭제
-  - [ ] 에러 코드: `INVALID_TOKEN`(401), `EXPIRED_TOKEN`(401), `INVALID_REFRESH_TOKEN`(401)
+  - [x] 인증 처리 방식 결정·적용 — `spring-boot-starter-security` 무상태 필터 체인(`global/config/SecurityConfig`, 지금은 `permitAll`, 인증 필터는 Task 006) + jjwt 0.13 HS256. CSRF: 인증 쿠키를 `SameSite=Lax`로 내리고 상태 변경 GET을 금지하는 대신 CSRF 토큰은 끈다
+  - [x] `auth/token/JwtTokenProvider` — Access 발급·검증(subject = memberId), 만료 시간 설정값(`auth/config/JwtProperties`: `auth.jwt.secret` 32바이트 이상 필수, Access 30분·Refresh 14일 기본)
+  - [x] `auth/domain/RefreshToken` 엔티티(member, tokenHash, expiresAt) + `RefreshTokenRepository` — 재발급 시 회전(기존 토큰 폐기). 원문은 `RefreshTokenGenerator`(SecureRandom 32바이트), DB에는 SHA-256 hex만. `auth/service/TokenService`의 `issue`·`reissue`·`revoke`, 동시 회전은 벌크 삭제 건수 0으로 감지
+  - [x] `auth/token/TokenCookieFactory` — `HttpOnly`·`Secure`·`SameSite=Lax` 쿠키 생성/삭제(Access `Path=/`, Refresh `Path=/api/auth`). 설정 `auth.cookie.domain`(오픈 이슈 1 결정 후)·`auth.cookie.secure`(로컬만 false)
+  - [x] 에러 코드: `INVALID_TOKEN`(401), `EXPIRED_TOKEN`(401), `INVALID_REFRESH_TOKEN`(401)
 - **테스트**
-  - [ ] 단위: Access 발급 → 검증 성공, 서명 위조·만료 토큰 → 각 에러 코드(고정 `Clock`)
-  - [ ] `@DataJpaTest`: `RefreshToken` 저장·조회·삭제, 토큰 원문이 아닌 해시가 저장되는지
-  - [ ] 단위: Refresh 회전 — 재발급 후 이전 Refresh로 재요청하면 `INVALID_REFRESH_TOKEN`
+  - [x] 단위: Access 발급 → 검증 성공, 서명 위조·만료 토큰 → 각 에러 코드(고정 `Clock`)
+  - [x] `@DataJpaTest`: `RefreshToken` 저장·조회·삭제, 토큰 원문이 아닌 해시가 저장되는지
+  - [x] 단위: Refresh 회전 — 재발급 후 이전 Refresh로 재요청하면 `INVALID_REFRESH_TOKEN`
 - **수락 기준**
   - Given 발급된 Refresh 토큰 / When 재발급을 요청하면 / Then 새 Access·Refresh가 발급되고 이전 Refresh는 더 이상 쓸 수 없다.
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 80건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족(`TokenServiceIntegrationTest`로 실제 DB에서 확인)
+- **참고:** 시큐리티가 들어오면서 `@WebMvcTest`는 `@Import(SecurityConfig.class)`가 있어야 기본 체인(인증 필요·CSRF)을 피한다. 로컬 실행에는 `application-local.properties`에 `auth.jwt.secret`·`auth.cookie.secure=false`가 필요하다
 
 ### Task 006: 인증 API·인증 필터·로그인 후 원래 링크 복귀   ⬜ 대기
 
