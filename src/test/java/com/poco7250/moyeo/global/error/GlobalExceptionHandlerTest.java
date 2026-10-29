@@ -9,14 +9,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.poco7250.moyeo.global.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+// 시큐리티 기본 체인(인증 필요·CSRF) 대신 실제 SecurityConfig를 써서 예외 응답만 검증한다
 @WebMvcTest(controllers = ExceptionTestController.class)
+@Import(SecurityConfig.class)
 class GlobalExceptionHandlerTest {
 
 	private static final String BASE_URL = "/test/exceptions";
