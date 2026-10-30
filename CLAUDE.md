@@ -37,7 +37,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 설정 및 환경
 
 - `application.properties`에는 아직 datasource 설정이 없다. MySQL 드라이버와 JPA가 포함돼 있어 DB 접속 정보 없이 실행하거나 `@SpringBootTest`(`contextLoads`)를 돌리면 컨텍스트 로딩이 실패할 수 있다.
-- 로컬 DB 접속 정보 같은 개인 설정은 `application-local.properties`에 둔다(gitignore 대상). `local` 프로필로 활성화한다. 카카오 키(`kakao.oauth.*`), `auth.jwt.secret`(32바이트 이상), `auth.cookie.secure=false`(http 로컬)도 여기에 둔다.
+- 로컬 DB 접속 정보 같은 개인 설정은 프로젝트 루트의 `config/application-local.properties`에 둔다(gitignore 대상). `local` 프로필로 활성화한다. `src/main/resources`에 두면 jar에 비밀값이 묶이므로 두지 않는다(Spring Boot가 실행 위치의 `./config/`를 자동으로 읽으니 작업 디렉터리는 프로젝트 루트여야 한다). 카카오 키(`kakao.oauth.*`), `auth.jwt.secret`(32바이트 이상), `auth.cookie.secure=false`(http 로컬)도 여기에 둔다.
 - 공개 경로는 `SecurityConfig`의 화이트리스트에만 있고, 나머지 API는 전부 인증이 필요하다. 새 공개 API를 만들면 여기에 추가한다.
 - 컨트롤러 `@WebMvcTest`는 `@Import(SecurityTestConfig.class)`(`src/test/.../support`)로 실제 시큐리티 체인을 올리고, 인증이 필요하면 `JwtTokenProvider`로 만든 토큰을 `access_token` 쿠키에 실어 보낸다(`MemberControllerTest` 참고).
 - `.claude/settings.local.json`도 gitignore 대상이다.
