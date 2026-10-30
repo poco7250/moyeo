@@ -5,13 +5,13 @@
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 1 마무리 중 — Task 006(인증 API·인증 필터) 구현·테스트 완료, 카카오톡 인앱 브라우저 수동 확인만 남음. 다음은 Phase 2 Task 007(그룹·멤버·초대 링크 도메인 골격). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 공통 코드(`global/`)가 있고, 그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 1 완료 — Task 006(인증 API·인증 필터)까지 카카오톡 인앱 브라우저 수동 확인을 마쳤다. 다음은 Phase 2 Task 007(그룹·멤버·초대 링크 도메인 골격). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 공통 코드(`global/`)가 있고, 그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
 |---|---|---|---|---|---|
 | 0 | 기반 정리 | 0 | 3 | 3 | ✅ 완료 |
-| 1 | 카카오 로그인·토큰 | 1 | 3 | 2 | 🔄 진행 중 |
+| 1 | 카카오 로그인·토큰 | 1 | 3 | 3 | ✅ 완료 |
 | 2 | 그룹·초대 | 2 | 3 | 0 | ⬜ 대기 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 0 | ⬜ 대기 |
 | 4 | 장소 결정 | 4 | 6 | 0 | ⏸️ 일부 보류 (오픈 이슈 5) |
@@ -208,7 +208,7 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew test` 통과(전체 80건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족(`TokenServiceIntegrationTest`로 실제 DB에서 확인)
 - **참고:** 시큐리티가 들어오면서 `@WebMvcTest`는 `@Import(SecurityConfig.class)`가 있어야 기본 체인(인증 필요·CSRF)을 피한다. 로컬 실행에는 `application-local.properties`에 `auth.jwt.secret`·`auth.cookie.secure=false`가 필요하다
 
-### Task 006: 인증 API·인증 필터·로그인 후 원래 링크 복귀   🔄 진행 중 (카카오톡 인앱 브라우저 수동 확인만 남음)
+### Task 006: 인증 API·인증 필터·로그인 후 원래 링크 복귀   ✅ 완료
 
 - **관련 기능:** G-3, 6장 인증·인가(카카오톡 인앱 브라우저)
 - **선행 Task:** Task 005
@@ -232,8 +232,8 @@ Phase 10 040 → 041, 042 → 043
   - [x] Given 미로그인 사용자가 초대 링크 경로를 `returnUrl`로 로그인 시작 / When 카카오 로그인을 마치면 / Then 토큰 쿠키가 발급되고 원래 초대 링크 경로로 돌아간다(G-3 앞부분). — `AuthControllerTest` 콜백 성공(`Location: /invites/abc`)
   - [x] Given 로그인 회원 / When `/api/members/me`를 호출하면 / Then 닉네임·프로필 이미지가 공통 응답 래퍼로 반환된다. — `MemberControllerTest`(kakaoId·이메일 미노출 포함)
 - **완료 조건**
-  - [x] `./gradlew test` 통과(전체 129건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족 · [ ] 카카오톡 인앱 브라우저에서 로그인·리다이렉트 수동 확인(9장 리스크, 사용자 확인 필요 — 실제 카카오 앱 키·배포 주소가 있어야 한다)
-- **참고:** 로컬 실행에는 `application-local.properties`에 카카오 키(`kakao.oauth.*`)·`auth.jwt.secret`·`auth.cookie.secure=false`가 필요하다. 테스트는 `application-test.properties`에서 `auth.redirect.frontend-base-url`을 비워 상대 경로 리다이렉트를 기대한다
+  - [x] `./gradlew test` 통과(전체 129건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족 · [x] 카카오톡 인앱 브라우저에서 로그인·리다이렉트 수동 확인(9장 리스크) — 2026-10-31, cloudflared HTTPS 터널 + `auth.cookie.secure=true`로 확인: ① `returnUrl=/api/members/me` 로그인 후 내 정보 JSON, ② 인앱 브라우저를 닫았다 다시 열어도 쿠키 유지, ③ `/invites/abc` 경로 유지, ④ 외부 주소 `returnUrl`은 `/`로 차단. 확인 기기는 1대라 다른 OS(iOS/Android)는 배포 후 다시 본다
+- **참고:** 로컬 실행에는 `application-local.properties`에 카카오 키(`kakao.oauth.*`)·`auth.jwt.secret`·`auth.cookie.secure=false`가 필요하다. 카카오 콘솔 동의항목에서 닉네임을 필수로 두지 않으면 닉네임이 null로 와 회원 저장이 실패하고 `DUPLICATE_RESOURCE`(409)로 잘못 응답한다(수동 확인 중 발견, 후속 수정 필요). 테스트는 `application-test.properties`에서 `auth.redirect.frontend-base-url`을 비워 상대 경로 리다이렉트를 기대한다
 
 ---
 
