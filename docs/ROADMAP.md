@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-10-30 (`feature/jwt-token` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-10-31 (`feature/auth-config-docs` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 1 진행 중 — Task 005(자체 토큰 발급·검증) 완료, 다음은 Task 006(인증 API·인증 필터). 코드에는 카카오 기반 회원(`member/`), 카카오 OAuth 클라이언트·자체 토큰 발급/회전·쿠키(`auth/`), 공통 코드(`global/`)만 있고, 인증 API·그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 1 마무리 중 — Task 006(인증 API·인증 필터) 구현·테스트 완료, 카카오톡 인앱 브라우저 수동 확인만 남음. 다음은 Phase 2 Task 007(그룹·멤버·초대 링크 도메인 골격). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 공통 코드(`global/`)가 있고, 그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -208,30 +208,32 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew test` 통과(전체 80건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족(`TokenServiceIntegrationTest`로 실제 DB에서 확인)
 - **참고:** 시큐리티가 들어오면서 `@WebMvcTest`는 `@Import(SecurityConfig.class)`가 있어야 기본 체인(인증 필요·CSRF)을 피한다. 로컬 실행에는 `application-local.properties`에 `auth.jwt.secret`·`auth.cookie.secure=false`가 필요하다
 
-### Task 006: 인증 API·인증 필터·로그인 후 원래 링크 복귀   ⬜ 대기
+### Task 006: 인증 API·인증 필터·로그인 후 원래 링크 복귀   🔄 진행 중 (카카오톡 인앱 브라우저 수동 확인만 남음)
 
 - **관련 기능:** G-3, 6장 인증·인가(카카오톡 인앱 브라우저)
 - **선행 Task:** Task 005
-- **선행 조건:** ⚠️ PRD 오픈 이슈 1(SPA 프레임워크·배포 방식) — 쿠키 도메인·리다이렉트 대상 오리진 설정에 영향. 설정값으로 분리해 두고 결정 후 채운다
+- **선행 조건:** ⚠️ PRD 오픈 이슈 1(SPA 프레임워크·배포 방식) — 쿠키 도메인·리다이렉트 대상 오리진 설정에 영향. 설정값(`auth.cookie.domain`, `auth.redirect.frontend-base-url`)으로 분리해 뒀고, 비우면 같은 오리진 상대 경로로 동작한다. 결정 후 채운다
 - **구현 사항**
-  - [ ] `auth/controller/AuthController`(`@RestController`)
-    - [ ] `GET /api/auth/kakao/login?returnUrl=` — 카카오 인가 URL로 리다이렉트, `state`에 CSRF 값 + `returnUrl` 저장
-    - [ ] `GET /api/auth/kakao/callback` — `state` 검증 → `KakaoOAuthClient` → `MemberService.findOrCreateByKakaoId` → 토큰 쿠키 → `returnUrl`로 리다이렉트
-    - [ ] `POST /api/auth/refresh`, `POST /api/auth/logout`(Refresh 삭제·쿠키 만료)
-  - [ ] `member/controller/MemberController`(`@RestController`) `GET /api/members/me`
-  - [ ] 인증 필터(쿠키 Access 검증) + `@LoginMember Long memberId` 리졸버(또는 `@AuthenticationPrincipal`)
-  - [ ] `returnUrl` 검증: 허용 오리진의 상대 경로만 허용(오픈 리다이렉트 방지), 아니면 기본 경로
-  - [ ] 공개 경로 화이트리스트: 로그인·콜백·재발급·초대 링크 조회·OG 메타 HTML
+  - [x] `auth/controller/AuthController`(`@RestController`)
+    - [x] `GET /api/auth/kakao/login?returnUrl=` — 카카오 인가 URL로 302. `state`(SecureRandom 32바이트)와 검증된 `returnUrl`은 `auth/support/OAuthStateCookies`가 `HttpOnly` 쿠키(`Path=/api/auth/kakao`, 10분)로 내려 콜백에서 꺼낸다
+    - [x] `GET /api/auth/kakao/callback` — `state` 상수 시간 비교 → `AuthService.loginWithKakao`(`KakaoOAuthClient` → `MemberService.findOrCreateByKakaoId` → `TokenService.issue`) → 토큰 쿠키 + state 쿠키 만료 → `returnUrl`로 302. 동의 취소(`error`)·code 없음은 `KAKAO_AUTH_FAILED`
+    - [x] `POST /api/auth/refresh`(회전), `POST /api/auth/logout`(Refresh 삭제·쿠키 만료, 비로그인도 성공)
+  - [x] `member/controller/MemberController`(`@RestController`) `GET /api/members/me` — `MemberService.getMe`(읽기 전용, 없으면 `MEMBER_NOT_FOUND` 404)
+  - [x] 인증 필터 `auth/security/JwtAuthenticationFilter`(`access_token` 쿠키 검증) + `RestAuthenticationEntryPoint`(401 공통 JSON, 만료면 `EXPIRED_TOKEN`) + `@LoginMember Long memberId`(`@AuthenticationPrincipal` 메타 어노테이션)
+  - [x] `returnUrl` 검증 `auth/support/ReturnUrlValidator`: `/`로 시작하는 상대 경로만 허용(`//` 시작·역슬래시·줄바꿈·길이 초과 거부, 오픈 리다이렉트 방지), 아니면 `auth.redirect.default-path`
+  - [x] 공개 경로 화이트리스트(`SecurityConfig`): 로그인·콜백·재발급·로그아웃·초대 링크 조회(`GET /api/invites/*`). OG 메타 HTML 경로는 Task 019에서 추가
+  - [x] 에러 코드: `INVALID_OAUTH_STATE`(401), `MEMBER_NOT_FOUND`(404)
 - **테스트**
-  - [ ] `@WebMvcTest`: 콜백 성공 시 `Set-Cookie`에 `HttpOnly` Access·Refresh, `returnUrl`로 302
-  - [ ] `@WebMvcTest`: `state` 불일치 → 401, 외부 도메인 `returnUrl` → 기본 경로로 리다이렉트
-  - [ ] `@WebMvcTest`: 토큰 없이 `/api/members/me` → 401 `UNAUTHORIZED` JSON, 유효 토큰 → 내 정보
-  - [ ] 카카오 클라이언트는 목 처리(실제 호출 없음)
+  - [x] `@WebMvcTest`: 콜백 성공 시 `Set-Cookie`에 `HttpOnly` Access·Refresh, `returnUrl`로 302 (`AuthControllerTest` 11건)
+  - [x] `@WebMvcTest`: `state` 불일치·state 쿠키 없음 → 401 `INVALID_OAUTH_STATE`, 외부 도메인 `returnUrl` → 기본 경로로 리다이렉트
+  - [x] `@WebMvcTest`: 토큰 없이 `/api/members/me` → 401 `UNAUTHORIZED` JSON, 만료 토큰 → 401 `EXPIRED_TOKEN`, 유효 토큰 → 내 정보 (`MemberControllerTest` 4건, `SecurityIntegrationTest` 6건)
+  - [x] 카카오 클라이언트는 목 처리(실제 호출 없음)
 - **수락 기준**
-  - Given 미로그인 사용자가 초대 링크 경로를 `returnUrl`로 로그인 시작 / When 카카오 로그인을 마치면 / Then 토큰 쿠키가 발급되고 원래 초대 링크 경로로 돌아간다(G-3 앞부분).
-  - Given 로그인 회원 / When `/api/members/me`를 호출하면 / Then 닉네임·프로필 이미지가 공통 응답 래퍼로 반환된다.
+  - [x] Given 미로그인 사용자가 초대 링크 경로를 `returnUrl`로 로그인 시작 / When 카카오 로그인을 마치면 / Then 토큰 쿠키가 발급되고 원래 초대 링크 경로로 돌아간다(G-3 앞부분). — `AuthControllerTest` 콜백 성공(`Location: /invites/abc`)
+  - [x] Given 로그인 회원 / When `/api/members/me`를 호출하면 / Then 닉네임·프로필 이미지가 공통 응답 래퍼로 반환된다. — `MemberControllerTest`(kakaoId·이메일 미노출 포함)
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족 · [ ] 카카오톡 인앱 브라우저에서 로그인·리다이렉트 수동 확인(9장 리스크)
+  - [x] `./gradlew test` 통과(전체 129건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족 · [ ] 카카오톡 인앱 브라우저에서 로그인·리다이렉트 수동 확인(9장 리스크, 사용자 확인 필요 — 실제 카카오 앱 키·배포 주소가 있어야 한다)
+- **참고:** 로컬 실행에는 `application-local.properties`에 카카오 키(`kakao.oauth.*`)·`auth.jwt.secret`·`auth.cookie.secure=false`가 필요하다. 테스트는 `application-test.properties`에서 `auth.redirect.frontend-base-url`을 비워 상대 경로 리다이렉트를 기대한다
 
 ---
 
