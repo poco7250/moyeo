@@ -16,6 +16,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * 카카오 OAuth 클라이언트. 인가 코드로 토큰을 받고, 그 토큰으로 사용자 정보를 조회한다.
@@ -28,6 +29,21 @@ public class KakaoOAuthClient {
 
 	private final RestClient kakaoRestClient;
 	private final KakaoOAuthProperties properties;
+
+	/**
+	 * 카카오 로그인 화면(인가 코드 요청) URL을 만든다.
+	 *
+	 * @param state CSRF 방지용 state. 콜백에서 쿠키 값과 비교한다
+	 */
+	public String buildAuthorizeUrl(String state) {
+		return UriComponentsBuilder.fromUriString(properties.authorizeUri())
+				.queryParam("response_type", "code")
+				.queryParam("client_id", properties.clientId())
+				.queryParam("redirect_uri", properties.redirectUri())
+				.queryParam("state", state)
+				.encode()
+				.toUriString();
+	}
 
 	/**
 	 * 인가 코드로 카카오 사용자 정보를 가져온다.

@@ -21,6 +21,7 @@ class KakaoOAuthPropertiesTest {
 		KakaoOAuthProperties properties = binder.bind("kakao.oauth", KakaoOAuthProperties.class).get();
 
 		assertThat(properties.clientSecret()).isEqualTo("secret");
+		assertThat(properties.authorizeUri()).isEqualTo("https://kauth.kakao.com/oauth/authorize");
 		assertThat(properties.tokenUri()).isEqualTo("https://kauth.kakao.com/oauth/token");
 		assertThat(properties.userInfoUri()).isEqualTo("https://kapi.kakao.com/v2/user/me");
 		assertThat(properties.connectTimeout()).isEqualTo(Duration.ofSeconds(3));
@@ -30,7 +31,7 @@ class KakaoOAuthPropertiesTest {
 	@Test
 	void toString에_clientSecret_원문이_없다() {
 		KakaoOAuthProperties properties = new KakaoOAuthProperties("id", "super-secret", "http://localhost/callback",
-				"https://kauth.kakao.com/oauth/token", "https://kapi.kakao.com/v2/user/me",
+				"https://kauth.kakao.com/oauth/authorize", "https://kauth.kakao.com/oauth/token", "https://kapi.kakao.com/v2/user/me",
 				Duration.ofSeconds(3), Duration.ofSeconds(5));
 
 		assertThat(properties.toString()).doesNotContain("super-secret").contains("clientId=id");
