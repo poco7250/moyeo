@@ -233,7 +233,7 @@ Phase 10 040 → 041, 042 → 043
   - [x] Given 로그인 회원 / When `/api/members/me`를 호출하면 / Then 닉네임·프로필 이미지가 공통 응답 래퍼로 반환된다. — `MemberControllerTest`(kakaoId·이메일 미노출 포함)
 - **완료 조건**
   - [x] `./gradlew test` 통과(전체 129건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족 · [x] 카카오톡 인앱 브라우저에서 로그인·리다이렉트 수동 확인(9장 리스크) — 2026-10-31, cloudflared HTTPS 터널 + `auth.cookie.secure=true`로 확인: ① `returnUrl=/api/members/me` 로그인 후 내 정보 JSON, ② 인앱 브라우저를 닫았다 다시 열어도 쿠키 유지, ③ `/invites/abc` 경로 유지, ④ 외부 주소 `returnUrl`은 `/`로 차단. 확인 기기는 1대라 다른 OS(iOS/Android)는 배포 후 다시 본다
-- **참고:** 로컬 실행에는 `application-local.properties`에 카카오 키(`kakao.oauth.*`)·`auth.jwt.secret`·`auth.cookie.secure=false`가 필요하다. 카카오 콘솔 동의항목에서 닉네임을 필수로 두지 않으면 닉네임이 null로 와 회원 저장이 실패하고 `DUPLICATE_RESOURCE`(409)로 잘못 응답한다(수동 확인 중 발견, 후속 수정 필요). 테스트는 `application-test.properties`에서 `auth.redirect.frontend-base-url`을 비워 상대 경로 리다이렉트를 기대한다
+- **참고:** 로컬 실행에는 `application-local.properties`에 카카오 키(`kakao.oauth.*`)·`auth.jwt.secret`·`auth.cookie.secure=false`가 필요하다. 수동 확인 중 카카오 동의항목에 닉네임이 없으면 닉네임이 null로 와 회원 저장이 실패하고 `DUPLICATE_RESOURCE`(409)로 잘못 응답하는 문제를 발견했다 → `Member`가 신규 회원은 기본 닉네임(`모여 회원`), 기존 회원은 원래 닉네임을 쓰도록 수정했다(`feature/kakao-default-nickname`). 콘솔 동의항목은 닉네임 필수로 둔다. 테스트는 `application-test.properties`에서 `auth.redirect.frontend-base-url`을 비워 상대 경로 리다이렉트를 기대한다
 
 ---
 

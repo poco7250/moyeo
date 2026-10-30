@@ -57,4 +57,36 @@ class MemberKakaoRegistrarTest {
 		assertThat(existing.getEmail()).isNull();
 		assertThat(response.nickname()).isEqualTo("새닉네임");
 	}
+
+	@Test
+	void 닉네임이_없으면_기본_닉네임으로_새로_만든다() {
+		given(memberRepository.findByKakaoId(1001L)).willReturn(Optional.empty());
+		given(memberRepository.saveAndFlush(any(Member.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+		MemberResponse response = memberKakaoRegistrar.registerOrUpdate(new KakaoProfile(1001L, null, null, null));
+
+		assertThat(response.nickname()).isEqualTo(Member.DEFAULT_NICKNAME);
+	}
+
+	@Test
+	void 닉네임이_공백뿐이면_기본_닉네임으로_새로_만든다() {
+		given(memberRepository.findByKakaoId(1001L)).willReturn(Optional.empty());
+		given(memberRepository.saveAndFlush(any(Member.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+		MemberResponse response = memberKakaoRegistrar.registerOrUpdate(new KakaoProfile(1001L, "  ", null, null));
+
+		assertThat(response.nickname()).isEqualTo(Member.DEFAULT_NICKNAME);
+	}
+
+	@Test
+	void 기존_회원이_닉네임_동의를_철회하면_원래_닉네임을_유지한다() {
+		Member existing = Member.ofKakao(1001L, "옛닉네임", "https://img.kakao.com/a.png", null);
+		given(memberRepository.findByKakaoId(1001L)).willReturn(Optional.of(existing));
+
+		MemberResponse response = memberKakaoRegistrar.registerOrUpdate(new KakaoProfile(1001L, null, null, null));
+
+		assertThat(existing.getNickname()).isEqualTo("옛닉네임");
+		assertThat(existing.getProfileImageUrl()).isNull();
+		assertThat(response.nickname()).isEqualTo("옛닉네임");
+	}
 }
