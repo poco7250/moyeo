@@ -1,11 +1,15 @@
 package com.poco7250.moyeo.member.service;
 
+import com.poco7250.moyeo.global.error.BusinessException;
+import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.member.dto.KakaoProfile;
 import com.poco7250.moyeo.member.dto.MemberResponse;
+import com.poco7250.moyeo.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 회원 관련 비즈니스 로직.
@@ -16,6 +20,19 @@ import org.springframework.stereotype.Service;
 public class MemberService {
 
 	private final MemberKakaoRegistrar memberKakaoRegistrar;
+	private final MemberRepository memberRepository;
+
+	/**
+	 * 로그인한 회원 본인의 정보를 조회한다.
+	 *
+	 * @throws BusinessException 회원이 없으면(탈퇴 등으로 토큰만 남은 경우) MEMBER_NOT_FOUND
+	 */
+	@Transactional(readOnly = true)
+	public MemberResponse getMe(Long memberId) {
+		return memberRepository.findById(memberId)
+				.map(MemberResponse::from)
+				.orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+	}
 
 	/**
 	 * kakaoId로 회원을 찾아 프로필을 갱신하고, 없으면 새로 만든다.
