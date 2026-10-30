@@ -15,6 +15,7 @@ import com.poco7250.moyeo.auth.dto.KakaoUserInfo;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +30,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 /**
  * KakaoOAuthClient를 MockRestServiceServer로 검증한다. 실제 카카오는 호출하지 않는다.
@@ -37,6 +42,8 @@ import org.springframework.web.client.RestClient;
 @ExtendWith(OutputCaptureExtension.class)
 class KakaoOAuthClientTest {
 
+	private static final String AUTHORIZE_URI = "https://kauth.kakao.com/oauth/authorize";
+	private static final String REDIRECT_URI = "http://localhost:8080/api/auth/kakao/callback";
 	private static final String TOKEN_URI = "https://kauth.kakao.com/oauth/token";
 	private static final String USER_INFO_URI = "https://kapi.kakao.com/v2/user/me";
 	private static final String CLIENT_SECRET = "dummy-client-secret-xyz";
@@ -55,9 +62,24 @@ class KakaoOAuthClientTest {
 		RestClient.Builder builder = RestClient.builder();
 		server = MockRestServiceServer.bindTo(builder).build();
 		KakaoOAuthProperties properties = new KakaoOAuthProperties(
-				"dummy-client-id", CLIENT_SECRET, "http://localhost:8080/api/auth/kakao/callback",
-				TOKEN_URI, USER_INFO_URI, Duration.ofSeconds(3), Duration.ofSeconds(5));
+				"dummy-client-id", CLIENT_SECRET, REDIRECT_URI,
+				AUTHORIZE_URI, TOKEN_URI, USER_INFO_URI, Duration.ofSeconds(3), Duration.ofSeconds(5));
 		client = new KakaoOAuthClient(builder.build(), properties);
+	}
+
+	@Test
+	@DisplayName("인가 URL에 response_type·client_id·redirect_uri·state를 담는다")
+	void buildAuthorizeUrl() {
+		String url = client.buildAuthorizeUrl("state-abc_123");
+
+		UriComponents uri = UriComponentsBuilder.fromUriString(url).build();
+		MultiValueMap<String, String> params = uri.getQueryParams();
+		assertThat(uri.getScheme() + "://" + uri.getHost() + uri.getPath()).isEqualTo(AUTHORIZE_URI);
+		assertThat(params.getFirst("response_type")).isEqualTo("code");
+		assertThat(params.getFirst("client_id")).isEqualTo("dummy-client-id");
+		assertThat(UriUtils.decode(params.getFirst("redirect_uri"), StandardCharsets.UTF_8)).isEqualTo(REDIRECT_URI);
+		assertThat(params.getFirst("state")).isEqualTo("state-abc_123");
+		server.verify();
 	}
 
 	@Test

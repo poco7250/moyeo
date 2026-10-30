@@ -11,6 +11,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param clientId       카카오 REST API 키
  * @param clientSecret   클라이언트 시크릿(로그·toString에 노출 금지)
  * @param redirectUri    카카오에 등록한 콜백 URI
+ * @param authorizeUri   인가 코드 요청(카카오 로그인 화면) URI
  * @param tokenUri       토큰 요청 URI
  * @param userInfoUri    사용자 정보 조회 URI
  * @param connectTimeout 연결 타임아웃
@@ -21,6 +22,7 @@ public record KakaoOAuthProperties(
 		String clientId,
 		String clientSecret,
 		String redirectUri,
+		@DefaultValue("https://kauth.kakao.com/oauth/authorize") String authorizeUri,
 		@DefaultValue("https://kauth.kakao.com/oauth/token") String tokenUri,
 		@DefaultValue("https://kapi.kakao.com/v2/user/me") String userInfoUri,
 		@DefaultValue("3s") Duration connectTimeout,
@@ -34,6 +36,7 @@ public record KakaoOAuthProperties(
 		return "KakaoOAuthProperties[clientId=" + clientId
 				+ ", clientSecret=****"
 				+ ", redirectUri=" + redirectUri
+				+ ", authorizeUri=" + authorizeUri
 				+ ", tokenUri=" + tokenUri
 				+ ", userInfoUri=" + userInfoUri
 				+ ", connectTimeout=" + connectTimeout
