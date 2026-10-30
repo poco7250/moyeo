@@ -13,8 +13,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 현재 코드 구조
 
-- `global/` — 공통 코드: `BaseTimeEntity`, 설정(`JpaAuditingConfig`, `ClockConfig`, `SchedulingConfig`), 공통 응답(`ApiResponse`), 예외 처리(`ErrorCode`, `BusinessException`, `GlobalExceptionHandler`)
-- `member/` — 카카오 기반 회원(`Member`의 `kakaoId` 유니크). `MemberService.findOrCreateByKakaoId(KakaoProfile)`로 조회·생성, 저장은 `MemberKakaoRegistrar`(`REQUIRES_NEW`). 비밀번호·서버 렌더링 화면은 없다(SPA용 REST API)
+- `global/` — 공통 코드: `BaseTimeEntity`, 설정(`JpaAuditingConfig`, `ClockConfig`, `SchedulingConfig`, `SecurityConfig`), 공통 응답(`ApiResponse`), 예외 처리(`ErrorCode`, `BusinessException`, `GlobalExceptionHandler`)
+- `member/` — 카카오 기반 회원(`Member`의 `kakaoId` 유니크). `MemberService.findOrCreateByKakaoId(KakaoProfile)`로 조회·생성, 저장은 `MemberKakaoRegistrar`(`REQUIRES_NEW`). 비밀번호·서버 렌더링 화면은 없다(SPA용 REST API). `MemberController`의 `GET /api/members/me`로 내 정보 조회
+- `auth/` — 카카오 로그인과 자체 토큰. `AuthController`(`/api/auth/kakao/login`·`callback`, `/api/auth/refresh`·`logout`), `KakaoOAuthClient`, `JwtTokenProvider`·`TokenService`(Refresh 회전, DB엔 해시만), `TokenCookieFactory`(HttpOnly 쿠키). 인증은 `access_token` 쿠키를 `JwtAuthenticationFilter`가 검증하고, 컨트롤러는 `@LoginMember Long memberId`로 회원 ID를 받는다. 미인증은 `RestAuthenticationEntryPoint`가 401 공통 JSON으로 응답
 - 도메인 패키지는 `<도메인>/{domain,dto,repository,service,controller}` 구조를 따른다.
 - 진행 상황과 다음 작업은 `docs/ROADMAP.md`를 본다.
 
@@ -36,7 +37,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 설정 및 환경
 
 - `application.properties`에는 아직 datasource 설정이 없다. MySQL 드라이버와 JPA가 포함돼 있어 DB 접속 정보 없이 실행하거나 `@SpringBootTest`(`contextLoads`)를 돌리면 컨텍스트 로딩이 실패할 수 있다.
-- 로컬 DB 접속 정보 같은 개인 설정은 `application-local.properties`에 둔다(gitignore 대상). `local` 프로필로 활성화한다.
+- 로컬 DB 접속 정보 같은 개인 설정은 `application-local.properties`에 둔다(gitignore 대상). `local` 프로필로 활성화한다. 카카오 키(`kakao.oauth.*`), `auth.jwt.secret`(32바이트 이상), `auth.cookie.secure=false`(http 로컬)도 여기에 둔다.
+- 공개 경로는 `SecurityConfig`의 화이트리스트에만 있고, 나머지 API는 전부 인증이 필요하다. 새 공개 API를 만들면 여기에 추가한다.
+- 컨트롤러 `@WebMvcTest`는 `@Import(SecurityTestConfig.class)`(`src/test/.../support`)로 실제 시큐리티 체인을 올리고, 인증이 필요하면 `JwtTokenProvider`로 만든 토큰을 `access_token` 쿠키에 실어 보낸다(`MemberControllerTest` 참고).
 - `.claude/settings.local.json`도 gitignore 대상이다.
 
 ## Spring Boot 4 관련 주의점
