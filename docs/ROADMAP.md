@@ -5,7 +5,7 @@
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 3 진행 중 — Task 010(WebSocket 기반) 완료. 다음은 Task 011(모임·차수·참석 도메인). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 공통 코드(`global/`)가 있고, 모임·장소·게임·정산 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 3 진행 중 — Task 011(모임·차수·참석·정산 골격 도메인) 완료. 다음은 Task 012(모임 생성·차수 템플릿·호스트 권한). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티와 모임 토픽 해석기(`meeting/`), 정산 골격 엔티티(`settlement/`), 공통 코드(`global/`)가 있다. 모임·참석 API와 장소·게임 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -13,7 +13,7 @@
 | 0 | 기반 정리 | 0 | 3 | 3 | ✅ 완료 |
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 3 | ✅ 완료 |
 | 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
-| 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 1 | 🔄 진행 중 |
+| 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 2 | 🔄 진행 중 |
 | 4 | 장소 결정 | 4 | 6 | 0 | ⏸️ 일부 보류 (오픈 이슈 5) |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 0 | ⬜ 대기 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **10** | |
+| **합계** | | | **66** (MVP 43) | **11** | |
 
 ## 상태 범례
 
@@ -338,24 +338,24 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew test` 통과(전체 214건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
 - **참고:** `@MockitoBean SimpMessageSendingOperations`로 바꾸면 내부 빈들이 `SimpMessagingTemplate` 타입을 요구해 컨텍스트 로딩이 실패하므로 스파이를 쓴다. 연결 중 Access 토큰이 만료돼도 연결은 끊지 않는다(인가는 구독 시점에만, MVP 허용) — 재연결 시 쿠키 재검증. 서버 발행 메시지는 `application/json`이라 클라이언트는 JSON 컨버터로 받는다
 
-### Task 011: 모임·차수·참석·정산(골격) 도메인   ⬜ 대기
+### Task 011: 모임·차수·참석·정산(골격) 도메인   ✅ 완료
 
 - **관련 기능:** M-1, M-2, M-3, S-10(정산 상태 골격), D4
 - **선행 Task:** Task 009
 - **구현 사항**
-  - [ ] `meeting/domain/Meeting`(group, title, startAt, memo, responseDeadline?, hostMemberId) + `isHost(memberId)`
-  - [ ] `meeting/domain/Round`(meeting, seq, name/kind, placeStatus `UNDECIDED/VOTING/CONFIRMED`, placeVoteDeadline?, confirmedCandidate?, `@Version version`) — 장소 상태 전이 메서드는 Task 014·016에서
-  - [ ] `meeting/domain/Attendance`(round, member, status `ATTEND/ABSENT/UNDECIDED`, checkedIn, respondedAt) — `(round, member)` 유니크
-  - [ ] `settlement/domain/Settlement`(meeting 유니크, status `DRAFT/CONFIRMED/REOPENED`, currentRevisionNo?, firstConfirmedAt?, `@Version version`) — 생성 시 `DRAFT`. 전이 메서드는 Task 021·024
-  - [ ] Repository 4종 + `RoundRepository.findAllByMeetingIdOrderBySeq`
-  - [ ] 모임 토픽 해석기 `TopicGroupResolver` 구현(`/topic/meetings/{meetingId}` → 모임의 groupId, 없는 모임은 null) — Task 010
+  - [x] `meeting/domain/Meeting`(group, title 100자, startAt, memo 1000자?, responseDeadline?, hostMemberId 불변) + `isHost(memberId)`(null이면 false). ⚠️ 제목·메모 길이는 PRD 미정이라 결정(2026-11-02)
+  - [x] `meeting/domain/Round`(meeting, seq, name 30자, placeStatus `UNDECIDED/VOTING/CONFIRMED`(생성 시 `UNDECIDED`), placeVoteDeadline?, `@Version version`) — 테이블명 `meeting_round`(SQL `ROUND` 함수와 혼동 회피), `(meeting, seq)` 유니크. 차수 "name/kind"는 PRD에 종류 enum 정의가 없어 **`name` 문자열 하나**로 결정. `confirmedCandidate`는 FK 대상 `PlaceCandidate`가 없어 **Task 014로 이동**, 장소 상태 전이 메서드는 Task 014·016에서
+  - [x] `meeting/domain/Attendance`(round, member, status `ATTEND/ABSENT/UNDECIDED`, checkedIn 기본 false, respondedAt) — `(round, member)` 유니크. `respond`·`changeStatus(status, now)`(Task 013 upsert용)
+  - [x] `settlement/domain/Settlement`(meeting `@OneToOne` 유니크, status `DRAFT/CONFIRMED/REOPENED`, currentRevisionNo?, firstConfirmedAt?, `@Version version`) — `createDraft`로 `DRAFT` 생성. 전이 메서드는 Task 021·024
+  - [x] Repository 4종 + `RoundRepository.findAllByMeetingIdOrderBySeq`, `MeetingRepository.findGroupIdById`(해석기용 그룹 id만 조회)
+  - [x] 모임 토픽 해석기 `meeting/service/MeetingTopicGroupResolver`(`/topic/meetings/{meetingId}` → 모임의 groupId). 없는 모임·숫자 아님·하위 경로·0·앞자리 0·19자리 이상은 조회 없이 null(→ `NOT_GROUP_MEMBER`)
 - **테스트**
-  - [ ] `@DataJpaTest`: `(round, member)` 유니크, `Settlement.meeting` 유니크
-  - [ ] 단위: `Meeting.isHost`
+  - [x] `@DataJpaTest`: `(round, member)` 유니크·다른 차수 허용·체크인 기본값(`AttendanceRepositoryTest` 2건), `Settlement.meeting` 유니크·생성 기본값(`SettlementRepositoryTest` 2건), 차수 seq 순 조회·`(meeting, seq)` 유니크·`UNDECIDED` 기본값(`RoundRepositoryTest` 3건), `findGroupIdById`(`MeetingRepositoryTest` 1건)
+  - [x] 단위: `Meeting.isHost`(`MeetingTest` 3건), `MeetingTopicGroupResolverTest` 10건(supports, 해석, 없는 모임, 형식 오류 7종)
 - **수락 기준**
-  - Given 한 모임 / When `Settlement`를 두 건 저장하면 / Then 유니크 제약 위반이다.
+  - [x] Given 한 모임 / When `Settlement`를 두 건 저장하면 / Then 유니크 제약 위반이다.
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 235건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
 
 ### Task 012: 모임 생성·차수 템플릿·호스트 권한 공통화   ⬜ 대기
 
@@ -418,6 +418,7 @@ Phase 10 040 → 041, 042 → 043
 - **구현 사항**
   - [ ] `place/domain/Place` `@Embeddable`(kakaoPlaceId?, label, manualAddress?, manualMapUrl?) — 카카오 응답 필드(주소·좌표·카테고리·전화) 컬럼 없음
   - [ ] `place/domain/PlaceCandidate`(round, place, proposedBy), `PlaceVote`(candidate, member) — `(candidate, member)` 유니크
+  - [ ] `Round.confirmedCandidate`(→ `PlaceCandidate`, nullable) 컬럼 추가 — Task 011에서 FK 대상이 없어 미룸
   - [ ] `Round` 장소 상태 전이 메서드: `confirmDirectly(candidate)`(UNDECIDED→CONFIRMED), `openVoting(deadline)`(UNDECIDED→VOTING, CONFIRMED→VOTING), `confirm(candidate)`(VOTING→CONFIRMED). 허용 안 된 전이는 409 `ROUND_PLACE_INVALID_TRANSITION`
   - [ ] `place/validation/@HttpsUrl` 검증기 — `https` 스킴만, 최대 2,048자
   - [ ] `place/domain/PlaceLinkFactory`(순수) — 지도 `https://map.kakao.com/link/map/{id}`, 길찾기 `/link/to/{id}`, 직접 입력은 `manualMapUrl` 또는 `/link/search/{URL 인코딩(manualAddress ?: label)}`
