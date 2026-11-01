@@ -65,6 +65,7 @@ Spring Boot 4는 스타터와 자동 구성이 모듈 단위로 쪼개져 있어
 ## Git
 
 - 작업(shrimp task / ROADMAP Task) 하나마다 최신 `dev`에서 `feature/기능명` 브랜치를 새로 만들어 작업하고, 끝나면 `dev`로 `--no-ff` merge한다.
+- `dev`로 merge한 뒤에는 그 `feature/` 브랜치를 `git branch -d`로 지운다. `-d`는 merge되지 않은 브랜치면 거부하므로 `-D`(강제 삭제)는 쓰지 않는다. 원격에 올린 브랜치였다면 원격 브랜치도 지운다.
 - 다음 작업은 merge된 `dev`에서 다시 새 `feature/` 브랜치를 만든다.
 - 파일 수정 후 바로 커밋하지 않는다. 커밋·merge는 사용자가 요청할 때만 한다.
 - 커밋 메시지는 한글, 브랜치명은 `feature/기능명` 형식.
