@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 코드 구조 규칙
 
 - `global/auth/GroupAccessChecker.requireMember(groupId, memberId)` — 그룹 리소스 Service는 진입 시 이걸로 멤버 여부를 검사한다(비멤버·없는 그룹 모두 403 `NOT_GROUP_MEMBER`)
+- 실시간 알림은 Service 트랜잭션 안에서 `RealtimeEvent` 구현 record를 `ApplicationEventPublisher`로 발행만 한다(전송은 `global/event/RealtimeBroadcaster`가 커밋 후에). 새 토픽 종류를 열면 `global/websocket/TopicGroupResolver` 구현을 같이 등록한다(없으면 구독이 거부됨)
 - 도메인 패키지는 `<도메인>/{domain,dto,repository,service,controller}` 구조를 따른다.
 - 진행 상황과 다음 작업은 `docs/ROADMAP.md`를 본다.
 

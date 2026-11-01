@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-11-01 (`feature/invite-link` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-11-01 (`feature/websocket-base` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 2 완료 — Task 009(초대 링크 자동 가입·멤버 목록·그룹 프로필) 완료. 다음은 Phase 3의 Task 010(WebSocket 기반) 또는 Task 011(모임·차수·참석 도메인). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), 공통 코드(`global/`)가 있고, 모임·장소·게임·정산 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 3 진행 중 — Task 010(WebSocket 기반) 완료. 다음은 Task 011(모임·차수·참석 도메인). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 공통 코드(`global/`)가 있고, 모임·장소·게임·정산 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -13,7 +13,7 @@
 | 0 | 기반 정리 | 0 | 3 | 3 | ✅ 완료 |
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 3 | ✅ 완료 |
 | 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
-| 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 0 | ⬜ 대기 |
+| 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 1 | 🔄 진행 중 |
 | 4 | 장소 결정 | 4 | 6 | 0 | ⏸️ 일부 보류 (오픈 이슈 5) |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 0 | ⬜ 대기 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **9** | |
+| **합계** | | | **66** (MVP 43) | **10** | |
 
 ## 상태 범례
 
@@ -314,23 +314,29 @@ Phase 10 040 → 041, 042 → 043
 - **목표:** WebSocket(STOMP) 공통 기반, 모임 생성(호스트 = 생성자, `Settlement` `DRAFT` 동시 생성), 차수 템플릿, 차수별 참석 응답·마감·현황판
 - **포함 기능 ID:** M-1, M-2, M-3, M-4, 6장 실시간
 
-### Task 010: WebSocket(STOMP) 기반과 커밋 후 브로드캐스트 공통 구성   ⬜ 대기
+### Task 010: WebSocket(STOMP) 기반과 커밋 후 브로드캐스트 공통 구성   ✅ 완료
 
 - **관련 기능:** 6장 실시간(참석·장소 투표·게임·정산 공통 채널), P-3·R-0 전제
 - **선행 Task:** Task 006
 - **구현 사항**
-  - [ ] 의존성 `spring-boot-starter-websocket`(Boot 4 이름 Context7 확인), `global/websocket/WebSocketConfig`(`@EnableWebSocketMessageBroker`, 엔드포인트 `/ws`, 브로커 `/topic`, 앱 prefix `/app`)
-  - [ ] 핸드셰이크 인증: 쿠키 Access 토큰 검증 → STOMP `Principal`(memberId)
-  - [ ] 구독 인가 `ChannelInterceptor`: `/topic/meetings/{meetingId}/**`, `/topic/games/{gameId}` 구독 시 그룹 멤버 검사
-  - [ ] `global/event/RealtimeEvent` 기반 타입 + `RealtimeBroadcaster`(`@TransactionalEventListener(phase = AFTER_COMMIT)` → `SimpMessagingTemplate`)
-  - [ ] 토픽 규약 문서화(클래스 주석): 참석·장소·정산 = 모임 토픽, 게임 = 게임 토픽
+  - [x] 의존성 `spring-boot-starter-websocket`(Boot 4.1 문서로 이름 확인), `global/websocket/WebSocketConfig`(`@EnableWebSocketMessageBroker`, 엔드포인트 `/ws` 네이티브 WebSocket·SockJS 없음, simple broker `/topic`, 앱 prefix `/app`)
+  - [x] 핸드셰이크 인증: 별도 인터셉터 없이 기존 시큐리티 체인 재사용 — `/ws`는 인증 필요 경로라 `JwtAuthenticationFilter`가 `access_token` 쿠키를 검증(없거나 무효면 401), 그 `Authentication`(이름 = memberId)이 STOMP `Principal`이 된다
+  - [x] 구독 인가 `SubscriptionAuthorizationInterceptor`(`ChannelInterceptor`): SUBSCRIBE는 토픽 → 그룹을 `TopicGroupResolver`로 해석해 `GroupAccessChecker.requireMember` 재사용(없는 리소스도 `NOT_GROUP_MEMBER`), 해석기 없는 토픽은 기본 거부, 클라이언트의 `/topic` SEND 거부. 모임·게임 해석기는 Task 011·026에서 구현
+  - [x] `StompErrorHandler`: ERROR 프레임 `message` 헤더에 에러 코드 이름(예: `NOT_GROUP_MEMBER`), 본문에 사용자용 메시지. 알 수 없는 예외는 `INTERNAL_ERROR`로 감춤
+  - [x] `global/event/RealtimeEvent`(destination, type, data) + `RealtimeMessage(type, data)` 공통 봉투 + `RealtimeBroadcaster`(`@TransactionalEventListener(phase = AFTER_COMMIT)` → `SimpMessageSendingOperations`). 트랜잭션 밖 발행은 무시(`fallbackExecution=false`), 전송 실패는 로그만
+  - [x] 토픽 규약 `RealtimeTopics`(클래스 주석): 참석·장소·정산 = `/topic/meetings/{meetingId}`, 게임 = `/topic/games/{gameId}`
+  - [x] 허용 오리진 `realtime.websocket.allowed-origins`(`RealtimeProperties`, 비우면 같은 오리진만) — 오픈 이슈 1 결정 후 채움
+  - [x] 에러 코드: `REALTIME_DESTINATION_FORBIDDEN`(403)
 - **테스트**
-  - [ ] 단위: 구독 인터셉터 — 비멤버 구독 거부, 멤버 허용
-  - [ ] 통합(`@SpringBootTest`): 트랜잭션 커밋 시에만 `SimpMessagingTemplate` 호출, 롤백 시 호출 없음(메시징 템플릿 목)
+  - [x] 단위(`SubscriptionAuthorizationInterceptorTest` 7건): 멤버 허용, 비멤버·없는 모임 `NOT_GROUP_MEMBER`, 해석기 없는 토픽·`/topic` SEND 거부, Principal 없음 `UNAUTHORIZED`, CONNECT·`/app` SEND 통과
+  - [x] 단위(`StompErrorHandlerTest` 2건): 에러 코드·receipt-id 전달, 알 수 없는 예외 감춤
+  - [x] 통합(`RealtimeBroadcasterIntegrationTest` 3건, `@MockitoSpyBean SimpMessagingTemplate`): 커밋 시에만 1회 전송, 롤백·트랜잭션 밖 발행 시 전송 없음
+  - [x] 통합(`WebSocketIntegrationTest` 3건, 실제 포트 + `WebSocketStompClient`, 테스트 전용 토픽 해석기): 쿠키 없는 핸드셰이크 401, 멤버는 커밋된 이벤트 수신, 비멤버 구독은 ERROR 프레임 `NOT_GROUP_MEMBER`
 - **수락 기준**
-  - Given 이벤트를 발행한 트랜잭션이 롤백 / When 처리가 끝나면 / Then 어떤 브로드캐스트도 나가지 않는다. Given 비멤버 / When 모임 토픽을 구독하면 / Then 거부된다.
+  - [x] Given 이벤트를 발행한 트랜잭션이 롤백 / When 처리가 끝나면 / Then 어떤 브로드캐스트도 나가지 않는다. Given 비멤버 / When 모임 토픽을 구독하면 / Then 거부된다.
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 214건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
+- **참고:** `@MockitoBean SimpMessageSendingOperations`로 바꾸면 내부 빈들이 `SimpMessagingTemplate` 타입을 요구해 컨텍스트 로딩이 실패하므로 스파이를 쓴다. 연결 중 Access 토큰이 만료돼도 연결은 끊지 않는다(인가는 구독 시점에만, MVP 허용) — 재연결 시 쿠키 재검증. 서버 발행 메시지는 `application/json`이라 클라이언트는 JSON 컨버터로 받는다
 
 ### Task 011: 모임·차수·참석·정산(골격) 도메인   ⬜ 대기
 
@@ -342,6 +348,7 @@ Phase 10 040 → 041, 042 → 043
   - [ ] `meeting/domain/Attendance`(round, member, status `ATTEND/ABSENT/UNDECIDED`, checkedIn, respondedAt) — `(round, member)` 유니크
   - [ ] `settlement/domain/Settlement`(meeting 유니크, status `DRAFT/CONFIRMED/REOPENED`, currentRevisionNo?, firstConfirmedAt?, `@Version version`) — 생성 시 `DRAFT`. 전이 메서드는 Task 021·024
   - [ ] Repository 4종 + `RoundRepository.findAllByMeetingIdOrderBySeq`
+  - [ ] 모임 토픽 해석기 `TopicGroupResolver` 구현(`/topic/meetings/{meetingId}` → 모임의 groupId, 없는 모임은 null) — Task 010
 - **테스트**
   - [ ] `@DataJpaTest`: `(round, member)` 유니크, `Settlement.meeting` 유니크
   - [ ] 단위: `Meeting.isHost`
@@ -681,6 +688,7 @@ Phase 10 040 → 041, 042 → 043
   - [ ] 전이 메서드(현재 상태 위반 시 409 `GAME_INVALID_TRANSITION`): `start()`, `reveal(now)`(revealedAt, 첫 공개면 applyOrderAt), `close()`, `cancel()`(WAITING/PLAYING만, 아니면 409 `GAME_NOT_CANCELABLE`)
   - [ ] `isOperator(memberId, meeting)` = `createdBy` 또는 호스트
   - [ ] `GameSessionRepository.findByIdForPick` — `@Lock(PESSIMISTIC_WRITE)`
+  - [ ] 게임 토픽 해석기 `TopicGroupResolver` 구현(`/topic/games/{gameId}` → 게임 → 차수 → 모임의 groupId, 없는 게임은 null) — Task 010
   - [ ] 에러 코드: `GAME_INVALID_TRANSITION`, `GAME_NOT_READY`, `GAME_NOT_CANCELABLE`, `SLOT_ALREADY_PICKED`(모두 409), `NOT_GAME_OPERATOR`(403), `GAME_NOT_FOUND`(404)
 - **테스트**
   - [ ] 단위(전이 표 전체): 허용 전이 5종 성공, 비허용 전이(예: REVEALED가 아닌데 close, WAITING이 아닌데 start, PLAYING이 아닌데 reveal) → `GAME_INVALID_TRANSITION`, REVEALED/CLOSED cancel → `GAME_NOT_CANCELABLE`, CLOSED·CANCELED에서 어떤 전이도 불가
