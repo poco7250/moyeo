@@ -1,18 +1,18 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-10-31 (`feature/auth-config-docs` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-11-01 (`feature/invite-link` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 1 완료 — Task 006(인증 API·인증 필터)까지 카카오톡 인앱 브라우저 수동 확인을 마쳤다. 다음은 Phase 2 Task 007(그룹·멤버·초대 링크 도메인 골격). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 공통 코드(`global/`)가 있고, 그룹·모임·장소·게임·정산 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 2 진행 중 — Task 007(그룹·멤버·초대 링크 도메인 골격) 완료. 다음은 Task 008(그룹 생성·초대 링크 발급/재발급·그룹 멤버 인가 공통화). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 엔티티와 리포지토리(`group/`, Service·API는 아직 없음), 공통 코드(`global/`)가 있고, 모임·장소·게임·정산 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
 |---|---|---|---|---|---|
 | 0 | 기반 정리 | 0 | 3 | 3 | ✅ 완료 |
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 3 | ✅ 완료 |
-| 2 | 그룹·초대 | 2 | 3 | 0 | ⬜ 대기 |
+| 2 | 그룹·초대 | 2 | 3 | 1 | 🔄 진행 중 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 0 | ⬜ 대기 |
 | 4 | 장소 결정 | 4 | 6 | 0 | ⏸️ 일부 보류 (오픈 이슈 5) |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **5** | |
+| **합계** | | | **66** (MVP 43) | **7** | |
 
 ## 상태 범례
 
@@ -242,24 +242,24 @@ Phase 10 040 → 041, 042 → 043
 - **목표:** 그룹 생성, 초대 링크 발급·만료·재발급, 링크로 자동 가입, 그룹 멤버 인가(`NOT_GROUP_MEMBER`) 공통화
 - **포함 기능 ID:** G-1, G-2, G-3
 
-### Task 007: 그룹·멤버·초대 링크 도메인 골격   ⬜ 대기
+### Task 007: 그룹·멤버·초대 링크 도메인 골격   ✅ 완료
 
 - **관련 기능:** G-1, G-2, G-3
 - **선행 Task:** Task 006
 - **구현 사항**
-  - [ ] `group/domain/Group`(name) — 테이블명은 예약어 회피(`groups` 등 `@Table` 지정)
-  - [ ] `group/domain/GroupMember`(group, member, nickname, emoji, role) — `(group, member)` 유니크 제약. `role`은 G-4(P1) 대비 컬럼만, MVP 로직 없음
-  - [ ] `group/domain/InviteLink`(group, token 유니크, expiresAt, revokedAt?) — `isUsable(now)`
-  - [ ] Repository: `GroupRepository`, `GroupMemberRepository.existsByGroupIdAndMemberId`, `findAllByGroupId`, `InviteLinkRepository.findByToken`
-  - [ ] 토큰 생성기 `InviteTokenGenerator`(`SecureRandom`, URL-safe)
+  - [x] `group/domain/Group`(name) — 테이블명 `friend_group`(`GROUP`·`GROUPS` 모두 MySQL 8 예약어라 `groups`도 피함)
+  - [x] `group/domain/GroupMember`(group, member, nickname, emoji, role) — `(group_id, member_id)` 유니크 제약. `role`(`GroupRole`: OWNER/MEMBER)은 G-4(P1) 대비 컬럼만, MVP 로직 없음
+  - [x] `group/domain/InviteLink`(group, token 유니크 43자, expiresAt, revokedAt?) — `issue`, `revoke(now)`(이미 폐기면 처음 시각 유지), `isUsable(now)`(만료 시각 정각부터 불가). 토큰은 공개 URL 값이라 해시 없이 원문 저장
+  - [x] Repository: `GroupRepository`, `GroupMemberRepository.existsByGroupIdAndMemberId`, `findAllByGroupId`, `InviteLinkRepository.findByToken`
+  - [x] 토큰 생성기 `group/token/InviteTokenGenerator`(`SecureRandom` 32바이트 → Base64URL 패딩 없음 43자)
 - **테스트**
-  - [ ] `@DataJpaTest`: `(group, member)` 유니크 위반 시 `DataIntegrityViolationException`
-  - [ ] `@DataJpaTest`: token 유니크, `findByToken`
-  - [ ] 단위: `InviteLink.isUsable` — 만료 직전·만료 시각 정각·만료 후, 재발급으로 폐기된 링크
+  - [x] `@DataJpaTest`: `(group, member)` 유니크 위반 시 `DataIntegrityViolationException` (`GroupMemberRepositoryTest` 4건)
+  - [x] `@DataJpaTest`: token 유니크, `findByToken` (`InviteLinkRepositoryTest` 3건)
+  - [x] 단위: `InviteLink.isUsable` — 만료 직전·만료 시각 정각·만료 후, 폐기된 링크 (`InviteLinkTest` 5건) + `InviteTokenGeneratorTest` 2건
 - **수락 기준**
   - Given 같은 그룹·회원 / When `GroupMember`를 두 번 저장하면 / Then 두 번째는 유니크 제약 위반이다.
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 146건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
 
 ### Task 008: 그룹 생성·초대 링크 발급/재발급·그룹 멤버 인가 공통화   ⬜ 대기
 
