@@ -67,4 +67,19 @@ class InviteLinkRepositoryTest {
 	void findByUnknownToken() {
 		assertThat(inviteLinkRepository.findByToken("b".repeat(43))).isEmpty();
 	}
+
+	@Test
+	@DisplayName("그룹의 폐기되지 않은 링크만 조회한다(다른 그룹 링크 제외)")
+	void findAllByGroupIdAndRevokedAtIsNull() {
+		Group otherGroup = groupRepository.saveAndFlush(Group.create("회사 동기"));
+		InviteLink revoked = InviteLink.issue(group, "r".repeat(43), EXPIRES_AT);
+		revoked.revoke(EXPIRES_AT.minusDays(1));
+		inviteLinkRepository.saveAndFlush(revoked);
+		inviteLinkRepository.saveAndFlush(InviteLink.issue(group, TOKEN, EXPIRES_AT));
+		inviteLinkRepository.saveAndFlush(InviteLink.issue(otherGroup, "o".repeat(43), EXPIRES_AT));
+
+		assertThat(inviteLinkRepository.findAllByGroupIdAndRevokedAtIsNull(group.getId()))
+				.extracting(InviteLink::getToken)
+				.containsExactly(TOKEN);
+	}
 }

@@ -92,4 +92,17 @@ class GroupMemberRepositoryTest {
 		assertThat(groupMemberRepository.findAllByGroupId(group.getId()))
 				.allSatisfy(gm -> assertThat(gm.getCreatedAt()).isNotNull());
 	}
+
+	@Test
+	@DisplayName("회원이 가입한 그룹만 최근 가입 순으로 그룹과 함께 조회한다")
+	void findAllWithGroupByMemberId() {
+		groupMemberRepository.saveAndFlush(GroupMember.join(group, owner, "모여", GroupRole.OWNER));
+		groupMemberRepository.saveAndFlush(GroupMember.join(otherGroup, owner, "모여", GroupRole.MEMBER));
+		groupMemberRepository.saveAndFlush(GroupMember.join(group, friend, "친구", GroupRole.MEMBER));
+
+		assertThat(groupMemberRepository.findAllWithGroupByMemberId(owner.getId()))
+				.extracting(gm -> gm.getGroup().getName())
+				.containsExactly("회사 동기", "대학 동기");
+		assertThat(groupMemberRepository.findAllWithGroupByMemberId(9999L)).isEmpty();
+	}
 }

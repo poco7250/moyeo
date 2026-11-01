@@ -29,7 +29,11 @@ public enum ErrorCode {
 	INVALID_OAUTH_STATE(HttpStatus.UNAUTHORIZED, "로그인 요청이 유효하지 않습니다. 다시 시도해 주세요."),
 
 	// 회원
-	MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "회원 정보를 찾을 수 없습니다.");
+	MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "회원 정보를 찾을 수 없습니다."),
+
+	// 그룹
+	NOT_GROUP_MEMBER(HttpStatus.FORBIDDEN, "그룹 멤버만 이용할 수 있습니다."),
+	GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다.");
 
 	private final HttpStatus status;
 	private final String message;
