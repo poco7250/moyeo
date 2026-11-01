@@ -17,6 +17,7 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.util.StringUtils;
 
 /**
  * 그룹에 가입한 회원. 그룹 안에서 쓰는 닉네임·프로필 이모지를 따로 가진다.
@@ -47,7 +48,7 @@ public class GroupMember extends BaseTimeEntity {
 	@Column(nullable = false, length = 50)
 	private String nickname;
 
-	// 이모지 기본값·허용 범위는 PRD 미정(Task 009)이라 비워 둘 수 있다
+	// 가입 시엔 비어 있고(프론트가 기본 아이콘 표시), 사용자가 16자 이내 문자열로 자유롭게 정한다(Task 009 결정)
 	@Column(length = 16)
 	private String emoji;
 
@@ -67,5 +68,13 @@ public class GroupMember extends BaseTimeEntity {
 	 */
 	public static GroupMember join(Group group, Member member, String nickname, GroupRole role) {
 		return new GroupMember(group, member, nickname, role);
+	}
+
+	/**
+	 * 그룹 안 닉네임·이모지를 바꾼다. 닉네임은 앞뒤 공백을 지우고, 이모지가 비어 있으면 지운다.
+	 */
+	public void updateProfile(String nickname, String emoji) {
+		this.nickname = nickname.strip();
+		this.emoji = StringUtils.hasText(emoji) ? emoji.strip() : null;
 	}
 }

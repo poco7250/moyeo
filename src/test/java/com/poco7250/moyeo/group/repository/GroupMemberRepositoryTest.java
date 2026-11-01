@@ -78,19 +78,41 @@ class GroupMemberRepositoryTest {
 	}
 
 	@Test
-	@DisplayName("그룹 id로 그 그룹 멤버만 조회한다")
-	void findAllByGroupId() {
+	@DisplayName("그룹 id로 그 그룹 멤버만 가입 순으로 조회한다")
+	void findAllByGroupIdOrderByIdAsc() {
+		groupMemberRepository.saveAndFlush(GroupMember.join(group, owner, "모여", GroupRole.OWNER));
+		groupMemberRepository.saveAndFlush(GroupMember.join(otherGroup, friend, "친구", GroupRole.OWNER));
+		groupMemberRepository.saveAndFlush(GroupMember.join(group, friend, "친구", GroupRole.MEMBER));
+
+		assertThat(groupMemberRepository.findAllByGroupIdOrderByIdAsc(group.getId()))
+				.extracting(gm -> gm.getMember().getId(), GroupMember::getNickname, GroupMember::getRole)
+				.containsExactly(
+						tuple(owner.getId(), "모여", GroupRole.OWNER),
+						tuple(friend.getId(), "친구", GroupRole.MEMBER));
+		assertThat(groupMemberRepository.findAllByGroupIdOrderByIdAsc(group.getId()))
+				.allSatisfy(gm -> assertThat(gm.getCreatedAt()).isNotNull());
+	}
+
+	@Test
+	@DisplayName("그룹 id와 회원 id로 멤버십 하나를 조회한다")
+	void findByGroupIdAndMemberId() {
+		groupMemberRepository.saveAndFlush(GroupMember.join(group, owner, "모여", GroupRole.OWNER));
+
+		assertThat(groupMemberRepository.findByGroupIdAndMemberId(group.getId(), owner.getId()))
+				.hasValueSatisfying(gm -> assertThat(gm.getNickname()).isEqualTo("모여"));
+		assertThat(groupMemberRepository.findByGroupIdAndMemberId(group.getId(), friend.getId())).isEmpty();
+		assertThat(groupMemberRepository.findByGroupIdAndMemberId(otherGroup.getId(), owner.getId())).isEmpty();
+	}
+
+	@Test
+	@DisplayName("그룹 멤버 수를 센다(다른 그룹 제외)")
+	void countByGroupId() {
 		groupMemberRepository.saveAndFlush(GroupMember.join(group, owner, "모여", GroupRole.OWNER));
 		groupMemberRepository.saveAndFlush(GroupMember.join(group, friend, "친구", GroupRole.MEMBER));
 		groupMemberRepository.saveAndFlush(GroupMember.join(otherGroup, friend, "친구", GroupRole.OWNER));
 
-		assertThat(groupMemberRepository.findAllByGroupId(group.getId()))
-				.extracting(gm -> gm.getMember().getId(), GroupMember::getNickname, GroupMember::getRole)
-				.containsExactlyInAnyOrder(
-						tuple(owner.getId(), "모여", GroupRole.OWNER),
-						tuple(friend.getId(), "친구", GroupRole.MEMBER));
-		assertThat(groupMemberRepository.findAllByGroupId(group.getId()))
-				.allSatisfy(gm -> assertThat(gm.getCreatedAt()).isNotNull());
+		assertThat(groupMemberRepository.countByGroupId(group.getId())).isEqualTo(2);
+		assertThat(groupMemberRepository.countByGroupId(9999L)).isZero();
 	}
 
 	@Test

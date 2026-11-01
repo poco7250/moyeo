@@ -7,7 +7,9 @@ import com.poco7250.moyeo.global.config.JpaAuditingConfig;
 import com.poco7250.moyeo.group.domain.Group;
 import com.poco7250.moyeo.group.domain.InviteLink;
 import com.poco7250.moyeo.support.TestcontainersConfiguration;
+import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
+import org.hibernate.Hibernate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,9 @@ class InviteLinkRepositoryTest {
 
 	@Autowired
 	GroupRepository groupRepository;
+
+	@Autowired
+	EntityManager entityManager;
 
 	private Group group;
 
@@ -60,6 +65,20 @@ class InviteLinkRepositoryTest {
 					assertThat(link.getRevokedAt()).isNull();
 					assertThat(link.getCreatedAt()).isNotNull();
 				});
+	}
+
+	@Test
+	@DisplayName("토큰으로 초대 링크를 그룹과 함께 조회한다")
+	void findWithGroupByToken() {
+		inviteLinkRepository.saveAndFlush(InviteLink.issue(group, TOKEN, EXPIRES_AT));
+		entityManager.clear();
+
+		assertThat(inviteLinkRepository.findWithGroupByToken(TOKEN))
+				.hasValueSatisfying(link -> {
+					assertThat(Hibernate.isInitialized(link.getGroup())).isTrue();
+					assertThat(link.getGroup().getName()).isEqualTo("대학 동기");
+				});
+		assertThat(inviteLinkRepository.findWithGroupByToken("b".repeat(43))).isEmpty();
 	}
 
 	@Test
