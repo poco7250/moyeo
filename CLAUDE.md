@@ -16,6 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `global/` — 공통 코드: `BaseTimeEntity`, 설정(`JpaAuditingConfig`, `ClockConfig`, `SchedulingConfig`, `SecurityConfig`), 공통 응답(`ApiResponse`), 예외 처리(`ErrorCode`, `BusinessException`, `GlobalExceptionHandler`)
 - `member/` — 카카오 기반 회원(`Member`의 `kakaoId` 유니크). `MemberService.findOrCreateByKakaoId(KakaoProfile)`로 조회·생성, 저장은 `MemberKakaoRegistrar`(`REQUIRES_NEW`). 비밀번호·서버 렌더링 화면은 없다(SPA용 REST API). `MemberController`의 `GET /api/members/me`로 내 정보 조회
 - `auth/` — 카카오 로그인과 자체 토큰. `AuthController`(`/api/auth/kakao/login`·`callback`, `/api/auth/refresh`·`logout`), `KakaoOAuthClient`, `JwtTokenProvider`·`TokenService`(Refresh 회전, DB엔 해시만), `TokenCookieFactory`(HttpOnly 쿠키). 인증은 `access_token` 쿠키를 `JwtAuthenticationFilter`가 검증하고, 컨트롤러는 `@LoginMember Long memberId`로 회원 ID를 받는다. 미인증은 `RestAuthenticationEntryPoint`가 401 공통 JSON으로 응답
+- `group/` — 그룹(`Group`, 테이블 `friend_group`: `GROUP`·`GROUPS`가 MySQL 예약어), 그룹 멤버(`GroupMember`, `(group_id, member_id)` 유니크), 초대 링크(`InviteLink`, `isUsable(now)`는 만료 정각부터 불가·폐기 시 불가)와 리포지토리, `InviteTokenGenerator`(Base64URL 43자, 공개 URL 값이라 원문 저장). Service·API는 Task 008부터
 - 도메인 패키지는 `<도메인>/{domain,dto,repository,service,controller}` 구조를 따른다.
 - 진행 상황과 다음 작업은 `docs/ROADMAP.md`를 본다.
 
