@@ -5,14 +5,14 @@
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 2 진행 중 — Task 008(그룹 생성·초대 링크 발급/재발급·그룹 멤버 인가 공통화) 완료. 다음은 Task 009(초대 링크 자동 가입·멤버 목록·그룹 프로필). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), 공통 코드(`global/`)가 있고, 모임·장소·게임·정산 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 2 완료 — Task 009(초대 링크 자동 가입·멤버 목록·그룹 프로필) 완료. 다음은 Phase 3의 Task 010(WebSocket 기반) 또는 Task 011(모임·차수·참석 도메인). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), 공통 코드(`global/`)가 있고, 모임·장소·게임·정산 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
 |---|---|---|---|---|---|
 | 0 | 기반 정리 | 0 | 3 | 3 | ✅ 완료 |
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 3 | ✅ 완료 |
-| 2 | 그룹·초대 | 2 | 3 | 2 | 🔄 진행 중 |
+| 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 0 | ⬜ 대기 |
 | 4 | 장소 결정 | 4 | 6 | 0 | ⏸️ 일부 보류 (오픈 이슈 5) |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **8** | |
+| **합계** | | | **66** (MVP 43) | **9** | |
 
 ## 상태 범례
 
@@ -283,26 +283,29 @@ Phase 10 040 → 041, 042 → 043
 - **완료 조건**
   - [x] `./gradlew test` 통과 · [x] `/spring-tools:validate` 통과 · [x] 수락 기준 충족
 
-### Task 009: 초대 링크 자동 가입·멤버 목록·그룹 프로필   ⬜ 대기
+### Task 009: 초대 링크 자동 가입·멤버 목록·그룹 프로필   ✅ 완료
 
 - **관련 기능:** G-2, G-3
 - **선행 Task:** Task 008
 - **구현 사항**
-  - [ ] `GET /api/invites/{token}` (비로그인 허용) — 그룹 이름 등 초대 진입 화면용 정보, 만료·폐기면 410 또는 400 `INVITE_LINK_EXPIRED`
-  - [ ] `POST /api/invites/{token}/join` (로그인 필요) — 이미 멤버면 생성 없이 그룹 id 반환(멱등), 아니면 `GroupMember` 생성(닉네임 기본값 = 카카오 닉네임). 동시 클릭은 `(group, member)` 유니크 위반을 잡아 기존 멤버로 응답
-  - [ ] `GET /api/groups/{groupId}/members` — 그룹 내 닉네임·프로필 이모지 목록(비멤버 403 `NOT_GROUP_MEMBER`)
-  - [ ] `PATCH /api/groups/{groupId}/members/me` — 그룹 닉네임·이모지 변경(`@NotBlank`, 길이 제한). ⚠️ 이모지 기본값·허용 범위는 PRD 미정
-  - [ ] 에러 코드: `INVITE_LINK_EXPIRED`, `INVITE_LINK_NOT_FOUND`(404)
+  - [x] `GET /api/invites/{token}` (비로그인 허용) — `InvitePreviewResponse`(groupName, memberCount, expiresAt, 그룹 id는 비노출). 없음 404 `INVITE_LINK_NOT_FOUND`, 만료·폐기 **410** `INVITE_LINK_EXPIRED`(결정 2026-11-01: 404와 구분)
+  - [x] `POST /api/invites/{token}/join` (로그인 필요) — `InviteJoinResponse(groupId, joined)`. 이미 멤버면 생성 없이 `joined=false`(멱등), 아니면 `GroupMember` 생성(닉네임 기본값 = 카카오 닉네임, role `MEMBER`). 동시 클릭은 `InviteJoiner`(트랜잭션) 유니크 위반을 `InviteJoinService`가 잡아 새 트랜잭션으로 재확인
+  - [x] `GET /api/groups/{groupId}/members` — 가입 순 `GroupMemberResponse`(memberId, nickname, emoji, role), 비멤버 403 `NOT_GROUP_MEMBER`
+  - [x] `PATCH /api/groups/{groupId}/members/me` — 닉네임 `@NotBlank` 50자·앞뒤 공백 제거, 이모지 16자
+  - [x] ⚠️ 이모지 기본값·허용 범위 — PRD 미정이라 결정(2026-11-01): 가입 시 **null**(프론트가 기본 아이콘 표시), 변경은 **16자 이내 자유 문자열**, 공백이면 null로 비움
+  - [x] 에러 코드: `INVITE_LINK_EXPIRED`(410), `INVITE_LINK_NOT_FOUND`(404)
+  - 로그인 후 원래 링크 복귀는 기존 `returnUrl` 쿠키(Task 005)로 처리 — SPA가 초대 경로를 `returnUrl`로 넘기고 복귀 후 `join` 호출
 - **테스트**
-  - [ ] 단위(`InviteJoinService`): 신규 가입 / 이미 멤버 재진입(중복 생성 없음) / 만료 링크 거부
-  - [ ] 단위: 유니크 위반 예외 발생 시 기존 멤버로 성공 응답
-  - [ ] `@DataJpaTest`: 멤버 목록 조회 쿼리
-  - [ ] `@WebMvcTest`: 비멤버 멤버 목록 조회 403 `NOT_GROUP_MEMBER`, 닉네임 공백 400
+  - [x] 단위(`InviteJoiner`): 신규 가입 / 이미 멤버 재진입(중복 생성 없음) / 만료 링크 거부 / 회원 없음
+  - [x] 단위(`InviteJoinService`): 유니크 위반 예외 발생 시 기존 멤버로 성공 응답, 재시도도 실패하면 전파
+  - [x] 단위(`InviteLinkService`·`GroupMemberService`): 미리보기, 없는 토큰 404, 만료 정각·폐기 410, 프로필 변경·이모지 비우기, 비멤버 403
+  - [x] `@DataJpaTest`: 멤버 목록(가입 순·다른 그룹 제외), 멤버십 단건 조회, 멤버 수, 토큰+그룹 fetch join
+  - [x] `@WebMvcTest`: 비로그인 미리보기 200·410·404, 비로그인 가입 401, 비멤버 멤버 목록 조회 403 `NOT_GROUP_MEMBER`, 닉네임 공백 400, 길이 초과 400
 - **수락 기준**
   - Given 미로그인 사용자가 유효한 초대 링크로 접속 / When 카카오 로그인을 마치면 / Then 원래 초대 링크로 돌아가 그룹에 자동 가입되고 그룹 닉네임 기본값은 카카오 닉네임이다. Given 이미 가입된 멤버 / When 같은 링크로 다시 들어오면 / Then 중복 가입 없이 그룹 홈으로 이동한다. (PRD G-3)
   - Given 그룹 멤버 / When 멤버 목록을 조회하면 / Then 각 멤버의 그룹 내 닉네임·프로필 이모지가 반환되고, 비멤버가 조회하면 403(`NOT_GROUP_MEMBER`)을 받는다. (PRD G-2)
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과 · [x] `/spring-tools:validate` 통과 · [x] 수락 기준 충족
 
 ---
 
