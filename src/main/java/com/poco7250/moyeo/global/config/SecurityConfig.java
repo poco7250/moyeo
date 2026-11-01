@@ -54,6 +54,7 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.POST, "/api/auth/refresh", "/api/auth/logout").permitAll()
 				// 초대 링크 미리보기는 비로그인도 본다. OG 메타 HTML 경로는 Task 019에서 추가한다
 				.requestMatchers(HttpMethod.GET, "/api/invites/*").permitAll()
+				// WebSocket 핸드셰이크(/ws)도 여기 걸려 access_token 쿠키 인증이 필요하다. 인증 결과가 STOMP Principal이 된다
 				.anyRequest().authenticated();
 	}
 }

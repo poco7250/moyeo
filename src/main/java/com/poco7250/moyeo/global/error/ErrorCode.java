@@ -28,6 +28,10 @@ public enum ErrorCode {
 	INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "로그인 정보가 만료되었습니다. 다시 로그인해 주세요."),
 	INVALID_OAUTH_STATE(HttpStatus.UNAUTHORIZED, "로그인 요청이 유효하지 않습니다. 다시 시도해 주세요."),
 
+	// 실시간(WebSocket)
+	// 해석할 수 없는 토픽 구독, 클라이언트의 /topic 직접 발행
+	REALTIME_DESTINATION_FORBIDDEN(HttpStatus.FORBIDDEN, "허용되지 않은 실시간 경로입니다."),
+
 	// 회원
 	MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "회원 정보를 찾을 수 없습니다."),
 
