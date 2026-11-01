@@ -7,6 +7,8 @@ import com.poco7250.moyeo.group.config.InviteLinkProperties;
 import com.poco7250.moyeo.group.domain.Group;
 import com.poco7250.moyeo.group.domain.InviteLink;
 import com.poco7250.moyeo.group.dto.InviteLinkResponse;
+import com.poco7250.moyeo.group.dto.InvitePreviewResponse;
+import com.poco7250.moyeo.group.repository.GroupMemberRepository;
 import com.poco7250.moyeo.group.repository.GroupRepository;
 import com.poco7250.moyeo.group.repository.InviteLinkRepository;
 import com.poco7250.moyeo.group.token.InviteTokenGenerator;
@@ -17,7 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 초대 링크 발급·재발급.
+ * 초대 링크 발급·재발급·미리보기.
  */
 @Service
 @RequiredArgsConstructor
@@ -25,6 +27,7 @@ public class InviteLinkService {
 
 	private final InviteLinkRepository inviteLinkRepository;
 	private final GroupRepository groupRepository;
+	private final GroupMemberRepository groupMemberRepository;
 	private final InviteTokenGenerator inviteTokenGenerator;
 	private final GroupAccessChecker groupAccessChecker;
 	private final InviteLinkProperties inviteLinkProperties;
@@ -57,5 +60,33 @@ public class InviteLinkService {
 		inviteLinkRepository.findAllByGroupIdAndRevokedAtIsNull(groupId)
 				.forEach(link -> link.revoke(now));
 		return issue(group);
+	}
+
+	/**
+	 * 초대 진입 화면용 정보를 준다. 비로그인 사용자도 호출한다.
+	 *
+	 * @throws BusinessException 없는 토큰이면 INVITE_LINK_NOT_FOUND, 만료·폐기면 INVITE_LINK_EXPIRED
+	 */
+	@Transactional(readOnly = true)
+	public InvitePreviewResponse getPreview(String token) {
+		InviteLink link = getUsableLink(token);
+		Group group = link.getGroup();
+		return new InvitePreviewResponse(
+				group.getName(), groupMemberRepository.countByGroupId(group.getId()), link.getExpiresAt());
+	}
+
+	/**
+	 * 지금 쓸 수 있는 초대 링크를 그룹과 함께 찾는다. 호출한 쪽 트랜잭션에 참여한다.
+	 *
+	 * @throws BusinessException 없는 토큰이면 INVITE_LINK_NOT_FOUND, 만료·폐기면 INVITE_LINK_EXPIRED
+	 */
+	@Transactional(readOnly = true)
+	public InviteLink getUsableLink(String token) {
+		InviteLink link = inviteLinkRepository.findWithGroupByToken(token)
+				.orElseThrow(() -> new BusinessException(ErrorCode.INVITE_LINK_NOT_FOUND));
+		if (!link.isUsable(LocalDateTime.now(clock))) {
+			throw new BusinessException(ErrorCode.INVITE_LINK_EXPIRED);
+		}
+		return link;
 	}
 }

@@ -15,6 +15,8 @@ import com.poco7250.moyeo.group.config.InviteLinkProperties;
 import com.poco7250.moyeo.group.domain.Group;
 import com.poco7250.moyeo.group.domain.InviteLink;
 import com.poco7250.moyeo.group.dto.InviteLinkResponse;
+import com.poco7250.moyeo.group.dto.InvitePreviewResponse;
+import com.poco7250.moyeo.group.repository.GroupMemberRepository;
 import com.poco7250.moyeo.group.repository.GroupRepository;
 import com.poco7250.moyeo.group.repository.InviteLinkRepository;
 import com.poco7250.moyeo.group.token.InviteTokenGenerator;
@@ -29,6 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.AdditionalAnswers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class InviteLinkServiceTest {
@@ -48,13 +51,16 @@ class InviteLinkServiceTest {
 	@Mock
 	GroupAccessChecker groupAccessChecker;
 
+	@Mock
+	GroupMemberRepository groupMemberRepository;
+
 	InviteLinkService inviteLinkService;
 
 	private final Group group = Group.create("대학 동기");
 
 	@BeforeEach
 	void setUp() {
-		inviteLinkService = new InviteLinkService(inviteLinkRepository, groupRepository, inviteTokenGenerator,
+		inviteLinkService = new InviteLinkService(inviteLinkRepository, groupRepository, groupMemberRepository, inviteTokenGenerator,
 				groupAccessChecker, new InviteLinkProperties(Duration.ofDays(7), ""), TestClocks.fixed(NOW));
 	}
 
@@ -104,5 +110,49 @@ class InviteLinkServiceTest {
 		assertThatThrownBy(() -> inviteLinkService.reissue(1L, 7L))
 				.isInstanceOf(BusinessException.class)
 				.extracting("errorCode").isEqualTo(ErrorCode.GROUP_NOT_FOUND);
+	}
+
+	@Test
+	void 미리보기는_그룹_이름과_멤버_수와_만료_시각을_준다() {
+		ReflectionTestUtils.setField(group, "id", 1L);
+		InviteLink link = InviteLink.issue(group, NEW_TOKEN, NOW.plusDays(3));
+		given(inviteLinkRepository.findWithGroupByToken(NEW_TOKEN)).willReturn(Optional.of(link));
+		given(groupMemberRepository.countByGroupId(1L)).willReturn(4L);
+
+		InvitePreviewResponse response = inviteLinkService.getPreview(NEW_TOKEN);
+
+		assertThat(response.groupName()).isEqualTo("대학 동기");
+		assertThat(response.memberCount()).isEqualTo(4L);
+		assertThat(response.expiresAt()).isEqualTo(NOW.plusDays(3));
+	}
+
+	@Test
+	void 없는_토큰이면_INVITE_LINK_NOT_FOUND() {
+		given(inviteLinkRepository.findWithGroupByToken(NEW_TOKEN)).willReturn(Optional.empty());
+
+		assertThatThrownBy(() -> inviteLinkService.getPreview(NEW_TOKEN))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.INVITE_LINK_NOT_FOUND);
+	}
+
+	@Test
+	void 만료_시각_정각이면_INVITE_LINK_EXPIRED() {
+		given(inviteLinkRepository.findWithGroupByToken(NEW_TOKEN))
+				.willReturn(Optional.of(InviteLink.issue(group, NEW_TOKEN, NOW)));
+
+		assertThatThrownBy(() -> inviteLinkService.getUsableLink(NEW_TOKEN))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.INVITE_LINK_EXPIRED);
+	}
+
+	@Test
+	void 폐기된_링크면_INVITE_LINK_EXPIRED() {
+		InviteLink link = InviteLink.issue(group, NEW_TOKEN, NOW.plusDays(3));
+		link.revoke(NOW.minusHours(1));
+		given(inviteLinkRepository.findWithGroupByToken(NEW_TOKEN)).willReturn(Optional.of(link));
+
+		assertThatThrownBy(() -> inviteLinkService.getUsableLink(NEW_TOKEN))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.INVITE_LINK_EXPIRED);
 	}
 }
