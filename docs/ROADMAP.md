@@ -5,14 +5,14 @@
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 2 진행 중 — Task 007(그룹·멤버·초대 링크 도메인 골격) 완료. 다음은 Task 008(그룹 생성·초대 링크 발급/재발급·그룹 멤버 인가 공통화). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 엔티티와 리포지토리(`group/`, Service·API는 아직 없음), 공통 코드(`global/`)가 있고, 모임·장소·게임·정산 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 2 진행 중 — Task 008(그룹 생성·초대 링크 발급/재발급·그룹 멤버 인가 공통화) 완료. 다음은 Task 009(초대 링크 자동 가입·멤버 목록·그룹 프로필). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), 공통 코드(`global/`)가 있고, 모임·장소·게임·정산 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
 |---|---|---|---|---|---|
 | 0 | 기반 정리 | 0 | 3 | 3 | ✅ 완료 |
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 3 | ✅ 완료 |
-| 2 | 그룹·초대 | 2 | 3 | 1 | 🔄 진행 중 |
+| 2 | 그룹·초대 | 2 | 3 | 2 | 🔄 진행 중 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 0 | ⬜ 대기 |
 | 4 | 장소 결정 | 4 | 6 | 0 | ⏸️ 일부 보류 (오픈 이슈 5) |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **7** | |
+| **합계** | | | **66** (MVP 43) | **8** | |
 
 ## 상태 범례
 
@@ -261,27 +261,27 @@ Phase 10 040 → 041, 042 → 043
 - **완료 조건**
   - [x] `./gradlew test` 통과(전체 146건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
 
-### Task 008: 그룹 생성·초대 링크 발급/재발급·그룹 멤버 인가 공통화   ⬜ 대기
+### Task 008: 그룹 생성·초대 링크 발급/재발급·그룹 멤버 인가 공통화   ✅ 완료
 
 - **관련 기능:** G-1, 6장 인가
 - **선행 Task:** Task 007
 - **구현 사항**
-  - [ ] `group/service/GroupService.create` — 그룹 생성 + 생성자 `GroupMember`(닉네임 기본값 = 카카오 닉네임) + 초대 링크 발급, 한 트랜잭션
-  - [ ] `InviteLinkService.reissue` — 기존 링크 폐기(`revokedAt`) + 새 토큰 발급
-  - [ ] ⚠️ 초대 링크 만료 기간 기본값·재발급 권한(멤버 누구나 vs 생성자) — PRD 미정. 만료 기간은 설정값으로 두고 결정 후 채운다
-  - [ ] `global/auth/GroupAccessChecker.requireMember(groupId, memberId)` → 403 `NOT_GROUP_MEMBER` (이후 모든 그룹 리소스 Service가 사용)
-  - [ ] `GroupController`: `POST /api/groups`, `POST /api/groups/{groupId}/invite-links`(재발급), `GET /api/groups`(내 그룹 목록)
-  - [ ] DTO: `GroupCreateRequest`(name `@NotBlank`), `GroupResponse`, `InviteLinkResponse`(token, url, expiresAt)
-  - [ ] 에러 코드: `NOT_GROUP_MEMBER`(403), `GROUP_NOT_FOUND`(404)
+  - [x] `group/service/GroupService.create` — 그룹 생성 + 생성자 `GroupMember`(닉네임 기본값 = 카카오 닉네임) + 초대 링크 발급, 한 트랜잭션
+  - [x] `InviteLinkService.reissue` — 기존 링크 폐기(`revokedAt`) + 새 토큰 발급
+  - [x] ⚠️ 초대 링크 만료 기간 기본값·재발급 권한 — PRD 미정이라 결정(2026-11-01): 만료 **7일**(`group.invite.ttl`, `InviteLinkProperties`), 재발급은 **그룹 멤버 누구나**. 공유 URL 앞부분은 `group.invite.base-url`(오픈 이슈 1 결정 후 채움)
+  - [x] `global/auth/GroupAccessChecker.requireMember(groupId, memberId)` → 403 `NOT_GROUP_MEMBER` (이후 모든 그룹 리소스 Service가 사용)
+  - [x] `GroupController`: `POST /api/groups`, `POST /api/groups/{groupId}/invite-links`(재발급), `GET /api/groups`(내 그룹 목록)
+  - [x] DTO: `GroupCreateRequest`(name `@NotBlank`), `GroupResponse`, `InviteLinkResponse`(token, url, expiresAt), 생성 응답은 `GroupCreateResponse`(group + inviteLink)
+  - [x] 에러 코드: `NOT_GROUP_MEMBER`(403), `GROUP_NOT_FOUND`(404)
 - **테스트**
-  - [ ] 단위(`GroupService`): 생성 시 생성자가 멤버가 되고 만료 시각 있는 링크가 발급됨
-  - [ ] 단위: 재발급 후 이전 토큰은 `isUsable=false`
-  - [ ] 단위(`GroupAccessChecker`): 비멤버 → `NOT_GROUP_MEMBER`
-  - [ ] `@WebMvcTest`: 그룹 이름 누락 400 + 필드 에러, 생성 성공 응답 형식
+  - [x] 단위(`GroupService`): 생성 시 생성자가 멤버가 되고 만료 시각 있는 링크가 발급됨
+  - [x] 단위: 재발급 후 이전 토큰은 `isUsable=false`
+  - [x] 단위(`GroupAccessChecker`): 비멤버 → `NOT_GROUP_MEMBER`
+  - [x] `@WebMvcTest`: 그룹 이름 누락 400 + 필드 에러, 생성 성공 응답 형식
 - **수락 기준**
   - Given 로그인한 사용자 / When 그룹을 생성하면 / Then 생성자는 그 그룹 멤버가 되고 만료 시각이 있는 초대 링크 토큰이 발급된다. Given 초대 링크를 재발급하면 / Then 이전 토큰으로 접속 시 "만료된 링크" 응답을 받는다. (PRD G-1)
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과 · [x] `/spring-tools:validate` 통과 · [x] 수락 기준 충족
 
 ### Task 009: 초대 링크 자동 가입·멤버 목록·그룹 프로필   ⬜ 대기
 
