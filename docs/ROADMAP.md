@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-11-02 (`feature/meeting-create` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-11-03 (`feature/attendance` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 3 진행 중 — Task 012(모임 생성·차수 템플릿·호스트 권한) 완료. 다음은 Task 013(차수별 참석 응답·마감·현황판). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격 엔티티(`settlement/`), 공통 코드(`global/`)가 있다. 참석 API와 장소·게임 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 3 완료 — Task 013(차수별 참석 응답·마감·현황판) 완료. 다음은 Phase 4(장소 결정, Task 014는 오픈 이슈 5 회신 대기라 보류 — 먼저 Task 015 카카오 로컬 검색 프록시) 또는 Phase 5(Task 020). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격 엔티티(`settlement/`), 공통 코드(`global/`)가 있다. 장소·게임 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -13,7 +13,7 @@
 | 0 | 기반 정리 | 0 | 3 | 3 | ✅ 완료 |
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 3 | ✅ 완료 |
 | 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
-| 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 3 | 🔄 진행 중 |
+| 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 4 | ✅ 완료 |
 | 4 | 장소 결정 | 4 | 6 | 0 | ⏸️ 일부 보류 (오픈 이슈 5) |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 0 | ⬜ 대기 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 0 | ⬜ 대기 |
@@ -382,28 +382,34 @@ Phase 10 040 → 041, 042 → 043
 - **완료 조건**
   - [x] `./gradlew test` 통과(전체 260건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
 
-### Task 013: 차수별 참석 응답·마감·현황판   ⬜ 대기
+### Task 013: 차수별 참석 응답·마감·현황판   ✅ 완료
 
+- **완료일:** 2026-11-03 · 브랜치 `feature/attendance`
 - **관련 기능:** M-3, M-4
 - **선행 Task:** Task 010, Task 012
 - **구현 사항**
-  - [ ] `AttendanceService.respond(meetingId, memberId, 차수별 응답 | 단축 옵션)` — `(round, member)` upsert(차수당 1건)
-  - [ ] 단축 옵션 `LATE_FROM_SECOND`("늦참(2차부터)") / `FIRST_ONLY`("1차만") → 차수별 상태로 펼치기. ⚠️ 차수 3개 이상일 때 의미(예: 늦참 = 1차 불참·나머지 참석)는 PRD에 2차수 예시만 있음
-  - [ ] 마감 검사: `now > responseDeadline`이면 본인 수정 거부(403, `ATTENDANCE_DEADLINE_PASSED`), 호스트의 대리 수정(`PUT /api/meetings/{id}/attendances/{memberId}`)은 허용
-  - [ ] 현황판 `GET /api/meetings/{id}/attendance-board` — 차수별 참석/불참/미정/미응답(그룹 멤버 중 응답 없음) 목록
-  - [ ] 응답 저장 커밋 후 `AttendanceChangedEvent` 브로드캐스트(Task 010)
-  - [ ] 지출 있는 차수의 정산 직렬화·`REOPENED`·재시도 facade 연결은 Task 025에서(5-a 범위)
+  - [x] `AttendanceService`(facade, 트랜잭션 없음) → `AttendanceWriter`(`@Transactional`) — `(round, member)` upsert(기존 행 `changeStatus`, 없으면 생성). 동시 첫 응답 유니크 위반은 새 트랜잭션으로 1회 재시도(`InviteJoinService` 패턴). 요청 `AttendanceRespondRequest`는 단축 옵션 `shortcut` 또는 차수별 `rounds` 중 **정확히 하나**(아니면 400 `answerSpecValid`), 차수별 응답은 일부 차수만 보내도 됨·같은 차수 중복은 400 `roundIdsUnique`, 모임에 없는 차수는 404 `ROUND_NOT_FOUND`
+  - [x] 단축 옵션 `AttendanceShortcut`(`LATE_FROM_SECOND`/`FIRST_ONLY`).expand(차수 수) — ⚠️ 결정(2026-11-03): **1차 기준**으로 나눔(늦참 = 1차 불참·2차~끝 참석, 1차만 = 1차 참석·나머지 불참). 차수 1개 모임은 400 `ATTENDANCE_SHORTCUT_NOT_APPLICABLE`
+  - [x] 마감 `Meeting.isResponseClosed(now)`(`now > responseDeadline`, 정각은 열림, 마감 없으면 항상 열림). 마감 후 본인 수정은 403 `ATTENDANCE_DEADLINE_PASSED`. ⚠️ 결정(2026-11-03): **호스트는 마감 후에도 자기 응답 포함 수정 가능**. 대리 수정 대상이 그룹 멤버가 아니면 404 `ATTENDANCE_TARGET_NOT_MEMBER`
+  - [x] `AttendanceController`: `PUT /api/meetings/{id}/attendances/me`, `PUT /api/meetings/{id}/attendances/{memberId}`(호스트 대리), `GET /api/meetings/{id}/attendance-board`
+  - [x] 현황판 `AttendanceBoardService` — 차수·응답·그룹 멤버를 한 번씩 읽어 차수별 참석/불참/미정/미응답(그룹 멤버 − 응답자) 목록(그룹 닉네임·이모지, 가입 순) + `responseDeadline`·`closed`
+  - [x] 응답 저장 시 `AttendanceChangedEvent`(`ATTENDANCE_CHANGED`, 본문 = 그 멤버의 차수별 응답 `MemberAttendanceResponse`)를 `/topic/meetings/{id}`로 커밋 후 브로드캐스트
+  - [x] `AttendanceRepository.findAllByMeetingId`, `findAllByMeetingIdAndMemberId`
+  - [ ] 지출 있는 차수의 정산 직렬화·`REOPENED`·재시도 facade 연결은 Task 025에서(5-a 범위) — `AttendanceService`에 붙인다
 - **테스트**
-  - [ ] 단위: 단축 옵션 펼치기 — 차수 2개에서 늦참 = (불참, 참석), 1차만 = (참석, 불참)
-  - [ ] 단위: 재응답 시 기존 행 갱신(새 행 없음)
-  - [ ] 단위: 마감 경계 — 마감 시각 정각·1초 후(고정 `Clock`), 호스트 대리 수정 허용, 비호스트 403
-  - [ ] `@DataJpaTest`: 현황판 쿼리(미응답자 = 그룹 멤버 − 응답자)
-  - [ ] `@WebMvcTest`: 응답 요청 검증·응답 형식
+  - [x] 단위(`AttendanceShortcutTest` 3건): 차수 2개 늦참 = (불참, 참석)·1차만 = (참석, 불참), 차수 3개, 차수 1개 예외
+  - [x] 단위(`MeetingTest` +2건): 마감 없음, 마감 정각 열림·1초 후 닫힘
+  - [x] 단위(`AttendanceWriterTest` 10건, 고정 `Clock`): 첫 응답 생성·이벤트, 재응답 시 기존 행 갱신(save 없음), 부분 응답, 마감 1초 후 403, 호스트 본인·대리 수정 마감 후 허용, 비호스트 대리 403, 대상 비멤버 404, 없는 차수 404, 차수 1개 단축 옵션 400
+  - [x] 단위(`AttendanceServiceTest` 2건): 유니크 위반 재시도 성공, 재시도도 실패하면 전파
+  - [x] 단위(`AttendanceBoardServiceTest`): 상태별 분류, 미응답 = 그룹 멤버 − 응답자(차수마다 다름), 마감 여부
+  - [x] `@DataJpaTest`(`AttendanceRepositoryTest` +1건): 모임 단위 조회가 다른 모임 응답 제외, 회원별 조회
+  - [x] `@WebMvcTest`(`AttendanceControllerTest`): 단축/차수 둘 다·둘 다 없음·빈 목록 400, 차수 중복 400, status 누락 400, 알 수 없는 단축 옵션 400, 비로그인 401, 마감 403·비호스트 대리 403·비멤버 현황판 403, 응답·현황판 형식
+  - [x] 통합(`AttendanceServiceIntegrationTest`): 실제 DB에서 늦참 → 1차만 재응답 시 차수당 1건 유지·값 갱신
 - **수락 기준**
-  - Given 차수가 2개인 모임 / When 멤버가 "늦참(2차부터)"을 고르면 / Then 1차는 불참, 2차는 참석으로 저장된다. "1차만"은 그 반대로 저장된다. 같은 멤버가 다시 응답하면 기존 응답이 갱신된다(차수당 1건). (PRD M-3)
-  - Given 응답 마감 시간이 지난 모임 / When 멤버가 응답을 바꾸려 하면 / Then 거부된다(호스트 = 모임 생성자의 대리 수정은 허용, 그 외 멤버 403). 현황판은 차수별로 참석/불참/미정/미응답 멤버 목록을 보여준다. (PRD M-4)
+  - [x] Given 차수가 2개인 모임 / When 멤버가 "늦참(2차부터)"을 고르면 / Then 1차는 불참, 2차는 참석으로 저장된다. "1차만"은 그 반대로 저장된다. 같은 멤버가 다시 응답하면 기존 응답이 갱신된다(차수당 1건). (PRD M-3)
+  - [x] Given 응답 마감 시간이 지난 모임 / When 멤버가 응답을 바꾸려 하면 / Then 거부된다(호스트 = 모임 생성자의 대리 수정은 허용, 그 외 멤버 403). 현황판은 차수별로 참석/불참/미정/미응답 멤버 목록을 보여준다. (PRD M-4)
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 293건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
 
 ---
 

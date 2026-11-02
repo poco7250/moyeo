@@ -73,4 +73,11 @@ public class Meeting extends BaseTimeEntity {
 	public boolean isHost(Long memberId) {
 		return memberId != null && Objects.equals(hostMemberId, memberId);
 	}
+
+	/**
+	 * 참석 응답이 마감됐는지 확인한다. 마감 시각 정각까지는 열려 있고, 마감이 없으면 항상 열려 있다.
+	 */
+	public boolean isResponseClosed(LocalDateTime now) {
+		return responseDeadline != null && now.isAfter(responseDeadline);
+	}
 }
