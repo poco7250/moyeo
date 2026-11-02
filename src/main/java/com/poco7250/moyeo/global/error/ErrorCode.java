@@ -44,6 +44,13 @@ public enum ErrorCode {
 	MEETING_NOT_FOUND(HttpStatus.NOT_FOUND, "모임을 찾을 수 없습니다."),
 	ROUND_NOT_FOUND(HttpStatus.NOT_FOUND, "차수를 찾을 수 없습니다."),
 
+	// 참석
+	ATTENDANCE_DEADLINE_PASSED(HttpStatus.FORBIDDEN, "응답 마감 시간이 지났습니다. 호스트에게 수정을 요청해 주세요."),
+	// 늦참·1차만 같은 단축 옵션은 차수가 2개 이상일 때만 의미가 있다
+	ATTENDANCE_SHORTCUT_NOT_APPLICABLE(HttpStatus.BAD_REQUEST, "차수가 2개 이상인 모임에서만 쓸 수 있는 옵션입니다."),
+	// 호스트 대리 수정 대상이 이 그룹 멤버가 아님
+	ATTENDANCE_TARGET_NOT_MEMBER(HttpStatus.NOT_FOUND, "응답을 수정할 멤버를 찾을 수 없습니다."),
+
 	// 초대
 	INVITE_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "초대 링크를 찾을 수 없습니다."),
 	// 만료·폐기된 링크. 예전엔 있었지만 이제 못 쓴다는 의미라 410으로 404와 구분한다

@@ -47,13 +47,14 @@ class AttendanceRepositoryTest {
 	MemberRepository memberRepository;
 
 	private Member member;
+	private Group group;
 	private Round firstRound;
 	private Round secondRound;
 
 	@BeforeEach
 	void setUp() {
 		member = memberRepository.saveAndFlush(Member.ofKakao(1001L, "모여", null, null));
-		Group group = groupRepository.saveAndFlush(Group.create("대학 동기"));
+		group = groupRepository.saveAndFlush(Group.create("대학 동기"));
 		Meeting meeting = meetingRepository.saveAndFlush(Meeting.create(
 				group, "연말 모임", LocalDateTime.of(2026, 12, 20, 18, 0), null, null, member.getId()));
 		firstRound = roundRepository.saveAndFlush(Round.create(meeting, 1, "밥"));
@@ -80,5 +81,24 @@ class AttendanceRepositoryTest {
 		assertThat(attendanceRepository.count()).isEqualTo(2);
 		assertThat(second.isCheckedIn()).isFalse();
 		assertThat(second.getRespondedAt()).isEqualTo(NOW);
+	}
+
+	@Test
+	@DisplayName("모임 단위 조회는 그 모임 차수의 응답만, 회원별 조회는 그 회원 응답만 돌려준다")
+	void findByMeeting() {
+		Member other = memberRepository.saveAndFlush(Member.ofKakao(1002L, "친구", null, null));
+		Meeting otherMeeting = meetingRepository.saveAndFlush(Meeting.create(
+				group, "번개", LocalDateTime.of(2026, 12, 21, 18, 0), null, null, member.getId()));
+		Round otherRound = roundRepository.saveAndFlush(Round.create(otherMeeting, 1, "밥"));
+		attendanceRepository.saveAndFlush(Attendance.respond(firstRound, member, AttendanceStatus.ATTEND, NOW));
+		attendanceRepository.saveAndFlush(Attendance.respond(secondRound, other, AttendanceStatus.ABSENT, NOW));
+		attendanceRepository.saveAndFlush(Attendance.respond(otherRound, member, AttendanceStatus.ATTEND, NOW));
+
+		Long meetingId = firstRound.getMeeting().getId();
+		assertThat(attendanceRepository.findAllByMeetingId(meetingId))
+				.extracting(a -> a.getRound().getId())
+				.containsExactlyInAnyOrder(firstRound.getId(), secondRound.getId());
+		assertThat(attendanceRepository.findAllByMeetingIdAndMemberId(meetingId, member.getId()))
+				.singleElement().extracting(a -> a.getRound().getId()).isEqualTo(firstRound.getId());
 	}
 }

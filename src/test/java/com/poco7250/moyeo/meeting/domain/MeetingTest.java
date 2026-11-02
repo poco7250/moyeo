@@ -29,4 +29,21 @@ class MeetingTest {
 	void nullIsNotHost() {
 		assertThat(meeting.isHost(null)).isFalse();
 	}
+
+	@Test
+	@DisplayName("응답 마감이 없으면 언제나 열려 있다")
+	void noDeadlineIsOpen() {
+		assertThat(meeting.isResponseClosed(LocalDateTime.of(2030, 1, 1, 0, 0))).isFalse();
+	}
+
+	@Test
+	@DisplayName("응답 마감 시각 정각까지는 열려 있고 1초 뒤부터 닫힌다")
+	void deadlineBoundary() {
+		LocalDateTime deadline = LocalDateTime.of(2026, 12, 19, 18, 0);
+		Meeting withDeadline = Meeting.create(
+				Group.create("대학 동기"), "연말 모임", LocalDateTime.of(2026, 12, 20, 18, 0), null, deadline, 7L);
+
+		assertThat(withDeadline.isResponseClosed(deadline)).isFalse();
+		assertThat(withDeadline.isResponseClosed(deadline.plusSeconds(1))).isTrue();
+	}
 }
