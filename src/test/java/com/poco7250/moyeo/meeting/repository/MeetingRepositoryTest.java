@@ -37,4 +37,26 @@ class MeetingRepositoryTest {
 		assertThat(meetingRepository.findGroupIdById(meeting.getId())).hasValue(group.getId());
 		assertThat(meetingRepository.findGroupIdById(9999L)).isEmpty();
 	}
+
+	@Test
+	@DisplayName("다가오는 모임은 기준 시각 정각을 포함해 가까운 순, 지난 모임은 최근 순이고 다른 그룹 모임은 빠진다")
+	void upcomingAndPast() {
+		LocalDateTime now = LocalDateTime.of(2026, 11, 2, 12, 0);
+		Group group = groupRepository.saveAndFlush(Group.create("대학 동기"));
+		Group other = groupRepository.saveAndFlush(Group.create("회사"));
+		Meeting later = save(group, "다음 달", now.plusDays(30));
+		Meeting atNow = save(group, "지금", now);
+		Meeting yesterday = save(group, "어제", now.minusDays(1));
+		Meeting lastWeek = save(group, "지난주", now.minusDays(7));
+		save(other, "다른 그룹", now.plusDays(1));
+
+		assertThat(meetingRepository.findAllByGroupIdAndStartAtGreaterThanEqualOrderByStartAtAsc(group.getId(), now))
+				.containsExactly(atNow, later);
+		assertThat(meetingRepository.findAllByGroupIdAndStartAtLessThanOrderByStartAtDesc(group.getId(), now))
+				.containsExactly(yesterday, lastWeek);
+	}
+
+	private Meeting save(Group group, String title, LocalDateTime startAt) {
+		return meetingRepository.saveAndFlush(Meeting.create(group, title, startAt, null, null, 1L));
+	}
 }

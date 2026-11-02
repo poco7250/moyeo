@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-11-01 (`feature/websocket-base` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-11-02 (`feature/meeting-create` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 3 진행 중 — Task 011(모임·차수·참석·정산 골격 도메인) 완료. 다음은 Task 012(모임 생성·차수 템플릿·호스트 권한). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티와 모임 토픽 해석기(`meeting/`), 정산 골격 엔티티(`settlement/`), 공통 코드(`global/`)가 있다. 모임·참석 API와 장소·게임 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 3 진행 중 — Task 012(모임 생성·차수 템플릿·호스트 권한) 완료. 다음은 Task 013(차수별 참석 응답·마감·현황판). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격 엔티티(`settlement/`), 공통 코드(`global/`)가 있다. 참석 API와 장소·게임 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -13,7 +13,7 @@
 | 0 | 기반 정리 | 0 | 3 | 3 | ✅ 완료 |
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 3 | ✅ 완료 |
 | 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
-| 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 2 | 🔄 진행 중 |
+| 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 3 | 🔄 진행 중 |
 | 4 | 장소 결정 | 4 | 6 | 0 | ⏸️ 일부 보류 (오픈 이슈 5) |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 0 | ⬜ 대기 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **11** | |
+| **합계** | | | **66** (MVP 43) | **12** | |
 
 ## 상태 범례
 
@@ -357,26 +357,30 @@ Phase 10 040 → 041, 042 → 043
 - **완료 조건**
   - [x] `./gradlew test` 통과(전체 235건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
 
-### Task 012: 모임 생성·차수 템플릿·호스트 권한 공통화   ⬜ 대기
+### Task 012: 모임 생성·차수 템플릿·호스트 권한 공통화   ✅ 완료
 
+- **완료일:** 2026-11-02 · 브랜치 `feature/meeting-create`
 - **관련 기능:** M-1, M-2, D4
 - **선행 Task:** Task 011
 - **구현 사항**
-  - [ ] `meeting/service/MeetingService.create` — 그룹 멤버 검사 → `Meeting`(hostMemberId = 요청자) + 차수 목록 + `Settlement(DRAFT)`, 한 트랜잭션
-  - [ ] `RoundTemplate` enum(예: "밥→볼링", "밥→보드게임", "밥→볼링→보드게임", 직접 구성) — ⚠️ 템플릿 목록은 PRD 예시만 있음, 확정 필요
-  - [ ] `global/auth/MeetingAccessChecker` — `requireMember(meetingId, memberId)`(그룹 멤버), `requireHost(meetingId, memberId)` → 403 `NOT_MEETING_HOST`
-  - [ ] `MeetingController`: `POST /api/groups/{groupId}/meetings`, `GET /api/meetings/{meetingId}`(상세: 차수·장소 상태·호스트 여부), `GET /api/groups/{groupId}/meetings`(다가오는/지난 모임)
-  - [ ] DTO: `MeetingCreateRequest`(title `@NotBlank`, startAt `@NotNull`, memo, responseDeadline?, template 또는 rounds 목록), `MeetingDetailResponse`(모임 상세 링크 포함)
-  - [ ] 에러 코드: `NOT_MEETING_HOST`(403), `MEETING_NOT_FOUND`(404), `ROUND_NOT_FOUND`(404)
+  - [x] `meeting/service/MeetingService.create` — 그룹 멤버 검사 → `Meeting`(hostMemberId = 요청자) + 차수 목록(seq 1..N) + `Settlement(DRAFT)`, 한 트랜잭션
+  - [x] `meeting/domain/RoundTemplate` enum — ⚠️ PRD 예시만 있어 결정(2026-11-02): `MEAL_ONLY`(밥), `MEAL_BOWLING`(밥→볼링), `MEAL_BOARD_GAME`(밥→보드게임), `MEAL_BOWLING_BOARD_GAME`(밥→볼링→보드게임). 요청은 `template` 또는 직접 구성 `rounds`(이름 목록) 중 **정확히 하나**(아니면 400 `roundSpecValid` 필드 에러), 차수 **1~5개**, 이름 30자·앞뒤 공백 제거
+  - [x] `global/auth/MeetingAccessChecker` — `requireMember(meetingId, memberId)`(그룹 멤버, 통과 시 `Meeting` 반환), `requireHost` → 403 `NOT_MEETING_HOST`. 결정(2026-11-02): **없는 모임도 403 `NOT_GROUP_MEMBER`**(존재 여부 숨김, 그룹 검사·모임 토픽 해석기와 일관)
+  - [x] `MeetingController`: `POST /api/groups/{groupId}/meetings`(201), `GET /api/meetings/{meetingId}`(상세: 차수·장소 상태·호스트 여부), `GET /api/groups/{groupId}/meetings`(`upcoming` 가까운 순 / `past` 최근 순, 주입 `Clock` 기준, 시작 시각 정각은 다가오는 쪽)
+  - [x] DTO: `MeetingCreateRequest`(title `@NotBlank` 100자, startAt `@NotNull`, memo 1000자, responseDeadline?, template?, rounds?), `MeetingDetailResponse`(url = 모임 상세 링크, host), `RoundResponse`, `MeetingSummaryResponse`, `GroupMeetingsResponse`
+  - [x] 모임 상세 링크 `meeting/config/MeetingLinkProperties`(`meeting.link.base-url`, 비우면 `/meetings/{id}` 상대 경로 — 오픈 이슈 1 결정 후 채움)
+  - [x] 에러 코드: `NOT_MEETING_HOST`(403), `MEETING_NOT_FOUND`(404), `ROUND_NOT_FOUND`(404) — 뒤의 둘은 코드만 추가(이후 Task 내부 조회용)
 - **테스트**
-  - [ ] 단위(`MeetingService`): 생성 시 hostMemberId = 생성자, `Settlement` `DRAFT` 1건, 템플릿 "밥→볼링" → 차수 2개 seq 1·2, 모두 `UNDECIDED`
-  - [ ] 단위(`MeetingAccessChecker`): 비멤버 `NOT_GROUP_MEMBER`, 호스트 아님 `NOT_MEETING_HOST`
-  - [ ] `@WebMvcTest`: 제목·날짜 누락 400 + 필드 에러
+  - [x] 단위(`MeetingServiceTest` 5건): hostMemberId = 생성자, `Settlement` `DRAFT` 1건, 템플릿 "밥→볼링" → 차수 2개 seq 1·2 모두 `UNDECIDED`, 직접 구성 공백 제거, 비멤버는 저장 없음, 다가오는/지난 분리
+  - [x] 단위(`MeetingAccessCheckerTest` 5건): 없는 모임·비멤버 `NOT_GROUP_MEMBER`, 호스트 아님 `NOT_MEETING_HOST`, 통과 시 모임 반환 + `RoundTemplateTest`
+  - [x] `@DataJpaTest`(`MeetingRepositoryTest`): 다가오는/지난 경계·정렬·다른 그룹 제외
+  - [x] `@WebMvcTest`(`MeetingControllerTest`): 제목·날짜 누락 400 + 필드 에러, 템플릿·차수 둘 다/둘 다 없음/빈 목록 400, 차수 6개·이름 31자·공백 400, 알 수 없는 템플릿 400, 비로그인 401, 비멤버 403, 생성·상세·목록 응답 형식
+  - [x] 통합(`MeetingServiceIntegrationTest`): 실제 DB에 모임 1·차수 2·`DRAFT` 정산 1건
 - **수락 기준**
-  - Given 그룹 멤버 / When 제목·날짜·시간·메모로 모임을 생성하면 / Then 모임이 그룹에 등록되고 모임 상세 링크가 반환되며, 생성자가 `Meeting.hostMemberId`로 저장되고 `Settlement`가 `DRAFT`로 함께 생성된다. 제목·날짜 누락 시 400과 필드 에러를 받는다. (PRD M-1)
-  - Given 모임 생성 화면 / When "밥→볼링" 템플릿을 고르면 / Then 1차(밥)·2차(볼링) 차수가 순서대로 생성되고, 각 차수의 장소 상태는 `UNDECIDED`다. (PRD M-2)
+  - [x] Given 그룹 멤버 / When 제목·날짜·시간·메모로 모임을 생성하면 / Then 모임이 그룹에 등록되고 모임 상세 링크가 반환되며, 생성자가 `Meeting.hostMemberId`로 저장되고 `Settlement`가 `DRAFT`로 함께 생성된다. 제목·날짜 누락 시 400과 필드 에러를 받는다. (PRD M-1)
+  - [x] Given 모임 생성 화면 / When "밥→볼링" 템플릿을 고르면 / Then 1차(밥)·2차(볼링) 차수가 순서대로 생성되고, 각 차수의 장소 상태는 `UNDECIDED`다. (PRD M-2)
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 260건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
 
 ### Task 013: 차수별 참석 응답·마감·현황판   ⬜ 대기
 
