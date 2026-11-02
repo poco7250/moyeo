@@ -39,6 +39,11 @@ public enum ErrorCode {
 	NOT_GROUP_MEMBER(HttpStatus.FORBIDDEN, "그룹 멤버만 이용할 수 있습니다."),
 	GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다."),
 
+	// 모임
+	NOT_MEETING_HOST(HttpStatus.FORBIDDEN, "모임 호스트만 할 수 있습니다."),
+	MEETING_NOT_FOUND(HttpStatus.NOT_FOUND, "모임을 찾을 수 없습니다."),
+	ROUND_NOT_FOUND(HttpStatus.NOT_FOUND, "차수를 찾을 수 없습니다."),
+
 	// 초대
 	INVITE_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "초대 링크를 찾을 수 없습니다."),
 	// 만료·폐기된 링크. 예전엔 있었지만 이제 못 쓴다는 의미라 410으로 404와 구분한다
