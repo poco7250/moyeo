@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태) · 마지막 갱신: 2026-11-03 (`feature/place-search` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-04 (`feature/place-no-storage-docs` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 3 완료 — Phase 4는 Task 015(카카오 로컬 검색 프록시) 완료, Task 014·016·019는 오픈 이슈 5 회신 대기라 보류(017·018도 016 뒤라 대기). 다음은 Phase 5(Task 020). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격 엔티티(`settlement/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한(`place/`), 공통 코드(`global/`)가 있다. 장소 후보·투표 도메인과 게임 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 3 완료 — Phase 4는 Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. 다음은 Task 014(사용자 입력 장소 값 타입·후보·투표 도메인), 또는 Phase 5(Task 020). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격 엔티티(`settlement/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한(`place/`), 공통 코드(`global/`)가 있다. 장소 후보·투표 도메인과 게임 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -14,7 +14,7 @@
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 3 | ✅ 완료 |
 | 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 4 | ✅ 완료 |
-| 4 | 장소 결정 | 4 | 6 | 1 | ⏸️ 일부 보류 (오픈 이슈 5) |
+| 4 | 장소 결정 | 4 | 6 | 1 | 🔄 진행 중 |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 0 | ⬜ 대기 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 0 | ⬜ 대기 |
 | 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 0 | ⬜ 대기 |
@@ -415,28 +415,26 @@ Phase 10 040 → 041, 042 → 043
 
 ## Phase 4: 장소 결정
 
-- **목표:** 카카오 로컬 실시간 프록시 검색, 후보 등록(저장은 `kakaoPlaceId` + label만), 바로 확정 / 투표 / 마감 자동 확정, 지도·길찾기 URL 링크와 OG 노출
+- **목표:** 카카오 로컬 실시간 프록시 검색(참고용), 사용자 직접 입력 후보 등록, 바로 확정 / 투표 / 마감 자동 확정, 지도 URL 링크와 OG 노출
 - **포함 기능 ID:** P-1, P-2, P-3, P-4, P-5
-- **⚠️ 착수 전 필수:** PRD 오픈 이슈 5(카카오 로컬 데이터 저장 범위) 카카오 공식 문의 회신 확인. label 저장이 불가로 회신되면 Task 014·016·019 구현 사항이 바뀐다.
+- **카카오 데이터 무저장 원칙(PRD 오픈 이슈 5 종결, 2026-11-04):** 카카오에 문의하지 않고 허용이 확인되지 않은 활용은 전부 불가로 본다. 검색 결과는 참고용으로 보여주기만 하고, 장소 ID(`kakaoPlaceId`)·이름·주소·좌표·place_url 등 카카오 응답 값은 어디에도 저장하지 않는다. 후보는 사용자가 직접 입력한 `label`(필수)·`manualAddress`·`manualMapUrl`(선택)만 저장한다. 프론트는 검색 결과를 입력칸에 자동으로 채우지 않는다(백엔드가 강제할 수 없는 프론트 규칙). 길찾기 `/link/to`는 제공하지 않는다.
 
-### Task 014: 장소 값 타입·후보·투표 도메인과 지도 링크 생성   ⏸️ 보류
+### Task 014: 장소 값 타입·후보·투표 도메인과 지도 링크 생성   ⬜ 대기
 
-- **보류 사유:** 오픈 이슈 5 회신 전 — `Place.label` 저장 가능 여부가 값 타입 설계를 결정
 - **관련 기능:** P-1, P-2, P-3, P-5
 - **선행 Task:** Task 012
-- **선행 조건:** PRD 오픈 이슈 5
 - **구현 사항**
-  - [ ] `place/domain/Place` `@Embeddable`(kakaoPlaceId?, label, manualAddress?, manualMapUrl?) — 카카오 응답 필드(주소·좌표·카테고리·전화) 컬럼 없음
+  - [ ] `place/domain/Place` `@Embeddable`(label, manualAddress?, manualMapUrl?) — **모두 사용자 입력**. `kakaoPlaceId`를 포함해 카카오 응답 값 컬럼 없음
   - [ ] `place/domain/PlaceCandidate`(round, place, proposedBy), `PlaceVote`(candidate, member) — `(candidate, member)` 유니크
   - [ ] `Round.confirmedCandidate`(→ `PlaceCandidate`, nullable) 컬럼 추가 — Task 011에서 FK 대상이 없어 미룸
   - [ ] `Round` 장소 상태 전이 메서드: `confirmDirectly(candidate)`(UNDECIDED→CONFIRMED), `openVoting(deadline)`(UNDECIDED→VOTING, CONFIRMED→VOTING), `confirm(candidate)`(VOTING→CONFIRMED). 허용 안 된 전이는 409 `ROUND_PLACE_INVALID_TRANSITION`
   - [ ] `place/validation/@HttpsUrl` 검증기 — `https` 스킴만, 최대 2,048자
-  - [ ] `place/domain/PlaceLinkFactory`(순수) — 지도 `https://map.kakao.com/link/map/{id}`, 길찾기 `/link/to/{id}`, 직접 입력은 `manualMapUrl` 또는 `/link/search/{URL 인코딩(manualAddress ?: label)}`
+  - [ ] `place/domain/PlaceLinkFactory`(순수) — 지도 링크 = `manualMapUrl`이 있으면 그것, 없으면 `https://map.kakao.com/link/search/{URL 인코딩(manualAddress ?: label)}`. `/link/map`·`/link/to`는 장소 ID가 없어 만들지 않음
 - **테스트**
   - [ ] 단위(`@HttpsUrl`): `https://…` 통과, `http://…`·`javascript:…`·`ftp://…` 실패, 2,048자 통과·2,049자 실패, null 통과(선택 입력)
-  - [ ] 단위(`PlaceLinkFactory`): kakaoPlaceId 링크, manualMapUrl 우선, manualAddress 검색어, label 검색어, 한글·공백 URL 인코딩
+  - [ ] 단위(`PlaceLinkFactory`): manualMapUrl 우선, manualAddress 검색어, label 검색어, 한글·공백 URL 인코딩
   - [ ] 단위(`Round` 전이): 허용 전이 3종 성공, 그 외 `ROUND_PLACE_INVALID_TRANSITION`
-  - [ ] `@DataJpaTest`: `(candidate, member)` 유니크, `Place` 임베디드 매핑(카카오 장소면 manual* null)
+  - [ ] `@DataJpaTest`: `(candidate, member)` 유니크, `Place` 임베디드 매핑(label만 있는 장소·주소·링크까지 있는 장소), 스키마에 카카오 응답 값 컬럼이 없음
 - **수락 기준**
   - Given 직접 입력 / When `manualMapUrl`이 `http://…`·`javascript:…`이거나 2,048자를 넘으면 / Then 검증에 실패한다(API에서는 400 + `manualMapUrl` 필드 에러, Task 016).
 - **완료 조건**
@@ -449,7 +447,7 @@ Phase 10 040 → 041, 042 → 043
 - **선행 Task:** Task 006
 - **구현 사항**
   - [x] `place/client/KakaoLocalClient` — 키워드 검색(`dapi.kakao.com/v2/local/search/keyword.json`, `Authorization: KakaoAK {키}`), 전용 `kakaoLocalRestClient`(`place/config/KakaoLocalConfig`, 연결·읽기 3초). 설정 `place/config/KakaoLocalProperties`(`kakao.local.rest-api-key` — 기본은 `KAKAO_REST_API_KEY`, 없으면 `KAKAO_CLIENT_ID`, `toString` 키 마스킹). 로그엔 상태 코드·예외 타입만(키·검색어 미기록)
-  - [x] `PlaceSearchService.search(memberId, query, page)` — **트랜잭션·Repository 없음, 캐싱·저장 없음**. 응답 `PlaceSearchResponse(places, page, isEnd)`, `PlaceSearchItem`(kakaoPlaceId, name, categoryName, address, roadAddress, phone, placeUrl) — 좌표는 지도 URL 링크 방침이라 안 내림. 페이지 크기 15
+  - [x] `PlaceSearchService.search(memberId, query, page)` — **트랜잭션·Repository 없음, 캐싱·저장 없음**. 응답 `PlaceSearchResponse(places, page, isEnd)`, `PlaceSearchItem`(kakaoPlaceId, name, categoryName, address, roadAddress, phone, placeUrl) — 좌표는 지도 URL 링크 방침이라 안 내림. 페이지 크기 15. 2026-11-04 무저장 원칙 채택 후에도 그대로 유지(**참고용 표시 전용**, 어떤 값도 후보로 넘어가 저장되지 않음 — `kakaoPlaceId`는 화면 목록 키 정도로만 쓰임)
   - [x] 서버 측 호출량 제한 `PlaceSearchRateLimiter` — 회원별 메모리 고정 윈도우(주입 `Clock`). ⚠️ PRD 미정이라 결정(2026-11-03): **1분에 30회**(`place.search.rate-limit.max-requests`·`window`). 단일 인스턴스 전제 — 다중 인스턴스 배포 시 공유 저장소로 교체 필요
   - [x] 실패·쿼터 초과(429)·키 오류(401)·5xx·타임아웃 → 503 `PLACE_SEARCH_UNAVAILABLE`, 빈도 초과 → 429 `PLACE_SEARCH_RATE_LIMITED`. ⚠️ 결정(2026-11-03): 직접 입력 폴백 안내 "플래그"는 공통 `ErrorResponse`에 필드를 늘리지 않고 **에러 코드 `PLACE_SEARCH_UNAVAILABLE` 자체**로 한다(프론트가 이 코드면 직접 입력 폼 노출, 메시지도 직접 입력 안내)
   - [x] `GET /api/places/search?query=&page=` (로그인 필요) — query `@NotBlank` 100자, page 1~45(카카오 상한, 기본 1)
@@ -463,14 +461,12 @@ Phase 10 040 → 041, 042 → 043
 - **완료 조건**
   - [x] `./gradlew test` 통과(전체 324건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족 · [ ] 실제 카카오 호출 수동 확인(카카오 콘솔에서 카카오맵/로컬 API 활성화 필요)
 
-### Task 016: 후보 등록·바로 확정·투표 열기   ⏸️ 보류
+### Task 016: 후보 등록·바로 확정·투표 열기   ⬜ 대기
 
-- **보류 사유:** 오픈 이슈 5 회신 전(label 저장)
 - **관련 기능:** P-1, P-2
 - **선행 Task:** Task 013, Task 014, Task 015
-- **선행 조건:** PRD 오픈 이슈 5
 - **구현 사항**
-  - [ ] `PlaceCandidateService.add(roundId, request)` — 카카오 장소(kakaoPlaceId + label) 또는 직접 입력(label 필수 + manualAddress·manualMapUrl 선택). `VOTING` 차수에서 그룹 멤버 누구나. ⚠️ `UNDECIDED` 상태에서 후보 추가 가능 여부 PRD 미정
+  - [ ] `PlaceCandidateService.add(roundId, request)` — 사용자 직접 입력 하나뿐(label 필수 + manualAddress·manualMapUrl 선택, 카카오 장소 경로·`kakaoPlaceId` 필드 없음). 요청 DTO에도 카카오 값 필드를 두지 않는다. `VOTING` 차수에서 그룹 멤버 누구나. ⚠️ `UNDECIDED` 상태에서 후보 추가 가능 여부 PRD 미정
   - [ ] `RoundPlaceService.confirmDirectly`(호스트) — 후보 1개짜리 `PlaceCandidate` 생성 + `CONFIRMED`
   - [ ] `RoundPlaceService.openVoting`(호스트) — `placeVoteDeadline` 필수(`@NotNull @Future`)
   - [ ] ⚠️ 재투표(`CONFIRMED → VOTING`) 시 기존 후보·표 유지/초기화 PRD 미정 — 결정 후 구현
@@ -479,10 +475,10 @@ Phase 10 040 → 041, 042 → 043
 - **테스트**
   - [ ] 단위: 바로 확정 → 후보 1건 + `CONFIRMED` + `confirmedCandidate` 설정, 비호스트 403 `NOT_MEETING_HOST`
   - [ ] 단위: 투표 열기 → `VOTING` + 마감 시각 저장, 마감 누락 400
-  - [ ] `@WebMvcTest`: 직접 입력 `manualMapUrl` http/javascript/2,049자 → 400 `manualMapUrl` 필드 에러, label 누락 400
-  - [ ] `@DataJpaTest`: 카카오 후보 저장 시 manual* null
+  - [ ] `@WebMvcTest`: `manualMapUrl` http/javascript/2,049자 → 400 `manualMapUrl` 필드 에러, label 누락·공백 400
+  - [ ] `@DataJpaTest`: label만 있는 후보 저장(manual* null), 주소·링크까지 있는 후보 저장
 - **수락 기준**
-  - When 결과 하나를 후보로 등록하면 / Then `PlaceCandidate`에는 `kakaoPlaceId`와 사용자가 확정한 label만 저장되고(`manualAddress`·`manualMapUrl` null) 카카오 응답의 주소·좌표·카테고리는 어디에도 저장되지 않는다. Given 직접 입력 / When `manualMapUrl`이 `http://…`·`javascript:…`이거나 2,048자를 넘으면 / Then 400과 `manualMapUrl` 필드 에러를 받고 후보는 저장되지 않는다. (PRD P-1)
+  - When 검색 결과를 참고해 후보를 등록하면 / Then 후보는 사용자가 직접 입력한 이름(필수) + 주소·지도 링크(선택)로만 저장되고, `PlaceCandidate`·`Place`에는 장소 ID를 포함해 카카오 응답 값을 담는 컬럼이 없다. Given 직접 입력 / When `manualMapUrl`이 `http://…`·`javascript:…`이거나 2,048자를 넘으면 / Then 400과 `manualMapUrl` 필드 에러를 받고 후보는 저장되지 않는다. (PRD P-1)
   - Given `UNDECIDED` 차수 / When 호스트가 장소를 바로 지정하면 / Then 후보 1개짜리 `PlaceCandidate`가 생성되고 차수는 `CONFIRMED`가 된다. When 호스트가 투표를 열면 / Then 차수는 `VOTING`이 되고 마감 시각이 필수로 저장되며, 그룹 멤버 누구나 후보를 추가할 수 있다. (PRD P-2)
 - **완료 조건**
   - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
@@ -526,23 +522,22 @@ Phase 10 040 → 041, 042 → 043
 - **완료 조건**
   - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
 
-### Task 019: 확정 장소 노출·OG 메타 HTML   ⏸️ 보류
+### Task 019: 확정 장소 노출·OG 메타 HTML   ⬜ 대기
 
-- **보류 사유:** 오픈 이슈 5 회신 전(label을 OG·공유 문구에 쓰는 것이 문의 범위 ②)
 - **관련 기능:** P-5, 6장 공유(OG 태그)
 - **선행 Task:** Task 013, Task 018
-- **선행 조건:** PRD 오픈 이슈 5, 오픈 이슈 1(OG 경로와 SPA 라우팅·배포 방식)
+- **선행 조건:** PRD 오픈 이슈 1(OG 경로와 SPA 라우팅·배포 방식)
 - **구현 사항**
-  - [ ] 모임 상세 응답에 차수별 확정 장소(label, 지도·길찾기 링크 — `PlaceLinkFactory`) 추가
+  - [ ] 모임 상세 응답에 차수별 확정 장소(label, 지도 링크 — `PlaceLinkFactory`) 추가
   - [ ] `og/controller/OgController`(`@Controller`, Thymeleaf) — 초대·모임 링크 경로에서 OG 메타(title, description, url)만 담은 HTML + SPA로 이동
   - [ ] OG 설명 문구 생성기(순수): 예 "토요일 모임 · 강남 OO식당 · 5/8명 참석". ⚠️ "5/8명"의 기준(어느 차수 참석자 / 그룹 멤버 수) PRD 미정
   - [ ] 카카오톡 공유 문구 생성(모임 정보 + 확정 장소 label)
 - **테스트**
   - [ ] 단위(문구 생성기): 1차 확정 장소 label 포함, 장소 미정 시 문구
   - [ ] `@WebMvcTest`: OG HTML에 `og:description`·`og:title` 메타 포함, 카카오 API 목이 호출되지 않음
-  - [ ] 단위: 모임 상세의 길찾기 링크 `https://map.kakao.com/link/to/{kakaoPlaceId}`, 직접 입력 장소의 manualMapUrl / `/link/search/` 대체
+  - [ ] 단위: 모임 상세의 지도 링크 — manualMapUrl이 있으면 그것, 없으면 `/link/search/{manualAddress 또는 label}`
 - **수락 기준**
-  - Given 1차 장소가 확정된 모임 / When 모임 링크의 OG 메타를 요청하면 / Then 미리보기 설명에 확정 장소의 label이 포함되고, 모임 상세에 `https://map.kakao.com/link/to/{kakaoPlaceId}` 길찾기 링크가 노출된다(카카오 API 호출 없이 저장된 ID로 생성). 직접 입력 장소는 `manualMapUrl`이 있으면 그 링크, 없으면 `https://map.kakao.com/link/search/{manualAddress 또는 label}` 링크가 노출된다(API 호출·저장 없음). (PRD P-5)
+  - Given 1차 장소가 확정된 모임 / When 모임 링크의 OG 메타를 요청하면 / Then 미리보기 설명에 사용자가 입력한 확정 장소 label이 포함되고, 모임 상세에는 `manualMapUrl`이 있으면 그 링크, 없으면 `https://map.kakao.com/link/search/{manualAddress 또는 label}` 지도 링크가 노출된다(카카오 API 호출·저장 없음). (PRD P-5)
 - **완료 조건**
   - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
 
@@ -1102,7 +1097,7 @@ Phase 10 040 → 041, 042 → 043
 | Task 047 | 볼링 점수 입력 → 순위 → 하위 N명 자동 벌칙 | R-6 | 043 | 오픈 이슈 12(벌칙자별 규칙) |
 | Task 048 | 송금 딥링크·계좌 복사 ⚠️ | S-7 | 043 | 오픈 이슈 3(딥링크 정책), 계좌 저장(G-5, Task 059)이 v0.3에 있어 순서 재조정 필요 |
 | Task 049 | 지출 영수증 사진 | S-1(확장) | 043 | — |
-| Task 050 | 1차 장소 반경 2차 장소 추천 | P-7 | 043 | 오픈 이슈 5 ⑤(좌표 실시간 획득) |
+| Task 050 | 1차 장소 반경 2차 장소 추천 ⏸️ | P-7 | 043 | 무저장 원칙상 1차 장소 좌표가 없어 PRD에서 보류 — v0.2 착수 시 재설계 |
 
 ## Phase 12: v0.3 (개략)
 
@@ -1116,7 +1111,7 @@ Phase 10 040 → 041, 042 → 043
 | Task 054 | 장소 동점 룰렛 결정 | P-6 | 053 | — |
 | Task 055 | 보드게임 승패 기록 | R-7 | 043 | — |
 | Task 056 | PWA 웹 푸시 | 6장 플랫폼, M-6 | 045 | — |
-| Task 057 | 그룹 단골 장소·지난 장소 불러오기 | P-8 | 043 | 오픈 이슈 5 ③ |
+| Task 057 | 그룹 단골 장소·지난 장소 불러오기 | P-8 | 043 | — (사용자 입력 `Place`만 저장) |
 | Task 058 | 그룹 역할(방장/총무/멤버) | G-4 | 043 | 오픈 이슈 15(호스트 위임) |
 | Task 059 | 그룹 기본 송금 계좌·토스/카카오페이 링크 | G-5 | 043 | — |
 
@@ -1132,7 +1127,7 @@ Phase 10 040 → 041, 042 → 043
 | Task 061 | 연말 결산 | H-4 | 052 | — |
 | Task 062 | 회비 통장 모드 | S-9 | 043 | — |
 | Task 063 | 카카오 계정 없는 임시 게스트 | G-6 | 043 | — |
-| Task 064 | 중간 지점 추천 | P-10 | 043 | 오픈 이슈 5 ④ |
+| Task 064 | 중간 지점 추천 ⏸️ | P-10 | 043 | 무저장 원칙상 PRD에서 보류 — v1.0 착수 시 재설계 |
 | Task 065 | 행동형 벌칙 "다음 모임 장소 정하기" 권한 | P-9 | 043 | — |
 | Task 066 | 노쇼 기록·통계 | M-8 | 046 | — |
 
@@ -1203,7 +1198,7 @@ P0 26개 전부 MVP Phase(0~10)에 매핑됨. 통합 검증 Task 041~043은 P0 �
 | 2. 벌칙자의 나머지 분배 제외 | 035 (PRD 예시·수용 기준이 현재 안 기준) | Phase 8 착수 전 현재 안 유지 확인 |
 | 3. 송금 딥링크 정책 | 048 | v0.2 착수 전 |
 | 4. 장소 투표 방식(복수 vs 1인 1표) | 017 | Task 017 착수 전 현재 안 유지 확인 |
-| 5. 카카오 로컬 데이터 저장 범위 | 014, 016, 019 (⏸️), 050, 057, 064 | **Phase 4 착수 전 카카오 공식 회신 필수** |
+| 5. 카카오 로컬 데이터 저장 범위 | 014, 016, 019, 050, 057, 064 | **종결(2026-11-04)** — 문의 없이 카카오 데이터 무저장. 050·064는 보류(재설계) |
 | 6. 장소 투표를 참석과 묶을지 | 017 | Task 017 착수 전 |
 | 8. S-8 초과분 차감 대상 애매한 경우 | 023, 035 | Task 023 착수 전(경계 케이스만 보류 가능) |
 | 12. 벌칙자별 다른 조건 | 047 | v0.2 R-6 착수 전 |
