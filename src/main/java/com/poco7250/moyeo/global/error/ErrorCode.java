@@ -51,6 +51,11 @@ public enum ErrorCode {
 	// 호스트 대리 수정 대상이 이 그룹 멤버가 아님
 	ATTENDANCE_TARGET_NOT_MEMBER(HttpStatus.NOT_FOUND, "응답을 수정할 멤버를 찾을 수 없습니다."),
 
+	// 장소
+	// 카카오 로컬 키 오류·쿼터 초과·장애·타임아웃. 프론트는 이 코드면 직접 입력(이름 + 주소·지도 링크) 폼을 보여준다
+	PLACE_SEARCH_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "지금은 장소 검색을 쓸 수 없습니다. 장소 이름과 주소를 직접 입력해 주세요."),
+	PLACE_SEARCH_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."),
+
 	// 초대
 	INVITE_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "초대 링크를 찾을 수 없습니다."),
 	// 만료·폐기된 링크. 예전엔 있었지만 이제 못 쓴다는 의미라 410으로 404와 구분한다
