@@ -5,7 +5,7 @@
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 3 완료 — Phase 4는 Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인) 완료(2026-11-04). 다음은 Task 016(후보 등록·바로 확정·투표 열기), 또는 Phase 5(Task 020). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격 엔티티(`settlement/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기(`place/`), 공통 코드(`global/`)가 있다. 장소 후보·투표 API와 게임 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 3 완료 — Phase 4는 Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04). 다음은 Task 017(후보 투표·실시간 득표 현황), 또는 Phase 5(Task 020). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격 엔티티(`settlement/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가(`place/`), 공통 코드(`global/`)가 있다. 장소 투표·득표·마감 확정 API와 게임 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -14,7 +14,7 @@
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 3 | ✅ 완료 |
 | 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 4 | ✅ 완료 |
-| 4 | 장소 결정 | 4 | 6 | 2 | 🔄 진행 중 |
+| 4 | 장소 결정 | 4 | 6 | 3 | 🔄 진행 중 |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 0 | ⬜ 대기 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 0 | ⬜ 대기 |
 | 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **15** | |
+| **합계** | | | **66** (MVP 43) | **16** | |
 
 ## 상태 범례
 
@@ -462,27 +462,34 @@ Phase 10 040 → 041, 042 → 043
 - **완료 조건**
   - [x] `./gradlew test` 통과(전체 324건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족 · [ ] 실제 카카오 호출 수동 확인(카카오 콘솔에서 카카오맵/로컬 API 활성화 필요)
 
-### Task 016: 후보 등록·바로 확정·투표 열기   ⬜ 대기
+### Task 016: 후보 등록·바로 확정·투표 열기   ✅ 완료
 
-- **관련 기능:** P-1, P-2
+- **완료일:** 2026-11-04 · 브랜치 `feature/place-decision`
+- **관련 기능:** P-1, P-2, P-4(재투표)
 - **선행 Task:** Task 013, Task 014, Task 015
 - **구현 사항**
-  - [ ] `PlaceCandidateService.add(roundId, request)` — 사용자 직접 입력 하나뿐(label 필수 + manualAddress·manualMapUrl 선택, 카카오 장소 경로·`kakaoPlaceId` 필드 없음). 요청 DTO에도 카카오 값 필드를 두지 않는다. `VOTING` 차수에서 그룹 멤버 누구나. ⚠️ `UNDECIDED` 상태에서 후보 추가 가능 여부 PRD 미정
-  - [ ] `RoundPlaceService.confirmDirectly`(호스트) — 후보 1개짜리 `PlaceCandidate` 생성 + `CONFIRMED`
-  - [ ] `RoundPlaceService.openVoting`(호스트) — `placeVoteDeadline` 필수(`@NotNull @Future`)
-  - [ ] ⚠️ 재투표(`CONFIRMED → VOTING`) 시 기존 후보·표 유지/초기화 PRD 미정 — 결정 후 구현
-  - [ ] Controller: `POST /api/rounds/{roundId}/candidates`, `POST /api/rounds/{roundId}/place/confirm-direct`, `POST /api/rounds/{roundId}/place/voting`
-  - [ ] 변경 후 `PlaceChangedEvent` 브로드캐스트
+  - [x] 차수 인가 `MeetingAccessChecker.requireRoundMember`·`requireRoundHost`(통과 시 `Round` 반환) — 결정(2026-11-04): **없는 차수도 403 `NOT_GROUP_MEMBER`**(없는 모임과 같은 방침)
+  - [x] 요청 `place/dto/PlaceInput`(label `@NotBlank` 50자, manualAddress 200자, manualMapUrl `@HttpsUrl`) — 사용자 직접 입력 하나뿐, **카카오 값 필드 없음**(본문에 `kakaoPlaceId`를 보내도 무시). 앞뒤 공백 제거, 비어 있는 선택 입력은 `null`로 정규화(폼 빈칸이 `@HttpsUrl` 실패가 되지 않게). 후보 추가·바로 확정이 같은 DTO를 쓴다
+  - [x] `PlaceCandidateService.add` — ⚠️ 결정(2026-11-04): **`VOTING` 차수에서만** 그룹 멤버 누구나 추가(`UNDECIDED`·`CONFIRMED`는 409 `ROUND_PLACE_INVALID_TRANSITION`, `Round.requireVoting`). 후보 추가는 `Round`를 바꾸지 않아 락 없음
+  - [x] `RoundPlaceService.confirmDirectly`(호스트) — `UNDECIDED`인지 먼저 확인(`Round.requireUndecided`) → 후보 1개짜리 `PlaceCandidate`(제안자 = 호스트) + `CONFIRMED`
+  - [x] `RoundPlaceService.openVoting`(호스트) — `VotingOpenRequest.placeVoteDeadline` `@NotNull @Future`. ⚠️ 결정(2026-11-04): **재투표(`CONFIRMED → VOTING`)도 이 API가 맡는다**(Task 018의 `reopenVoting`을 당겨옴) — **후보는 유지, 표는 초기화**(`PlaceVoteRepository.deleteAllByRoundId`, 서브쿼리 벌크 delete), 확정 후보는 해제. 동시 변경은 `Round.version` 낙관적 락으로 늦은 쪽 409 `CONCURRENT_MODIFICATION`
+  - [x] `RoundPlaceController`: `POST /api/rounds/{roundId}/candidates`(201 `CandidateResponse`), `POST /api/rounds/{roundId}/place/confirm-direct`, `POST /api/rounds/{roundId}/place/voting`(200 `RoundPlaceResponse`)
+  - [x] 응답 `CandidateResponse`(id, label, manualAddress, manualMapUrl, `mapUrl` = `PlaceLinkFactory`, proposedByMemberId), `RoundPlaceResponse`(roundId, placeStatus, placeVoteDeadline, confirmedCandidateId, candidates — 등록 순). 득표는 Task 017에서
+  - [x] 변경 후 `PlaceChangedEvent`(`PLACE_CHANGED`, 본문 = `RoundPlaceResponse`)를 `/topic/meetings/{id}`로 커밋 후 브로드캐스트(`RoundPlaceSnapshot`이 응답 조립 + 발행)
+  - [x] `PlaceCandidateRepository.findAllByRoundIdOrderById`
 - **테스트**
-  - [ ] 단위: 바로 확정 → 후보 1건 + `CONFIRMED` + `confirmedCandidate` 설정, 비호스트 403 `NOT_MEETING_HOST`
-  - [ ] 단위: 투표 열기 → `VOTING` + 마감 시각 저장, 마감 누락 400
-  - [ ] `@WebMvcTest`: `manualMapUrl` http/javascript/2,049자 → 400 `manualMapUrl` 필드 에러, label 누락·공백 400
-  - [ ] `@DataJpaTest`: label만 있는 후보 저장(manual* null), 주소·링크까지 있는 후보 저장
+  - [x] 단위(`MeetingAccessCheckerTest` +3): 없는 차수 403, 차수 멤버 통과, 차수 호스트 검사
+  - [x] 단위(`PlaceCandidateServiceTest` 4건): VOTING 추가 → 저장·이벤트·mapUrl, UNDECIDED·CONFIRMED 409 저장 없음, 비멤버 403
+  - [x] 단위(`RoundPlaceServiceTest` 6건): 바로 확정 → 후보 1건 + `CONFIRMED` + `confirmedCandidate`·이벤트, 비호스트 403 저장 없음, 투표 중 바로 확정 409 저장 없음, 투표 열기 → `VOTING` + 마감·표 삭제 없음, 재투표 → 표 삭제·후보 유지·확정 해제, 투표 중 다시 열기 409
+  - [x] 단위(`PlaceInputTest` 4건): 공백 정규화, 빈 지도 링크 통과, 공백 이름 실패, `toPlace`
+  - [x] `@WebMvcTest`(`RoundPlaceControllerTest` 17건): `manualMapUrl` http/javascript/2,049자 → 400 `manualMapUrl` 필드 에러(후보 추가·바로 확정), label 누락·공백·51자 400, 주소 201자 400, 마감 누락·과거 400, `kakaoPlaceId` 무시, 비로그인 401, 403·409, 201·200 응답 형식
+  - [x] `@DataJpaTest`: `findAllByRoundIdOrderById`(다른 차수 제외·등록 순), `deleteAllByRoundId`(그 차수 표만 삭제)
+  - [x] 통합(`RoundPlaceServiceIntegrationTest` 2건): 투표 열기 → 멤버 후보 추가 → 투표 중 바로 확정 409, 바로 확정 → 재투표 시 후보 유지·표 0건
 - **수락 기준**
-  - When 검색 결과를 참고해 후보를 등록하면 / Then 후보는 사용자가 직접 입력한 이름(필수) + 주소·지도 링크(선택)로만 저장되고, `PlaceCandidate`·`Place`에는 장소 ID를 포함해 카카오 응답 값을 담는 컬럼이 없다. Given 직접 입력 / When `manualMapUrl`이 `http://…`·`javascript:…`이거나 2,048자를 넘으면 / Then 400과 `manualMapUrl` 필드 에러를 받고 후보는 저장되지 않는다. (PRD P-1)
-  - Given `UNDECIDED` 차수 / When 호스트가 장소를 바로 지정하면 / Then 후보 1개짜리 `PlaceCandidate`가 생성되고 차수는 `CONFIRMED`가 된다. When 호스트가 투표를 열면 / Then 차수는 `VOTING`이 되고 마감 시각이 필수로 저장되며, 그룹 멤버 누구나 후보를 추가할 수 있다. (PRD P-2)
+  - [x] When 검색 결과를 참고해 후보를 등록하면 / Then 후보는 사용자가 직접 입력한 이름(필수) + 주소·지도 링크(선택)로만 저장되고, `PlaceCandidate`·`Place`에는 장소 ID를 포함해 카카오 응답 값을 담는 컬럼이 없다. Given 직접 입력 / When `manualMapUrl`이 `http://…`·`javascript:…`이거나 2,048자를 넘으면 / Then 400과 `manualMapUrl` 필드 에러를 받고 후보는 저장되지 않는다. (PRD P-1)
+  - [x] Given `UNDECIDED` 차수 / When 호스트가 장소를 바로 지정하면 / Then 후보 1개짜리 `PlaceCandidate`가 생성되고 차수는 `CONFIRMED`가 된다. When 호스트가 투표를 열면 / Then 차수는 `VOTING`이 되고 마감 시각이 필수로 저장되며, 그룹 멤버 누구나 후보를 추가할 수 있다. (PRD P-2)
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 393건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
 
 ### Task 017: 후보 투표·실시간 득표 현황   ⬜ 대기
 
@@ -511,13 +518,13 @@ Phase 10 040 → 041, 042 → 043
   - [ ] `PlaceVoteCloser`(`@Scheduled`) — 마감 지난 `VOTING` 차수 조회 → 차수별 별도 트랜잭션으로 마감 처리
   - [ ] 순수 함수 `VoteTally.decide(후보별 득표)` → 단독 최다 / 동점 후보 목록. ⚠️ 득표 0건(전원 0표)은 동점으로 볼지 PRD 미정
   - [ ] 단독 최다 → `CONFIRMED`, 동점 → `VOTING` 유지 + 호스트 선택 요청 이벤트
-  - [ ] `RoundPlaceService.confirmManually(roundId, candidateId)`(호스트, 언제든) / `reopenVoting`(호스트, `CONFIRMED → VOTING`)
+  - [ ] `RoundPlaceService.confirmManually(roundId, candidateId)`(호스트, 언제든). 재투표(`CONFIRMED → VOTING`)는 **Task 016으로 이동**(투표 열기 API가 겸함, 후보 유지·표 초기화)
   - [ ] 동시성: `Round.version` 낙관적 락 — 마감 처리와 수동 확정 중 늦은 쪽 409 `CONCURRENT_MODIFICATION`(재시도 대상 아님)
 - **테스트**
   - [ ] 단위(`VoteTally`): 단독 최다, 2개 동점, 3개 동점
   - [ ] 단위: 마감 처리 — 단독 최다 확정, 동점 유지 + 이벤트, 이미 `CONFIRMED`면 아무것도 안 함
   - [ ] 통합(DB): 같은 차수에 마감 처리와 수동 확정을 동시 실행 → 하나만 반영, 다른 쪽 409
-  - [ ] 단위: 비호스트 수동 확정·재투표 403
+  - [ ] 단위: 비호스트 수동 확정 403
 - **수락 기준**
   - Given 마감 시각이 지난 `VOTING` 차수, 최다 득표 후보가 1개 / When 마감 처리가 실행되면 / Then 그 후보로 `CONFIRMED` 된다. 동점이면 `VOTING`을 유지한 채 호스트에게 선택을 요청한다. 마감 처리와 호스트 수동 확정이 동시에 들어오면 하나만 반영되고 다른 요청은 충돌 응답을 받는다. (PRD P-4)
 - **완료 조건**
