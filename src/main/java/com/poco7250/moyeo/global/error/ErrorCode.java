@@ -55,6 +55,8 @@ public enum ErrorCode {
 	// 카카오 로컬 키 오류·쿼터 초과·장애·타임아웃. 프론트는 이 코드면 직접 입력(이름 + 주소·지도 링크) 폼을 보여준다
 	PLACE_SEARCH_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "지금은 장소 검색을 쓸 수 없습니다. 장소 이름과 주소를 직접 입력해 주세요."),
 	PLACE_SEARCH_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."),
+	// 차수 장소 상태에서 허용되지 않는 전이(예: 투표 중 바로 확정, 미정 상태에서 투표 확정)
+	ROUND_PLACE_INVALID_TRANSITION(HttpStatus.CONFLICT, "지금 상태에서는 할 수 없는 장소 변경입니다."),
 
 	// 초대
 	INVITE_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "초대 링크를 찾을 수 없습니다."),

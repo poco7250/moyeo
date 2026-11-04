@@ -1,6 +1,9 @@
 package com.poco7250.moyeo.meeting.domain;
 
 import com.poco7250.moyeo.global.common.BaseTimeEntity;
+import com.poco7250.moyeo.global.error.BusinessException;
+import com.poco7250.moyeo.global.error.ErrorCode;
+import com.poco7250.moyeo.place.domain.PlaceCandidate;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,6 +18,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,7 +26,7 @@ import lombok.NoArgsConstructor;
 /**
  * 모임의 차수(1차 밥, 2차 볼링 …). 장소는 모임이 아니라 차수마다 따로 정한다.
  * 투표 자동 마감과 호스트 수동 확정이 겹치면 version 낙관적 락으로 먼저 온 쪽만 반영한다.
- * 확정 후보(confirmedCandidate)는 PlaceCandidate가 생기는 Task 014에서 추가한다.
+ * 장소 상태 전이: 바로 확정(UNDECIDED→CONFIRMED), 투표 열기(UNDECIDED·CONFIRMED→VOTING), 투표 확정(VOTING→CONFIRMED).
  */
 @Getter
 @Entity
@@ -57,6 +61,11 @@ public class Round extends BaseTimeEntity {
 
 	private LocalDateTime placeVoteDeadline;
 
+	// 확정된 장소 후보(CONFIRMED일 때만 있음). PlaceCandidate.round와 순환 참조라 nullable로 둔다
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "confirmed_candidate_id")
+	private PlaceCandidate confirmedCandidate;
+
 	@Version
 	private Long version;
 
@@ -72,5 +81,46 @@ public class Round extends BaseTimeEntity {
 	 */
 	public static Round create(Meeting meeting, int seq, String name) {
 		return new Round(meeting, seq, name);
+	}
+
+	/**
+	 * 투표 없이 장소를 바로 확정한다(UNDECIDED → CONFIRMED).
+	 */
+	public void confirmDirectly(PlaceCandidate candidate) {
+		requireStatus(PlaceStatus.UNDECIDED);
+		markConfirmed(candidate);
+	}
+
+	/**
+	 * 장소 투표를 연다(UNDECIDED·CONFIRMED → VOTING). 재투표면 이전 확정을 해제한다.
+	 */
+	public void openVoting(LocalDateTime deadline) {
+		requireStatus(PlaceStatus.UNDECIDED, PlaceStatus.CONFIRMED);
+		this.placeStatus = PlaceStatus.VOTING;
+		this.placeVoteDeadline = deadline;
+		this.confirmedCandidate = null;
+	}
+
+	/**
+	 * 투표 중인 장소를 후보 하나로 확정한다(VOTING → CONFIRMED).
+	 */
+	public void confirm(PlaceCandidate candidate) {
+		requireStatus(PlaceStatus.VOTING);
+		markConfirmed(candidate);
+	}
+
+	private void markConfirmed(PlaceCandidate candidate) {
+		// 다른 차수 후보가 넘어오는 건 호출 쪽 버그라 API 에러 코드가 아닌 예외로 막는다
+		if (!candidate.belongsTo(this)) {
+			throw new IllegalArgumentException("다른 차수의 후보로 확정할 수 없습니다.");
+		}
+		this.placeStatus = PlaceStatus.CONFIRMED;
+		this.confirmedCandidate = candidate;
+	}
+
+	private void requireStatus(PlaceStatus... allowed) {
+		if (Arrays.stream(allowed).noneMatch(status -> status == placeStatus)) {
+			throw new BusinessException(ErrorCode.ROUND_PLACE_INVALID_TRANSITION);
+		}
 	}
 }
