@@ -5,7 +5,7 @@
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 3 완료 — Phase 4는 Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. 다음은 Task 014(사용자 입력 장소 값 타입·후보·투표 도메인), 또는 Phase 5(Task 020). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격 엔티티(`settlement/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한(`place/`), 공통 코드(`global/`)가 있다. 장소 후보·투표 도메인과 게임 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 3 완료 — Phase 4는 Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인) 완료(2026-11-04). 다음은 Task 016(후보 등록·바로 확정·투표 열기), 또는 Phase 5(Task 020). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격 엔티티(`settlement/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기(`place/`), 공통 코드(`global/`)가 있다. 장소 후보·투표 API와 게임 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -14,7 +14,7 @@
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 3 | ✅ 완료 |
 | 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 4 | ✅ 완료 |
-| 4 | 장소 결정 | 4 | 6 | 1 | 🔄 진행 중 |
+| 4 | 장소 결정 | 4 | 6 | 2 | 🔄 진행 중 |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 0 | ⬜ 대기 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 0 | ⬜ 대기 |
 | 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **14** | |
+| **합계** | | | **66** (MVP 43) | **15** | |
 
 ## 상태 범례
 
@@ -419,26 +419,27 @@ Phase 10 040 → 041, 042 → 043
 - **포함 기능 ID:** P-1, P-2, P-3, P-4, P-5
 - **카카오 데이터 무저장 원칙(PRD 오픈 이슈 5 종결, 2026-11-04):** 카카오에 문의하지 않고 허용이 확인되지 않은 활용은 전부 불가로 본다. 검색 결과는 참고용으로 보여주기만 하고, 장소 ID(`kakaoPlaceId`)·이름·주소·좌표·place_url 등 카카오 응답 값은 어디에도 저장하지 않는다. 후보는 사용자가 직접 입력한 `label`(필수)·`manualAddress`·`manualMapUrl`(선택)만 저장한다. 프론트는 검색 결과를 입력칸에 자동으로 채우지 않는다(백엔드가 강제할 수 없는 프론트 규칙). 길찾기 `/link/to`는 제공하지 않는다.
 
-### Task 014: 장소 값 타입·후보·투표 도메인과 지도 링크 생성   ⬜ 대기
+### Task 014: 장소 값 타입·후보·투표 도메인과 지도 링크 생성   ✅ 완료
 
+- **완료일:** 2026-11-04 · 브랜치 `feature/place-candidate`
 - **관련 기능:** P-1, P-2, P-3, P-5
 - **선행 Task:** Task 012
 - **구현 사항**
-  - [ ] `place/domain/Place` `@Embeddable`(label, manualAddress?, manualMapUrl?) — **모두 사용자 입력**. `kakaoPlaceId`를 포함해 카카오 응답 값 컬럼 없음
-  - [ ] `place/domain/PlaceCandidate`(round, place, proposedBy), `PlaceVote`(candidate, member) — `(candidate, member)` 유니크
-  - [ ] `Round.confirmedCandidate`(→ `PlaceCandidate`, nullable) 컬럼 추가 — Task 011에서 FK 대상이 없어 미룸
-  - [ ] `Round` 장소 상태 전이 메서드: `confirmDirectly(candidate)`(UNDECIDED→CONFIRMED), `openVoting(deadline)`(UNDECIDED→VOTING, CONFIRMED→VOTING), `confirm(candidate)`(VOTING→CONFIRMED). 허용 안 된 전이는 409 `ROUND_PLACE_INVALID_TRANSITION`
-  - [ ] `place/validation/@HttpsUrl` 검증기 — `https` 스킴만, 최대 2,048자
-  - [ ] `place/domain/PlaceLinkFactory`(순수) — 지도 링크 = `manualMapUrl`이 있으면 그것, 없으면 `https://map.kakao.com/link/search/{URL 인코딩(manualAddress ?: label)}`. `/link/map`·`/link/to`는 장소 ID가 없어 만들지 않음
+  - [x] `place/domain/Place` `@Embeddable`(label, manualAddress?, manualMapUrl?) — **모두 사용자 입력**. `kakaoPlaceId`를 포함해 카카오 응답 값 컬럼 없음. ⚠️ 길이는 PRD 미정이라 결정(2026-11-04): **label 50자, manualAddress 200자**, manualMapUrl 2,048자
+  - [x] `place/domain/PlaceCandidate`(round, place, proposedBy → `Member`), `PlaceVote`(candidate, member) — `(candidate, member)` 유니크 `uk_place_vote_candidate_id_member_id`. Repository 2종(`JpaRepository`만, 조회 메서드는 016·017에서)
+  - [x] `Round.confirmedCandidate`(→ `PlaceCandidate`, nullable, `confirmed_candidate_id`) 컬럼 추가
+  - [x] `Round` 장소 상태 전이 메서드: `confirmDirectly(candidate)`(UNDECIDED→CONFIRMED), `openVoting(deadline)`(UNDECIDED→VOTING, CONFIRMED→VOTING), `confirm(candidate)`(VOTING→CONFIRMED). 허용 안 된 전이는 409 `ROUND_PLACE_INVALID_TRANSITION`. ⚠️ 결정(2026-11-04): 재투표 시 `confirmedCandidate`는 비운다(기존 후보·표 유지 여부는 Task 016). 다른 차수 후보로 확정하면 `IllegalArgumentException`(호출 쪽 버그 방어)
+  - [x] `place/validation/@HttpsUrl` 검증기 — `https` 스킴 + 호스트 필수, 최대 2,048자, null 통과. 빈 문자열은 실패(요청 DTO의 공백 → null 정규화는 Task 016에서 정함)
+  - [x] `place/domain/PlaceLinkFactory`(순수) — 지도 링크 = `manualMapUrl`이 있으면 그것, 없으면 `https://map.kakao.com/link/search/{경로 세그먼트 인코딩(manualAddress ?: label)}`(공백 `%20`, `+`는 `%2B`). `/link/map`·`/link/to`는 장소 ID가 없어 만들지 않음
 - **테스트**
-  - [ ] 단위(`@HttpsUrl`): `https://…` 통과, `http://…`·`javascript:…`·`ftp://…` 실패, 2,048자 통과·2,049자 실패, null 통과(선택 입력)
-  - [ ] 단위(`PlaceLinkFactory`): manualMapUrl 우선, manualAddress 검색어, label 검색어, 한글·공백 URL 인코딩
-  - [ ] 단위(`Round` 전이): 허용 전이 3종 성공, 그 외 `ROUND_PLACE_INVALID_TRANSITION`
-  - [ ] `@DataJpaTest`: `(candidate, member)` 유니크, `Place` 임베디드 매핑(label만 있는 장소·주소·링크까지 있는 장소), 스키마에 카카오 응답 값 컬럼이 없음
+  - [x] 단위(`HttpsUrlValidatorTest`): `https://…`·대문자 스킴 통과, `http://…`·`javascript:…`·`ftp://…`·빈 문자열·공백·호스트 없음·스킴 없음·형식 오류 실패, 2,048자 통과·2,049자 실패, null 통과
+  - [x] 단위(`PlaceLinkFactoryTest` 4건): manualMapUrl 우선, manualAddress 검색어, label 검색어(주소 null·공백), 한글·공백·예약 문자 인코딩
+  - [x] 단위(`RoundTest` 8건): 허용 전이 3종 + 재투표 시 확정 해제, 그 외 전이 `ROUND_PLACE_INVALID_TRANSITION`, 다른 차수 후보 예외
+  - [x] `@DataJpaTest`(`PlaceCandidateRepositoryTest` 4건): label만 있는 장소·주소·링크까지 있는 장소 매핑, `confirmedCandidate` FK 저장, `information_schema`로 `place_candidate` 컬럼이 사용자 입력·FK·시각뿐임을 확인 / (`PlaceVoteRepositoryTest` 2건): `(candidate, member)` 유니크, 다른 후보 복수 투표 허용
 - **수락 기준**
-  - Given 직접 입력 / When `manualMapUrl`이 `http://…`·`javascript:…`이거나 2,048자를 넘으면 / Then 검증에 실패한다(API에서는 400 + `manualMapUrl` 필드 에러, Task 016).
+  - [x] Given 직접 입력 / When `manualMapUrl`이 `http://…`·`javascript:…`이거나 2,048자를 넘으면 / Then 검증에 실패한다(API에서는 400 + `manualMapUrl` 필드 에러, Task 016).
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 355건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
 
 ### Task 015: 카카오 로컬 검색 실시간 프록시   ✅ 완료
 
