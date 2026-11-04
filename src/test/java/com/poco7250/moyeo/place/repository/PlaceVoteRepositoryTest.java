@@ -53,14 +53,16 @@ class PlaceVoteRepositoryTest {
 	private Member member;
 	private PlaceCandidate first;
 	private PlaceCandidate second;
+	private Round round;
+	private Meeting meeting;
 
 	@BeforeEach
 	void setUp() {
 		member = memberRepository.saveAndFlush(Member.ofKakao(1001L, "모여", null, null));
 		Group group = groupRepository.saveAndFlush(Group.create("대학 동기"));
-		Meeting meeting = meetingRepository.saveAndFlush(Meeting.create(
+		meeting = meetingRepository.saveAndFlush(Meeting.create(
 				group, "연말 모임", LocalDateTime.of(2026, 12, 20, 18, 0), null, null, member.getId()));
-		Round round = roundRepository.saveAndFlush(Round.create(meeting, 1, "밥"));
+		round = roundRepository.saveAndFlush(Round.create(meeting, 1, "밥"));
 		first = placeCandidateRepository.saveAndFlush(PlaceCandidate.propose(round, Place.of("고깃집", null, null), member));
 		second = placeCandidateRepository.saveAndFlush(PlaceCandidate.propose(round, Place.of("횟집", null, null), member));
 	}
@@ -81,5 +83,21 @@ class PlaceVoteRepositoryTest {
 		placeVoteRepository.saveAndFlush(PlaceVote.cast(second, member));
 
 		assertThat(placeVoteRepository.count()).isEqualTo(2);
+	}
+
+	@Test
+	@DisplayName("차수 단위 표 삭제는 그 차수 후보의 표만 지우고 다른 차수 표는 남긴다")
+	void deleteAllByRoundId() {
+		Round otherRound = roundRepository.saveAndFlush(Round.create(meeting, 2, "볼링"));
+		PlaceCandidate otherCandidate = placeCandidateRepository.saveAndFlush(
+				PlaceCandidate.propose(otherRound, Place.of("볼링장", null, null), member));
+		placeVoteRepository.saveAndFlush(PlaceVote.cast(first, member));
+		placeVoteRepository.saveAndFlush(PlaceVote.cast(second, member));
+		PlaceVote otherVote = placeVoteRepository.saveAndFlush(PlaceVote.cast(otherCandidate, member));
+
+		int deleted = placeVoteRepository.deleteAllByRoundId(round.getId());
+
+		assertThat(deleted).isEqualTo(2);
+		assertThat(placeVoteRepository.findAll()).extracting(PlaceVote::getId).containsExactly(otherVote.getId());
 	}
 }

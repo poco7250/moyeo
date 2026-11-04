@@ -108,6 +108,21 @@ class PlaceCandidateRepositoryTest {
 	}
 
 	@Test
+	@DisplayName("차수별 후보 조회는 그 차수 후보만 등록 순서대로 돌려준다")
+	void findAllByRoundIdOrderById() {
+		Round otherRound = roundRepository.saveAndFlush(Round.create(round.getMeeting(), 2, "볼링"));
+		PlaceCandidate first = placeCandidateRepository.saveAndFlush(
+				PlaceCandidate.propose(round, Place.of("고깃집", null, null), member));
+		placeCandidateRepository.saveAndFlush(PlaceCandidate.propose(otherRound, Place.of("볼링장", null, null), member));
+		PlaceCandidate second = placeCandidateRepository.saveAndFlush(
+				PlaceCandidate.propose(round, Place.of("횟집", null, null), member));
+
+		assertThat(placeCandidateRepository.findAllByRoundIdOrderById(round.getId()))
+				.extracting(PlaceCandidate::getId)
+				.containsExactly(first.getId(), second.getId());
+	}
+
+	@Test
 	@DisplayName("place_candidate 테이블에는 사용자 입력 컬럼만 있고 카카오 응답 값 컬럼은 없다")
 	@SuppressWarnings("unchecked")
 	void noKakaoColumns() {

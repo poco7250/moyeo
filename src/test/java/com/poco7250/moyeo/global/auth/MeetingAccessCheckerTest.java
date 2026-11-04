@@ -10,7 +10,9 @@ import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.group.domain.Group;
 import com.poco7250.moyeo.meeting.domain.Meeting;
+import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.MeetingRepository;
+import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,12 +30,16 @@ class MeetingAccessCheckerTest {
 	private static final Long MEETING_ID = 10L;
 	private static final Long HOST_ID = 7L;
 	private static final Long MEMBER_ID = 8L;
+	private static final Long ROUND_ID = 100L;
 
 	@Mock
 	MeetingRepository meetingRepository;
 
 	@Mock
 	GroupAccessChecker groupAccessChecker;
+
+	@Mock
+	RoundRepository roundRepository;
 
 	@InjectMocks
 	MeetingAccessChecker meetingAccessChecker;
@@ -45,6 +51,7 @@ class MeetingAccessCheckerTest {
 		Group group = Group.create("대학 동기");
 		ReflectionTestUtils.setField(group, "id", GROUP_ID);
 		meeting = Meeting.create(group, "연말 모임", LocalDateTime.of(2026, 12, 20, 18, 0), null, null, HOST_ID);
+		ReflectionTestUtils.setField(meeting, "id", MEETING_ID);
 	}
 
 	@Test
@@ -89,5 +96,36 @@ class MeetingAccessCheckerTest {
 		given(meetingRepository.findById(MEETING_ID)).willReturn(Optional.of(meeting));
 
 		assertThat(meetingAccessChecker.requireHost(MEETING_ID, HOST_ID)).isSameAs(meeting);
+	}
+
+	@Test
+	void 없는_차수면_존재를_숨기고_NOT_GROUP_MEMBER() {
+		given(roundRepository.findById(ROUND_ID)).willReturn(Optional.empty());
+
+		assertThatThrownBy(() -> meetingAccessChecker.requireRoundMember(ROUND_ID, MEMBER_ID))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.NOT_GROUP_MEMBER);
+		verifyNoInteractions(meetingRepository, groupAccessChecker);
+	}
+
+	@Test
+	void 차수가_속한_그룹_멤버면_차수를_돌려준다() {
+		Round round = Round.create(meeting, 1, "밥");
+		given(roundRepository.findById(ROUND_ID)).willReturn(Optional.of(round));
+		given(meetingRepository.findById(MEETING_ID)).willReturn(Optional.of(meeting));
+
+		assertThat(meetingAccessChecker.requireRoundMember(ROUND_ID, MEMBER_ID)).isSameAs(round);
+	}
+
+	@Test
+	void 차수_호스트_검사는_호스트가_아니면_NOT_MEETING_HOST_호스트면_차수를_돌려준다() {
+		Round round = Round.create(meeting, 1, "밥");
+		given(roundRepository.findById(ROUND_ID)).willReturn(Optional.of(round));
+		given(meetingRepository.findById(MEETING_ID)).willReturn(Optional.of(meeting));
+
+		assertThatThrownBy(() -> meetingAccessChecker.requireRoundHost(ROUND_ID, MEMBER_ID))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.NOT_MEETING_HOST);
+		assertThat(meetingAccessChecker.requireRoundHost(ROUND_ID, HOST_ID)).isSameAs(round);
 	}
 }

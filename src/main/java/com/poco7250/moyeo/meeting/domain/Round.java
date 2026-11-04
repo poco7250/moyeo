@@ -109,6 +109,24 @@ public class Round extends BaseTimeEntity {
 		markConfirmed(candidate);
 	}
 
+	/**
+	 * 장소 미정 차수인지 검사한다(바로 확정 전에 후보를 저장하기 전 확인용).
+	 *
+	 * @throws com.poco7250.moyeo.global.error.BusinessException UNDECIDED가 아니면 ROUND_PLACE_INVALID_TRANSITION
+	 */
+	public void requireUndecided() {
+		requireStatus(PlaceStatus.UNDECIDED);
+	}
+
+	/**
+	 * 투표 중인 차수인지 검사한다(후보 추가는 투표 중에만 된다).
+	 *
+	 * @throws com.poco7250.moyeo.global.error.BusinessException VOTING이 아니면 ROUND_PLACE_INVALID_TRANSITION
+	 */
+	public void requireVoting() {
+		requireStatus(PlaceStatus.VOTING);
+	}
+
 	private void markConfirmed(PlaceCandidate candidate) {
 		// 다른 차수 후보가 넘어오는 건 호출 쪽 버그라 API 에러 코드가 아닌 예외로 막는다
 		if (!candidate.belongsTo(this)) {

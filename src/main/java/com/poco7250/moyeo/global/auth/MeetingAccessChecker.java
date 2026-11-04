@@ -3,7 +3,9 @@ package com.poco7250.moyeo.global.auth;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.Meeting;
+import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.MeetingRepository;
+import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +19,7 @@ public class MeetingAccessChecker {
 
 	private final MeetingRepository meetingRepository;
 	private final GroupAccessChecker groupAccessChecker;
+	private final RoundRepository roundRepository;
 
 	/**
 	 * 회원이 모임이 속한 그룹의 멤버인지 검사하고 모임을 돌려준다.
@@ -43,5 +46,33 @@ public class MeetingAccessChecker {
 			throw new BusinessException(ErrorCode.NOT_MEETING_HOST);
 		}
 		return meeting;
+	}
+
+	/**
+	 * 회원이 차수가 속한 모임의 그룹 멤버인지 검사하고 차수를 돌려준다.
+	 * 없는 차수도 같은 403으로 응답해 차수 존재 여부를 드러내지 않는다.
+	 *
+	 * @throws BusinessException 없는 차수이거나 그룹 멤버가 아니면 NOT_GROUP_MEMBER
+	 */
+	public Round requireRoundMember(Long roundId, Long memberId) {
+		Round round = findRound(roundId);
+		requireMember(round.getMeeting().getId(), memberId);
+		return round;
+	}
+
+	/**
+	 * 회원이 차수가 속한 모임의 호스트인지 검사하고 차수를 돌려준다.
+	 *
+	 * @throws BusinessException 그룹 멤버가 아니면 NOT_GROUP_MEMBER, 호스트가 아니면 NOT_MEETING_HOST
+	 */
+	public Round requireRoundHost(Long roundId, Long memberId) {
+		Round round = findRound(roundId);
+		requireHost(round.getMeeting().getId(), memberId);
+		return round;
+	}
+
+	private Round findRound(Long roundId) {
+		return roundRepository.findById(roundId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_GROUP_MEMBER));
 	}
 }
