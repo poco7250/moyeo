@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-04 (`feature/place-no-storage-docs` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-05 (`feature/place-vote` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 3 완료 — Phase 4는 Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04). 다음은 Task 017(후보 투표·실시간 득표 현황), 또는 Phase 5(Task 020). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격 엔티티(`settlement/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가(`place/`), 공통 코드(`global/`)가 있다. 장소 투표·득표·마감 확정 API와 게임 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 3 완료 — Phase 4는 Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05). 다음은 Task 018(투표 마감 자동 확정·호스트 수동 확정), 또는 Phase 5(Task 020). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격 엔티티(`settlement/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API(`place/`), 공통 코드(`global/`)가 있다. 장소 마감 확정 API와 게임 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -14,7 +14,7 @@
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 3 | ✅ 완료 |
 | 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 4 | ✅ 완료 |
-| 4 | 장소 결정 | 4 | 6 | 3 | 🔄 진행 중 |
+| 4 | 장소 결정 | 4 | 6 | 4 | 🔄 진행 중 |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 0 | ⬜ 대기 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 0 | ⬜ 대기 |
 | 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **16** | |
+| **합계** | | | **66** (MVP 43) | **17** | |
 
 ## 상태 범례
 
@@ -491,31 +491,39 @@ Phase 10 040 → 041, 042 → 043
 - **완료 조건**
   - [x] `./gradlew test` 통과(전체 393건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
 
-### Task 017: 후보 투표·실시간 득표 현황   ⬜ 대기
+### Task 017: 후보 투표·실시간 득표 현황   ✅ 완료
 
+- **완료일:** 2026-11-05 · 브랜치 `feature/place-vote`
 - **관련 기능:** P-3
 - **선행 Task:** Task 016
-- **선행 조건:** PRD 오픈 이슈 4(복수 선택 vs 1인 1표 — 현재 안 복수 선택, 수용 기준도 복수 선택 기준), 오픈 이슈 6(불참자 투표 허용 — 현재 안 그룹 멤버 누구나). 착수 전 현재 안 유지 확인
+- **선행 조건:** PRD 오픈 이슈 4(복수 선택 vs 1인 1표), 오픈 이슈 6(불참자 투표 허용) — 착수 전 확인(2026-11-05): **현재 안 유지**(복수 선택, 그룹 멤버 누구나). 이슈 자체는 PRD에 열어 둔다
 - **구현 사항**
-  - [ ] `PlaceVoteService.vote(candidateId, memberId)` — `VOTING` 차수만(아니면 409 `ROUND_PLACE_INVALID_TRANSITION`), 이미 투표했으면 그대로(멱등), 동시 중복은 `(candidate, member)` 유니크 위반을 잡아 성공 처리
-  - [ ] ⚠️ 투표 취소(un-vote) 지원 여부 PRD 미정
-  - [ ] `GET /api/rounds/{roundId}/votes` — 후보별 득표 수·투표자 목록(공개)
-  - [ ] 커밋 후 `VoteChangedEvent`(후보별 득표 수·투표자) 브로드캐스트
+  - [x] `PlaceVoteService`(facade, 트랜잭션 없음) → `PlaceVoteWriter`(`@Transactional`) — `VOTING` 차수만(아니면 409 `ROUND_PLACE_INVALID_TRANSITION`), 이미 투표했으면 그대로(멱등), 동시 중복은 `(candidate, member)` 유니크 위반을 잡아 새 트랜잭션으로 1회 재시도(`AttendanceService` 패턴). 이 차수의 후보가 아니면 404 `PLACE_CANDIDATE_NOT_FOUND`
+  - [x] ⚠️ 결정(2026-11-05): **투표 취소 지원**(복수 선택에서 잘못 누른 표를 고칠 수 있게). 표가 없어도 성공(멱등)
+  - [x] ⚠️ 결정(2026-11-05): **마감 시각이 지나면 `VOTING`이어도 투표·취소 거부** — 409 `PLACE_VOTE_DEADLINE_PASSED`, `Round.requireVoteOpen(now)`. 마감 정각은 열림(참석 응답과 같은 경계). 마감 처리 직전이나 동점 대기 중에 결과가 바뀌는 것을 막는다
+  - [x] `PlaceVoteController`: `PUT`·`DELETE /api/rounds/{roundId}/candidates/{candidateId}/vote`, `GET /api/rounds/{roundId}/votes` — 모두 `RoundVotesResponse`(후보별 `CandidateVotes`: 득표 수·가입 순 투표자 `BoardMember`, 0표 후보 포함, 공개)
+  - [x] `VoteChangedEvent`(`VOTE_CHANGED`, 본문 = `RoundVotesResponse`)를 `/topic/meetings/{id}`로 커밋 후 브로드캐스트. 표가 실제로 바뀐 때만 발행. 결정(2026-11-05): 집계는 **표를 쓴 트랜잭션이 커밋된 뒤 새 읽기 트랜잭션**(`PlaceVoteTally.publish`)에서 읽는다 — REPEATABLE READ에서 쓰기 트랜잭션 안에서 집계하면 동시 표가 빠진 현황이 마지막 메시지로 남을 수 있어서
+  - [x] 득표는 `RoundPlaceResponse`에 넣지 않고 별도 API로 둔다. 재투표로 표가 초기화되면 `PLACE_CHANGED`만 나가므로 클라이언트가 `GET /votes`로 다시 읽는다
+  - 감수한 한계: 전송 순서가 뒤바뀌는 아주 짧은 구간은 남는다(재연결 시 GET으로 맞춤). 투표는 `Round.version`을 건드리지 않아 마감 처리·재투표와 정확히 겹친 표는 남을 수 있다(재투표 때 초기화). 표 커밋 후 집계 조회가 실패하면 500이지만 재요청은 멱등이다
 - **테스트**
-  - [ ] 단위: 후보 2곳 투표 → 2표, 같은 후보 재투표 → 1표 유지
-  - [ ] `@DataJpaTest`: 유니크 위반 발생 확인
-  - [ ] 단위: 커밋 후 이벤트 페이로드에 득표 수·투표자 목록 포함
+  - [x] 단위(`PlaceVoteWriterTest` 8건, 고정 `Clock`): 첫 투표 저장(마감 정각 포함), 재투표 저장 없음, 취소, 표 없는 취소, 비멤버 403, 투표 중 아님 409, 다른 차수 후보 404, 마감 후 투표·취소 409
+  - [x] 단위(`PlaceVoteServiceTest` 6건): 변경 시에만 발행, 유니크 위반 재시도 성공·재시도 실패 전파, 취소 발행 여부
+  - [x] 단위(`PlaceVoteTallyTest` 4건): 후보별 득표 수·가입 순 투표자·0표 후보, 비멤버 403, 이벤트 페이로드에 득표 수·투표자 포함, 없는 차수 404
+  - [x] 단위(`RoundTest` +2건): 마감 정각 통과·1초 후 거부, 투표 중 아님 거부
+  - [x] `@DataJpaTest`(`PlaceVoteRepositoryTest` +4건): 차수 단위 표 조회, 표 존재 여부, 표 취소 범위·건수, 차수 소속 후보 조회. 유니크 위반은 기존 테스트로 확인
+  - [x] `@WebMvcTest`(`PlaceVoteControllerTest` 9건): 응답 형식, 비로그인 401, 비멤버 403, 404, 409 2종, 숫자 아닌 id 400
+  - [x] 통합(`PlaceVoteServiceIntegrationTest` 4건, 실제 커밋): 2곳 투표 → 2표·커밋된 현황 브로드캐스트, 재투표 → 1표 유지·재발행 없음, 취소, 같은 표 동시 2건 → 둘 다 성공·1건 저장
 - **수락 기준**
-  - Given `VOTING` 차수 / When 멤버가 후보 2곳에 투표하면 / Then 두 표가 저장되고 WebSocket으로 득표 수·투표자 목록이 모든 접속자에게 갱신된다. 같은 후보에 다시 투표하면 표는 1개로 유지된다(유니크 제약). (PRD P-3)
+  - [x] Given `VOTING` 차수 / When 멤버가 후보 2곳에 투표하면 / Then 두 표가 저장되고 WebSocket으로 득표 수·투표자 목록이 모든 접속자에게 갱신된다. 같은 후보에 다시 투표하면 표는 1개로 유지된다(유니크 제약). (PRD P-3)
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 430건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
 
 ### Task 018: 투표 마감 자동 확정·호스트 수동 확정·재투표   ⬜ 대기
 
 - **관련 기능:** P-4
 - **선행 Task:** Task 017
 - **구현 사항**
-  - [ ] `PlaceVoteCloser`(`@Scheduled`) — 마감 지난 `VOTING` 차수 조회 → 차수별 별도 트랜잭션으로 마감 처리
+  - [ ] `PlaceVoteCloser`(`@Scheduled`) — 마감 지난 `VOTING` 차수 조회 → 차수별 별도 트랜잭션으로 마감 처리. "지남"은 `Round.requireVoteOpen`과 같은 경계(`now > placeVoteDeadline`, 정각은 열림)로 판단한다(Task 017)
   - [ ] 순수 함수 `VoteTally.decide(후보별 득표)` → 단독 최다 / 동점 후보 목록. ⚠️ 득표 0건(전원 0표)은 동점으로 볼지 PRD 미정
   - [ ] 단독 최다 → `CONFIRMED`, 동점 → `VOTING` 유지 + 호스트 선택 요청 이벤트
   - [ ] `RoundPlaceService.confirmManually(roundId, candidateId)`(호스트, 언제든). 재투표(`CONFIRMED → VOTING`)는 **Task 016으로 이동**(투표 열기 API가 겸함, 후보 유지·표 초기화)

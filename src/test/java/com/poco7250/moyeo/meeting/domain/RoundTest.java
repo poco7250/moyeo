@@ -1,6 +1,7 @@
 package com.poco7250.moyeo.meeting.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.poco7250.moyeo.global.error.BusinessException;
@@ -106,6 +107,27 @@ class RoundTest {
 
 		assertInvalidTransition(() -> round.confirmDirectly(candidate));
 		assertInvalidTransition(() -> round.confirm(candidate));
+	}
+
+	@Test
+	@DisplayName("투표 중이면 마감 정각까지 표를 바꿀 수 있고 1초 뒤부터는 마감 에러다")
+	void requireVoteOpenDeadline() {
+		round.openVoting(DEADLINE);
+
+		assertThatCode(() -> round.requireVoteOpen(DEADLINE)).doesNotThrowAnyException();
+		assertThatThrownBy(() -> round.requireVoteOpen(DEADLINE.plusSeconds(1)))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.PLACE_VOTE_DEADLINE_PASSED);
+	}
+
+	@Test
+	@DisplayName("투표 중이 아니면 마감 전이어도 표를 바꿀 수 없다")
+	void requireVoteOpenNotVoting() {
+		assertInvalidTransition(() -> round.requireVoteOpen(DEADLINE));
+
+		round.confirmDirectly(candidate);
+
+		assertInvalidTransition(() -> round.requireVoteOpen(DEADLINE));
 	}
 
 	@Test
