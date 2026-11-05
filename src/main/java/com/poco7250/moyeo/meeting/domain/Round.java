@@ -127,6 +127,20 @@ public class Round extends BaseTimeEntity {
 		requireStatus(PlaceStatus.VOTING);
 	}
 
+	/**
+	 * 지금 표를 바꿀 수 있는지 검사한다. 마감 정각까지는 열려 있다.
+	 * 마감이 지나면 VOTING이어도 막아서 마감 처리 직전이나 동점 대기 중에 결과가 바뀌지 않게 한다.
+	 *
+	 * @throws com.poco7250.moyeo.global.error.BusinessException VOTING이 아니면 ROUND_PLACE_INVALID_TRANSITION,
+	 *         마감이 지났으면 PLACE_VOTE_DEADLINE_PASSED
+	 */
+	public void requireVoteOpen(LocalDateTime now) {
+		requireVoting();
+		if (now.isAfter(placeVoteDeadline)) {
+			throw new BusinessException(ErrorCode.PLACE_VOTE_DEADLINE_PASSED);
+		}
+	}
+
 	private void markConfirmed(PlaceCandidate candidate) {
 		// 다른 차수 후보가 넘어오는 건 호출 쪽 버그라 API 에러 코드가 아닌 예외로 막는다
 		if (!candidate.belongsTo(this)) {

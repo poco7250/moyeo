@@ -57,6 +57,9 @@ public enum ErrorCode {
 	PLACE_SEARCH_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."),
 	// 차수 장소 상태에서 허용되지 않는 전이(예: 투표 중 바로 확정, 미정 상태에서 투표 확정)
 	ROUND_PLACE_INVALID_TRANSITION(HttpStatus.CONFLICT, "지금 상태에서는 할 수 없는 장소 변경입니다."),
+	// 차수가 아직 VOTING이어도 마감 시각이 지나면 표를 바꿀 수 없다(동점이면 호스트 선택을 기다리는 중일 수 있음)
+	PLACE_VOTE_DEADLINE_PASSED(HttpStatus.CONFLICT, "투표가 마감되었습니다."),
+	PLACE_CANDIDATE_NOT_FOUND(HttpStatus.NOT_FOUND, "장소 후보를 찾을 수 없습니다."),
 
 	// 초대
 	INVITE_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "초대 링크를 찾을 수 없습니다."),

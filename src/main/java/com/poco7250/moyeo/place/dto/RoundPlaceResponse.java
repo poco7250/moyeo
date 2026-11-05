@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 차수의 장소 결정 상태(상태·투표 마감·확정 후보·후보 목록). 득표 현황은 Task 017에서 붙인다.
+ * 차수의 장소 결정 상태(상태·투표 마감·확정 후보·후보 목록). 득표 현황은 RoundVotesResponse로 따로 조회한다.
  */
 public record RoundPlaceResponse(Long roundId, PlaceStatus placeStatus, LocalDateTime placeVoteDeadline,
 		Long confirmedCandidateId, List<CandidateResponse> candidates) {
