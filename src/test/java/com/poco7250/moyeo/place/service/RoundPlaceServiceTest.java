@@ -24,6 +24,7 @@ import com.poco7250.moyeo.place.repository.PlaceCandidateRepository;
 import com.poco7250.moyeo.place.repository.PlaceVoteRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -116,6 +117,93 @@ class RoundPlaceServiceTest {
 				.isInstanceOf(BusinessException.class)
 				.extracting("errorCode").isEqualTo(ErrorCode.ROUND_PLACE_INVALID_TRANSITION);
 		verify(placeCandidateRepository, never()).save(any());
+	}
+
+	@Test
+	@DisplayName("수동 확정하면 고른 후보로 CONFIRMED가 되고 PLACE_CHANGED를 발행한다")
+	void confirmManually() {
+		givenHost();
+		round.openVoting(DEADLINE);
+		PlaceCandidate candidate = PlaceServiceFixture.candidate(round, 500L, "고깃집");
+		given(placeCandidateRepository.findByIdAndRoundId(500L, ROUND_ID)).willReturn(Optional.of(candidate));
+		given(placeCandidateRepository.findAllByRoundIdOrderById(ROUND_ID)).willReturn(List.of(candidate));
+
+		RoundPlaceResponse response = service.confirmManually(ROUND_ID, HOST_ID, 500L);
+
+		assertThat(round.getPlaceStatus()).isEqualTo(PlaceStatus.CONFIRMED);
+		assertThat(response.confirmedCandidateId()).isEqualTo(500L);
+		verify(eventPublisher).publishEvent(any(PlaceChangedEvent.class));
+	}
+
+	@Test
+	@DisplayName("호스트 선택 대기 중에도 수동 확정할 수 있고 대기 상태가 풀린다")
+	void confirmManuallyWhileAwaiting() {
+		givenHost();
+		round.openVoting(DEADLINE);
+		round.markVoteClosed(DEADLINE.plusSeconds(1));
+		PlaceCandidate candidate = PlaceServiceFixture.candidate(round, 500L, "고깃집");
+		given(placeCandidateRepository.findByIdAndRoundId(500L, ROUND_ID)).willReturn(Optional.of(candidate));
+		given(placeCandidateRepository.findAllByRoundIdOrderById(ROUND_ID)).willReturn(List.of(candidate));
+
+		RoundPlaceResponse response = service.confirmManually(ROUND_ID, HOST_ID, 500L);
+
+		assertThat(response.placeStatus()).isEqualTo(PlaceStatus.CONFIRMED);
+		assertThat(response.hostDecisionRequired()).isFalse();
+	}
+
+	@Test
+	@DisplayName("호스트가 아니면 수동 확정할 수 없다(403)")
+	void confirmManuallyByNonHost() {
+		given(meetingAccessChecker.requireRoundHost(ROUND_ID, MEMBER_ID))
+				.willThrow(new BusinessException(ErrorCode.NOT_MEETING_HOST));
+
+		assertThatThrownBy(() -> service.confirmManually(ROUND_ID, MEMBER_ID, 500L))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.NOT_MEETING_HOST);
+		verifyNoInteractions(placeCandidateRepository, eventPublisher);
+	}
+
+	@Test
+	@DisplayName("이 차수의 후보가 아니면 수동 확정은 404이고 상태가 바뀌지 않는다")
+	void confirmManuallyUnknownCandidate() {
+		givenHost();
+		round.openVoting(DEADLINE);
+		given(placeCandidateRepository.findByIdAndRoundId(999L, ROUND_ID)).willReturn(Optional.empty());
+
+		assertThatThrownBy(() -> service.confirmManually(ROUND_ID, HOST_ID, 999L))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.PLACE_CANDIDATE_NOT_FOUND);
+		assertThat(round.getPlaceStatus()).isEqualTo(PlaceStatus.VOTING);
+		verifyNoInteractions(eventPublisher);
+	}
+
+	@Test
+	@DisplayName("이미 확정된 차수는 수동 확정할 수 없다(409)")
+	void confirmManuallyAlreadyConfirmed() {
+		givenHost();
+		PlaceCandidate candidate = PlaceServiceFixture.candidate(round, 500L, "고깃집");
+		round.confirmDirectly(candidate);
+		given(placeCandidateRepository.findByIdAndRoundId(500L, ROUND_ID)).willReturn(Optional.of(candidate));
+
+		assertThatThrownBy(() -> service.confirmManually(ROUND_ID, HOST_ID, 500L))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.ROUND_PLACE_INVALID_TRANSITION);
+		verifyNoInteractions(eventPublisher);
+	}
+
+	@Test
+	@DisplayName("호스트 선택 대기 중 재투표를 열면 표를 지우고 새 마감으로 VOTING이 되며 대기 상태가 풀린다")
+	void reopenVotingWhileAwaiting() {
+		givenHost();
+		round.openVoting(DEADLINE);
+		round.markVoteClosed(DEADLINE.plusSeconds(1));
+
+		RoundPlaceResponse response = service.openVoting(ROUND_ID, HOST_ID, DEADLINE.plusDays(1));
+
+		verify(placeVoteRepository).deleteAllByRoundId(ROUND_ID);
+		assertThat(response.placeStatus()).isEqualTo(PlaceStatus.VOTING);
+		assertThat(response.placeVoteDeadline()).isEqualTo(DEADLINE.plusDays(1));
+		assertThat(response.hostDecisionRequired()).isFalse();
 	}
 
 	@Test

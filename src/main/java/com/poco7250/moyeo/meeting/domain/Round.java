@@ -12,6 +12,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -26,7 +27,8 @@ import lombok.NoArgsConstructor;
 /**
  * 모임의 차수(1차 밥, 2차 볼링 …). 장소는 모임이 아니라 차수마다 따로 정한다.
  * 투표 자동 마감과 호스트 수동 확정이 겹치면 version 낙관적 락으로 먼저 온 쪽만 반영한다.
- * 장소 상태 전이: 바로 확정(UNDECIDED→CONFIRMED), 투표 열기(UNDECIDED·CONFIRMED→VOTING), 투표 확정(VOTING→CONFIRMED).
+ * 장소 상태 전이: 바로 확정(UNDECIDED→CONFIRMED), 투표 열기(UNDECIDED·CONFIRMED·호스트 선택 대기→VOTING), 투표 확정(VOTING→CONFIRMED).
+ * 호스트 선택 대기는 별도 상태가 아니라 마감 처리가 끝난 VOTING이다(placeVoteClosedAt이 있음).
  */
 @Getter
 @Entity
@@ -35,7 +37,11 @@ import lombok.NoArgsConstructor;
 		name = "meeting_round",
 		uniqueConstraints = @UniqueConstraint(
 				name = "uk_meeting_round_meeting_id_seq",
-				columnNames = {"meeting_id", "seq"}))
+				columnNames = {"meeting_id", "seq"}),
+		// 투표 마감 스케줄러가 주기적으로 찾는 조건
+		indexes = @Index(
+				name = "idx_meeting_round_place_status_place_vote_deadline",
+				columnList = "place_status, place_vote_deadline"))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Round extends BaseTimeEntity {
 
@@ -56,10 +62,14 @@ public class Round extends BaseTimeEntity {
 	private String name;
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 20)
+	@Column(name = "place_status", nullable = false, length = 20)
 	private PlaceStatus placeStatus;
 
+	@Column(name = "place_vote_deadline")
 	private LocalDateTime placeVoteDeadline;
+
+	// 마감 처리 결과 호스트 선택 대기로 넘어간 시각. 있으면 스케줄러가 다시 처리하지 않아 선택 요청이 반복되지 않는다
+	private LocalDateTime placeVoteClosedAt;
 
 	// 확정된 장소 후보(CONFIRMED일 때만 있음). PlaceCandidate.round와 순환 참조라 nullable로 둔다
 	@ManyToOne(fetch = FetchType.LAZY)
@@ -92,12 +102,16 @@ public class Round extends BaseTimeEntity {
 	}
 
 	/**
-	 * 장소 투표를 연다(UNDECIDED·CONFIRMED → VOTING). 재투표면 이전 확정을 해제한다.
+	 * 장소 투표를 연다(UNDECIDED·CONFIRMED·호스트 선택 대기 → VOTING). 재투표면 이전 확정과 마감 처리 표식을 지운다.
+	 * 마감 전 투표 중인 차수는 다시 열 수 없다.
 	 */
 	public void openVoting(LocalDateTime deadline) {
-		requireStatus(PlaceStatus.UNDECIDED, PlaceStatus.CONFIRMED);
+		if (!isAwaitingHostDecision()) {
+			requireStatus(PlaceStatus.UNDECIDED, PlaceStatus.CONFIRMED);
+		}
 		this.placeStatus = PlaceStatus.VOTING;
 		this.placeVoteDeadline = deadline;
+		this.placeVoteClosedAt = null;
 		this.confirmedCandidate = null;
 	}
 
@@ -107,6 +121,30 @@ public class Round extends BaseTimeEntity {
 	public void confirm(PlaceCandidate candidate) {
 		requireStatus(PlaceStatus.VOTING);
 		markConfirmed(candidate);
+	}
+
+	/**
+	 * 마감 처리 결과 자동 확정할 수 없어 호스트 선택 대기로 넘긴다(VOTING 유지).
+	 *
+	 * @throws com.poco7250.moyeo.global.error.BusinessException VOTING이 아니면 ROUND_PLACE_INVALID_TRANSITION
+	 */
+	public void markVoteClosed(LocalDateTime now) {
+		requireStatus(PlaceStatus.VOTING);
+		this.placeVoteClosedAt = now;
+	}
+
+	/**
+	 * 마감 처리가 끝나 호스트의 확정이나 재투표를 기다리는 중인지 본다.
+	 */
+	public boolean isAwaitingHostDecision() {
+		return placeStatus == PlaceStatus.VOTING && placeVoteClosedAt != null;
+	}
+
+	/**
+	 * 마감이 지났고 아직 마감 처리를 하지 않은 투표인지 본다. 마감 정각은 아직 열려 있다(requireVoteOpen과 같은 경계).
+	 */
+	public boolean isVoteCloseDue(LocalDateTime now) {
+		return placeStatus == PlaceStatus.VOTING && placeVoteClosedAt == null && now.isAfter(placeVoteDeadline);
 	}
 
 	/**

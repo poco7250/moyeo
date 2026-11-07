@@ -1,6 +1,8 @@
 package com.poco7250.moyeo.place.service;
 
 import com.poco7250.moyeo.global.auth.MeetingAccessChecker;
+import com.poco7250.moyeo.global.error.BusinessException;
+import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.PlaceStatus;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.member.repository.MemberRepository;
@@ -15,7 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 호스트의 차수 장소 결정(바로 확정·투표 열기). Round.version 낙관적 락으로 동시 변경 중 늦은 쪽은 409가 된다.
+ * 호스트의 차수 장소 결정(바로 확정·수동 확정·투표 열기). Round.version 낙관적 락으로 동시 변경 중 늦은 쪽은 409가 된다.
  */
 @Service
 @RequiredArgsConstructor
@@ -30,7 +32,7 @@ public class RoundPlaceService {
 	/**
 	 * 투표 없이 장소를 바로 확정한다. 후보 1개짜리 PlaceCandidate를 만들고 CONFIRMED로 바꾼다(PRD P-2).
 	 *
-	 * @throws com.poco7250.moyeo.global.error.BusinessException 호스트 아님 NOT_MEETING_HOST,
+	 * @throws BusinessException 호스트 아님 NOT_MEETING_HOST,
 	 *         미정 차수가 아니면 ROUND_PLACE_INVALID_TRANSITION
 	 */
 	@Transactional
@@ -45,15 +47,30 @@ public class RoundPlaceService {
 	}
 
 	/**
-	 * 장소 투표를 연다. 확정된 차수면 재투표로, 후보는 남기고 표만 지운다.
+	 * 투표 중인 차수를 호스트가 고른 후보로 확정한다. 마감 전이나 호스트 선택 대기 중 언제든 할 수 있다(PRD P-4).
 	 *
-	 * @throws com.poco7250.moyeo.global.error.BusinessException 호스트 아님 NOT_MEETING_HOST,
-	 *         이미 투표 중이면 ROUND_PLACE_INVALID_TRANSITION
+	 * @throws BusinessException 호스트 아님 NOT_MEETING_HOST, 이 차수의 후보가 아니면 PLACE_CANDIDATE_NOT_FOUND,
+	 *         투표 중이 아니면 ROUND_PLACE_INVALID_TRANSITION
+	 */
+	@Transactional
+	public RoundPlaceResponse confirmManually(Long roundId, Long hostId, Long candidateId) {
+		Round round = meetingAccessChecker.requireRoundHost(roundId, hostId);
+		PlaceCandidate candidate = placeCandidateRepository.findByIdAndRoundId(candidateId, roundId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.PLACE_CANDIDATE_NOT_FOUND));
+		round.confirm(candidate);
+		return roundPlaceSnapshot.publish(round);
+	}
+
+	/**
+	 * 장소 투표를 연다. 확정된 차수나 호스트 선택 대기 차수면 재투표로, 후보는 남기고 표만 지운다.
+	 *
+	 * @throws BusinessException 호스트 아님 NOT_MEETING_HOST,
+	 *         마감 전 투표 중이면 ROUND_PLACE_INVALID_TRANSITION
 	 */
 	@Transactional
 	public RoundPlaceResponse openVoting(Long roundId, Long hostId, LocalDateTime deadline) {
 		Round round = meetingAccessChecker.requireRoundHost(roundId, hostId);
-		boolean reopening = round.getPlaceStatus() == PlaceStatus.CONFIRMED;
+		boolean reopening = round.getPlaceStatus() == PlaceStatus.CONFIRMED || round.isAwaitingHostDecision();
 		round.openVoting(deadline);
 		if (reopening) {
 			placeVoteRepository.deleteAllByRoundId(round.getId());

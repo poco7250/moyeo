@@ -14,6 +14,7 @@ import com.poco7250.moyeo.auth.token.TokenCookieFactory;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.PlaceStatus;
+import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.place.dto.CandidateResponse;
 import com.poco7250.moyeo.place.dto.PlaceInput;
 import com.poco7250.moyeo.place.dto.RoundPlaceResponse;
@@ -23,15 +24,18 @@ import com.poco7250.moyeo.support.SecurityTestConfig;
 import jakarta.servlet.http.Cookie;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -45,6 +49,7 @@ class RoundPlaceControllerTest {
 
 	private static final String CANDIDATES_URL = "/api/rounds/100/candidates";
 	private static final String CONFIRM_URL = "/api/rounds/100/place/confirm-direct";
+	private static final String MANUAL_CONFIRM_URL = "/api/rounds/100/place/confirm";
 	private static final String VOTING_URL = "/api/rounds/100/place/voting";
 	private static final String VALID_PLACE = "{\"label\":\"강남 볼링\",\"manualAddress\":\"강남대로 1\"}";
 	private static final CandidateResponse CANDIDATE = new CandidateResponse(500L, "강남 볼링", "강남대로 1", null,
@@ -147,7 +152,7 @@ class RoundPlaceControllerTest {
 	@DisplayName("바로 확정에 성공하면 200과 차수 장소 상태를 준다")
 	void confirmDirectly() throws Exception {
 		given(roundPlaceService.confirmDirectly(eq(100L), eq(7L), any(PlaceInput.class)))
-				.willReturn(new RoundPlaceResponse(100L, PlaceStatus.CONFIRMED, null, 500L, List.of(CANDIDATE)));
+				.willReturn(new RoundPlaceResponse(100L, PlaceStatus.CONFIRMED, null, false, 500L, List.of(CANDIDATE)));
 
 		mockMvc.perform(postJson(CONFIRM_URL, VALID_PLACE).cookie(accessCookie(7L)))
 				.andExpect(status().isOk())
@@ -169,11 +174,64 @@ class RoundPlaceControllerTest {
 	}
 
 	@Test
+	@DisplayName("수동 확정에 성공하면 200과 확정된 차수 장소 상태를 준다")
+	void confirmManually() throws Exception {
+		given(roundPlaceService.confirmManually(100L, 7L, 500L))
+				.willReturn(new RoundPlaceResponse(100L, PlaceStatus.CONFIRMED, null, false, 500L, List.of(CANDIDATE)));
+
+		mockMvc.perform(postJson(MANUAL_CONFIRM_URL, "{\"candidateId\":500}").cookie(accessCookie(7L)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.placeStatus").value("CONFIRMED"))
+				.andExpect(jsonPath("$.data.hostDecisionRequired").value(false))
+				.andExpect(jsonPath("$.data.confirmedCandidateId").value(500));
+	}
+
+	@Test
+	@DisplayName("수동 확정에 후보 id가 없으면 400 candidateId 필드 에러")
+	void confirmManuallyWithoutCandidate() throws Exception {
+		mockMvc.perform(postJson(MANUAL_CONFIRM_URL, "{}").cookie(accessCookie(7L)))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error.fieldErrors[0].field").value("candidateId"));
+		verifyNoInteractions(roundPlaceService);
+	}
+
+	@Test
+	@DisplayName("비로그인 수동 확정은 401")
+	void confirmManuallyUnauthenticated() throws Exception {
+		mockMvc.perform(postJson(MANUAL_CONFIRM_URL, "{\"candidateId\":500}"))
+				.andExpect(status().isUnauthorized());
+		verifyNoInteractions(roundPlaceService);
+	}
+
+	static Stream<Arguments> confirmManuallyFailures() {
+		return Stream.of(
+				Arguments.of(new BusinessException(ErrorCode.NOT_MEETING_HOST), 403, ErrorCode.NOT_MEETING_HOST),
+				Arguments.of(new BusinessException(ErrorCode.PLACE_CANDIDATE_NOT_FOUND), 404,
+						ErrorCode.PLACE_CANDIDATE_NOT_FOUND),
+				Arguments.of(new BusinessException(ErrorCode.ROUND_PLACE_INVALID_TRANSITION), 409,
+						ErrorCode.ROUND_PLACE_INVALID_TRANSITION),
+				Arguments.of(new ObjectOptimisticLockingFailureException(Round.class, 100L), 409,
+						ErrorCode.CONCURRENT_MODIFICATION));
+	}
+
+	@ParameterizedTest
+	@MethodSource("confirmManuallyFailures")
+	@DisplayName("수동 확정 실패는 권한 403, 없는 후보 404, 이미 확정·동시 충돌 409")
+	void confirmManuallyFails(RuntimeException failure, int expectedStatus, ErrorCode expectedCode) throws Exception {
+		given(roundPlaceService.confirmManually(100L, 7L, 500L)).willThrow(failure);
+
+		mockMvc.perform(postJson(MANUAL_CONFIRM_URL, "{\"candidateId\":500}").cookie(accessCookie(7L)))
+				.andExpect(status().is(expectedStatus))
+				.andExpect(jsonPath("$.error.code").value(expectedCode.name()));
+	}
+
+	@Test
 	@DisplayName("투표 열기에 성공하면 200과 VOTING·마감 시각을 준다")
 	void openVoting() throws Exception {
 		LocalDateTime deadline = LocalDateTime.now().plusDays(1).withNano(0);
 		given(roundPlaceService.openVoting(100L, 7L, deadline))
-				.willReturn(new RoundPlaceResponse(100L, PlaceStatus.VOTING, deadline, null, List.of()));
+				.willReturn(new RoundPlaceResponse(100L, PlaceStatus.VOTING, deadline, false, null, List.of()));
 
 		mockMvc.perform(postJson(VOTING_URL, "{\"placeVoteDeadline\":\"" + deadline + "\"}").cookie(accessCookie(7L)))
 				.andExpect(status().isOk())

@@ -21,6 +21,7 @@ import com.poco7250.moyeo.place.domain.PlaceCandidate;
 import com.poco7250.moyeo.place.dto.CandidateResponse;
 import com.poco7250.moyeo.place.dto.PlaceInput;
 import com.poco7250.moyeo.place.repository.PlaceCandidateRepository;
+import com.poco7250.moyeo.support.TestClocks;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 class PlaceCandidateServiceTest {
 
 	private static final PlaceInput INPUT = new PlaceInput("강남 볼링", "강남대로 1", null);
+	private static final LocalDateTime DEADLINE = LocalDateTime.of(2026, 12, 19, 18, 0);
 
 	@Mock
 	MeetingAccessChecker meetingAccessChecker;
@@ -56,7 +58,7 @@ class PlaceCandidateServiceTest {
 	@BeforeEach
 	void setUp() {
 		service = new PlaceCandidateService(meetingAccessChecker, placeCandidateRepository, memberRepository,
-				new RoundPlaceSnapshot(placeCandidateRepository, eventPublisher));
+				new RoundPlaceSnapshot(placeCandidateRepository, eventPublisher), TestClocks.fixed(DEADLINE));
 		round = PlaceServiceFixture.round();
 	}
 
@@ -68,7 +70,8 @@ class PlaceCandidateServiceTest {
 	@DisplayName("투표 중인 차수에 후보를 추가하면 저장하고 PLACE_CHANGED를 발행한다")
 	void add() {
 		givenMember();
-		round.openVoting(LocalDateTime.of(2026, 12, 19, 18, 0));
+		// 마감 정각까지는 추가할 수 있다
+		round.openVoting(DEADLINE);
 		given(memberRepository.getReferenceById(MEMBER_ID)).willReturn(PlaceServiceFixture.member(MEMBER_ID));
 		given(placeCandidateRepository.save(any(PlaceCandidate.class))).willAnswer(invocation -> {
 			PlaceCandidate saved = invocation.getArgument(0);
@@ -105,6 +108,19 @@ class PlaceCandidateServiceTest {
 		round.confirmDirectly(PlaceServiceFixture.candidate(round, 1L, "고깃집"));
 
 		assertInvalidTransitionWithoutSave();
+	}
+
+	@Test
+	@DisplayName("마감이 지난 차수에는 후보를 추가할 수 없다(409, 저장 없음)")
+	void deadlinePassedFails() {
+		givenMember();
+		round.openVoting(DEADLINE.minusSeconds(1));
+
+		assertThatThrownBy(() -> service.add(ROUND_ID, MEMBER_ID, INPUT))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.PLACE_VOTE_DEADLINE_PASSED);
+		verify(placeCandidateRepository, never()).save(any());
+		verify(eventPublisher, never()).publishEvent(any());
 	}
 
 	@Test

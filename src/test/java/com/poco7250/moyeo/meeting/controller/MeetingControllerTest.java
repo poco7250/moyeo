@@ -190,8 +190,8 @@ class MeetingControllerTest {
 
 	private MeetingDetailResponse detail() {
 		return new MeetingDetailResponse(10L, 1L, "연말 모임", START_AT, "메모", null, 7L, true, "/meetings/10",
-				List.of(new RoundResponse(100L, 1, "밥", PlaceStatus.UNDECIDED, null),
-						new RoundResponse(101L, 2, "볼링", PlaceStatus.UNDECIDED, null)));
+				List.of(new RoundResponse(100L, 1, "밥", PlaceStatus.UNDECIDED, null, false),
+						new RoundResponse(101L, 2, "볼링", PlaceStatus.UNDECIDED, null, false)));
 	}
 
 	private Cookie accessCookie(Long memberId) {
