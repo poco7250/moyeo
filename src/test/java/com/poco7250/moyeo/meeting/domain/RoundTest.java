@@ -131,6 +131,58 @@ class RoundTest {
 	}
 
 	@Test
+	@DisplayName("마감 처리 대상은 마감이 지났고 아직 처리하지 않은 투표 중 차수뿐이다")
+	void isVoteCloseDue() {
+		assertThat(round.isVoteCloseDue(DEADLINE.plusSeconds(1))).isFalse();
+
+		round.openVoting(DEADLINE);
+
+		assertThat(round.isVoteCloseDue(DEADLINE)).isFalse();
+		assertThat(round.isVoteCloseDue(DEADLINE.plusSeconds(1))).isTrue();
+
+		round.markVoteClosed(DEADLINE.plusSeconds(1));
+
+		assertThat(round.isVoteCloseDue(DEADLINE.plusSeconds(2))).isFalse();
+	}
+
+	@Test
+	@DisplayName("호스트 선택 대기로 넘기면 VOTING을 유지한 채 대기 상태가 되고 확정하면 풀린다")
+	void markVoteClosed() {
+		round.openVoting(DEADLINE);
+		assertThat(round.isAwaitingHostDecision()).isFalse();
+
+		round.markVoteClosed(DEADLINE.plusSeconds(1));
+
+		assertThat(round.getPlaceStatus()).isEqualTo(PlaceStatus.VOTING);
+		assertThat(round.isAwaitingHostDecision()).isTrue();
+
+		round.confirm(candidate);
+
+		assertThat(round.isAwaitingHostDecision()).isFalse();
+	}
+
+	@Test
+	@DisplayName("투표 중이 아니면 호스트 선택 대기로 넘길 수 없다")
+	void markVoteClosedNotVoting() {
+		assertInvalidTransition(() -> round.markVoteClosed(DEADLINE));
+	}
+
+	@Test
+	@DisplayName("호스트 선택 대기 중에는 재투표를 열 수 있고 새 마감으로 다시 마감 처리 대상이 된다")
+	void reopenVotingWhileAwaiting() {
+		LocalDateTime newDeadline = DEADLINE.plusDays(1);
+		round.openVoting(DEADLINE);
+		round.markVoteClosed(DEADLINE.plusSeconds(1));
+
+		round.openVoting(newDeadline);
+
+		assertThat(round.getPlaceStatus()).isEqualTo(PlaceStatus.VOTING);
+		assertThat(round.getPlaceVoteDeadline()).isEqualTo(newDeadline);
+		assertThat(round.isAwaitingHostDecision()).isFalse();
+		assertThat(round.isVoteCloseDue(newDeadline.plusSeconds(1))).isTrue();
+	}
+
+	@Test
 	@DisplayName("다른 차수의 후보로는 확정할 수 없다")
 	void otherRoundCandidateFails() {
 		PlaceCandidate otherCandidate = candidateOf(Round.create(meeting, 2, "볼링"));

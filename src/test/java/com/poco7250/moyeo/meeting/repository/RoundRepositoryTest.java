@@ -15,6 +15,7 @@ import com.poco7250.moyeo.group.repository.GroupRepository;
 import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.PlaceStatus;
 import com.poco7250.moyeo.meeting.domain.Round;
+import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +36,9 @@ class RoundRepositoryTest {
 
 	@Autowired
 	GroupRepository groupRepository;
+
+	@Autowired
+	EntityManager entityManager;
 
 	private Meeting meeting;
 	private Meeting otherMeeting;
@@ -57,6 +61,39 @@ class RoundRepositoryTest {
 		assertThat(roundRepository.findAllByMeetingIdOrderBySeq(meeting.getId()))
 				.extracting(Round::getSeq, Round::getName)
 				.containsExactly(tuple(1, "밥"), tuple(2, "볼링"));
+	}
+
+	@Test
+	@DisplayName("마감 처리 대상은 마감이 지난 투표 차수뿐이고 정각·대기·확정·미정 차수는 제외한다")
+	void findVoteClosableIds() {
+		LocalDateTime now = LocalDateTime.of(2026, 12, 19, 18, 0);
+		Round expired = votingRound(1, now.minusSeconds(1));
+		votingRound(2, now);
+		votingRound(3, now.plusSeconds(1));
+		Round awaiting = votingRound(4, now.minusSeconds(1));
+		awaiting.markVoteClosed(now);
+		roundRepository.saveAndFlush(awaiting);
+		roundRepository.saveAndFlush(Round.create(meeting, 5, "미정"));
+
+		assertThat(roundRepository.findVoteClosableIds(now)).containsExactly(expired.getId());
+	}
+
+	@Test
+	@DisplayName("마감 처리 조회용 인덱스가 실제 스키마에 만들어진다")
+	void voteCloseIndexExists() {
+		Number count = (Number) entityManager.createNativeQuery("""
+				select count(*) from information_schema.statistics
+				where table_schema = database() and table_name = 'meeting_round'
+				and index_name = 'idx_meeting_round_place_status_place_vote_deadline'
+				""").getSingleResult();
+
+		assertThat(count.intValue()).isEqualTo(2);
+	}
+
+	private Round votingRound(int seq, LocalDateTime deadline) {
+		Round round = Round.create(meeting, seq, "차수" + seq);
+		round.openVoting(deadline);
+		return roundRepository.saveAndFlush(round);
 	}
 
 	@Test

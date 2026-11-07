@@ -3,6 +3,7 @@ package com.poco7250.moyeo.place.controller;
 import com.poco7250.moyeo.auth.security.LoginMember;
 import com.poco7250.moyeo.global.common.ApiResponse;
 import com.poco7250.moyeo.place.dto.CandidateResponse;
+import com.poco7250.moyeo.place.dto.PlaceConfirmRequest;
 import com.poco7250.moyeo.place.dto.PlaceInput;
 import com.poco7250.moyeo.place.dto.RoundPlaceResponse;
 import com.poco7250.moyeo.place.dto.VotingOpenRequest;
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 차수 장소 결정 API(후보 추가·바로 확정·투표 열기). 전부 로그인이 필요하고 차수가 속한 그룹의 멤버만 쓸 수 있다.
+ * 차수 장소 결정 API(후보 추가·바로 확정·수동 확정·투표 열기). 전부 로그인이 필요하고 차수가 속한 그룹의 멤버만 쓸 수 있다.
  */
 @RestController
 @RequestMapping("/api/rounds/{roundId}")
@@ -49,7 +50,16 @@ public class RoundPlaceController {
 	}
 
 	/**
-	 * 호스트가 장소 투표를 연다(확정된 차수면 재투표, 표 초기화).
+	 * 호스트가 투표 중인 후보 하나를 골라 확정한다.
+	 */
+	@PostMapping("/place/confirm")
+	public ApiResponse<RoundPlaceResponse> confirmManually(@LoginMember Long memberId, @PathVariable Long roundId,
+			@Valid @RequestBody PlaceConfirmRequest request) {
+		return ApiResponse.ok(roundPlaceService.confirmManually(roundId, memberId, request.candidateId()));
+	}
+
+	/**
+	 * 호스트가 장소 투표를 연다(확정된 차수나 호스트 선택 대기 차수면 재투표, 표 초기화).
 	 */
 	@PostMapping("/place/voting")
 	public ApiResponse<RoundPlaceResponse> openVoting(@LoginMember Long memberId, @PathVariable Long roundId,
