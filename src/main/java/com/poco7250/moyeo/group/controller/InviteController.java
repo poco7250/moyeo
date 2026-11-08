@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 초대 링크 진입 API. 미리보기는 비로그인도 쓰고(SecurityConfig 공개 경로), 가입은 로그인이 필요하다.
  */
 @RestController
-@RequestMapping("/api/invites")
+@RequestMapping("/api/invites/{token}")
 @RequiredArgsConstructor
 public class InviteController {
 
@@ -27,7 +27,7 @@ public class InviteController {
 	/**
 	 * 초대 진입 화면용 그룹 정보를 준다.
 	 */
-	@GetMapping("/{token}")
+	@GetMapping
 	public ApiResponse<InvitePreviewResponse> preview(@PathVariable String token) {
 		return ApiResponse.ok(inviteLinkService.getPreview(token));
 	}
@@ -35,7 +35,7 @@ public class InviteController {
 	/**
 	 * 초대 링크로 그룹에 가입한다. 이미 멤버여도 200으로 그룹 id를 준다.
 	 */
-	@PostMapping("/{token}/join")
+	@PostMapping("/join")
 	public ApiResponse<InviteJoinResponse> join(@LoginMember Long memberId, @PathVariable String token) {
 		return ApiResponse.ok(inviteJoinService.join(token, memberId));
 	}
