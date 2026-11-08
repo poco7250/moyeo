@@ -1,6 +1,7 @@
 package com.poco7250.moyeo.meeting.domain;
 
 import com.poco7250.moyeo.global.common.BaseTimeEntity;
+import com.poco7250.moyeo.global.common.RandomTokens;
 import com.poco7250.moyeo.group.domain.Group;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,6 +11,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.AccessLevel;
@@ -22,6 +25,7 @@ import lombok.NoArgsConstructor;
  */
 @Getter
 @Entity
+@Table(uniqueConstraints = @UniqueConstraint(name = "uk_meeting_share_token", columnNames = "share_token"))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Meeting extends BaseTimeEntity {
 
@@ -49,6 +53,10 @@ public class Meeting extends BaseTimeEntity {
 	@Column(nullable = false, updatable = false)
 	private Long hostMemberId;
 
+	// 비로그인 OG 공유 링크용 토큰. 순번 id 대입으로 다른 모임을 보지 못하게 id 대신 쓴다
+	@Column(name = "share_token", nullable = false, updatable = false, length = RandomTokens.LENGTH)
+	private String shareToken;
+
 	private Meeting(Group group, String title, LocalDateTime startAt, String memo,
 			LocalDateTime responseDeadline, Long hostMemberId) {
 		this.group = group;
@@ -57,6 +65,7 @@ public class Meeting extends BaseTimeEntity {
 		this.memo = memo;
 		this.responseDeadline = responseDeadline;
 		this.hostMemberId = hostMemberId;
+		this.shareToken = RandomTokens.urlSafe();
 	}
 
 	/**

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.poco7250.moyeo.global.auth.GroupAccessChecker;
+import com.poco7250.moyeo.global.config.ShareLinkProperties;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.group.config.InviteLinkProperties;
@@ -61,7 +62,8 @@ class InviteLinkServiceTest {
 	@BeforeEach
 	void setUp() {
 		inviteLinkService = new InviteLinkService(inviteLinkRepository, groupRepository, groupMemberRepository, inviteTokenGenerator,
-				groupAccessChecker, new InviteLinkProperties(Duration.ofDays(7), ""), TestClocks.fixed(NOW));
+				groupAccessChecker, new InviteLinkProperties(Duration.ofDays(7), ""), new ShareLinkProperties(""),
+				TestClocks.fixed(NOW));
 	}
 
 	@Test
@@ -72,7 +74,7 @@ class InviteLinkServiceTest {
 		InviteLinkResponse response = inviteLinkService.issue(group);
 
 		assertThat(response.token()).isEqualTo(NEW_TOKEN);
-		assertThat(response.url()).isEqualTo("/invites/" + NEW_TOKEN);
+		assertThat(response.url()).isEqualTo("/share/invites/" + NEW_TOKEN);
 		assertThat(response.expiresAt()).isEqualTo(NOW.plusDays(7));
 	}
 

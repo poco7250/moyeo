@@ -2,10 +2,10 @@ package com.poco7250.moyeo.meeting.service;
 
 import com.poco7250.moyeo.global.auth.GroupAccessChecker;
 import com.poco7250.moyeo.global.auth.MeetingAccessChecker;
+import com.poco7250.moyeo.global.config.ShareLinkProperties;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.group.domain.Group;
 import com.poco7250.moyeo.group.repository.GroupRepository;
-import com.poco7250.moyeo.meeting.config.MeetingLinkProperties;
 import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.dto.GroupMeetingsResponse;
@@ -37,7 +37,7 @@ public class MeetingService {
 	private final GroupRepository groupRepository;
 	private final GroupAccessChecker groupAccessChecker;
 	private final MeetingAccessChecker meetingAccessChecker;
-	private final MeetingLinkProperties meetingLinkProperties;
+	private final ShareLinkProperties shareLinkProperties;
 	private final Clock clock;
 
 	/**
@@ -65,7 +65,7 @@ public class MeetingService {
 	@Transactional(readOnly = true)
 	public MeetingDetailResponse getDetail(Long meetingId, Long memberId) {
 		Meeting meeting = meetingAccessChecker.requireMember(meetingId, memberId);
-		List<Round> rounds = roundRepository.findAllByMeetingIdOrderBySeq(meetingId);
+		List<Round> rounds = roundRepository.findAllWithConfirmedPlaceByMeetingId(meetingId);
 		return toDetail(meeting, rounds, memberId);
 	}
 
@@ -93,7 +93,7 @@ public class MeetingService {
 	}
 
 	private MeetingDetailResponse toDetail(Meeting meeting, List<Round> rounds, Long memberId) {
-		return MeetingDetailResponse.of(meeting, rounds, memberId, meetingLinkProperties.urlOf(meeting.getId()));
+		return MeetingDetailResponse.of(meeting, rounds, memberId, shareLinkProperties.meetingUrl(meeting.getShareToken()));
 	}
 
 	private List<MeetingSummaryResponse> toSummaries(List<Meeting> meetings) {

@@ -1,6 +1,7 @@
 package com.poco7250.moyeo.group.service;
 
 import com.poco7250.moyeo.global.auth.GroupAccessChecker;
+import com.poco7250.moyeo.global.config.ShareLinkProperties;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.group.config.InviteLinkProperties;
@@ -31,6 +32,7 @@ public class InviteLinkService {
 	private final InviteTokenGenerator inviteTokenGenerator;
 	private final GroupAccessChecker groupAccessChecker;
 	private final InviteLinkProperties inviteLinkProperties;
+	private final ShareLinkProperties shareLinkProperties;
 	private final Clock clock;
 
 	/**
@@ -41,7 +43,7 @@ public class InviteLinkService {
 		LocalDateTime expiresAt = LocalDateTime.now(clock).plus(inviteLinkProperties.ttl());
 		InviteLink link = inviteLinkRepository.save(
 				InviteLink.issue(group, inviteTokenGenerator.generate(), expiresAt));
-		return InviteLinkResponse.of(link, inviteLinkProperties.urlOf(link.getToken()));
+		return InviteLinkResponse.of(link, shareLinkProperties.inviteUrl(link.getToken()));
 	}
 
 	/**

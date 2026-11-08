@@ -7,15 +7,17 @@ import java.time.LocalDateTime;
 /**
  * 차수 응답. 장소 상태로 모임 상세의 장소 탭 표시를 정한다.
  * hostDecisionRequired는 마감 후 자동 확정하지 못해 호스트의 확정이나 재투표를 기다리는 상태다.
+ * confirmedPlace는 확정 전이면 null이다.
  */
 public record RoundResponse(Long id, int seq, String name, PlaceStatus placeStatus, LocalDateTime placeVoteDeadline,
-		boolean hostDecisionRequired) {
+		boolean hostDecisionRequired, ConfirmedPlaceResponse confirmedPlace) {
 
 	/**
 	 * 엔티티로 응답 DTO를 만든다.
 	 */
 	public static RoundResponse from(Round round) {
 		return new RoundResponse(round.getId(), round.getSeq(), round.getName(),
-				round.getPlaceStatus(), round.getPlaceVoteDeadline(), round.isAwaitingHostDecision());
+				round.getPlaceStatus(), round.getPlaceVoteDeadline(), round.isAwaitingHostDecision(),
+				ConfirmedPlaceResponse.from(round.confirmedPlace()));
 	}
 }

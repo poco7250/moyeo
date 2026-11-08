@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-07 (`feature/place-vote-close` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-08 (`feature/place-og` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 3 완료 — Phase 4는 Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). 다음은 Task 019(확정 장소 노출·OG 메타 HTML, 오픈 이슈 1 확인 필요), 또는 Phase 5(Task 020). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격 엔티티(`settlement/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 공통 코드(`global/`)가 있다. 확정 장소 노출·OG와 게임 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 4 완료 — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). 다음은 Phase 5(Task 020). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격 엔티티(`settlement/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 공통 코드(`global/`)가 있다. 게임 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -14,7 +14,7 @@
 | 1 | 카카오 로그인·토큰 | 1 | 3 | 3 | ✅ 완료 |
 | 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 4 | ✅ 완료 |
-| 4 | 장소 결정 | 4 | 6 | 5 | 🔄 진행 중 |
+| 4 | 장소 결정 | 4 | 6 | 6 | ✅ 완료 |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 0 | ⬜ 대기 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 0 | ⬜ 대기 |
 | 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **18** | |
+| **합계** | | | **66** (MVP 43) | **19** | |
 
 ## 상태 범례
 
@@ -549,24 +549,33 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew test` 통과(전체 474건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
 - **참고:** 로컬 DB는 `ddl-auto=update`면 새 컬럼·인덱스가 자동으로 추가된다
 
-### Task 019: 확정 장소 노출·OG 메타 HTML   ⬜ 대기
+### Task 019: 확정 장소 노출·OG 메타 HTML   ✅ 완료
 
+- **완료일:** 2026-11-08 · 브랜치 `feature/place-og`
 - **관련 기능:** P-5, 6장 공유(OG 태그)
 - **선행 Task:** Task 013, Task 018
-- **선행 조건:** PRD 오픈 이슈 1(OG 경로와 SPA 라우팅·배포 방식)
+- **선행 조건:** PRD 오픈 이슈 1은 열어 둔 채 진행 — 경로를 SPA와 분리해 영향을 없앴다
 - **구현 사항**
-  - [ ] 모임 상세 응답에 차수별 확정 장소(label, 지도 링크 — `PlaceLinkFactory`) 추가
-  - [ ] `og/controller/OgController`(`@Controller`, Thymeleaf) — 초대·모임 링크 경로에서 OG 메타(title, description, url)만 담은 HTML + SPA로 이동
-  - [ ] OG 설명 문구 생성기(순수): 예 "토요일 모임 · 강남 OO식당 · 5/8명 참석". ⚠️ "5/8명"의 기준(어느 차수 참석자 / 그룹 멤버 수) PRD 미정
-  - [ ] 카카오톡 공유 문구 생성(모임 정보 + 확정 장소 label)
+  - [x] 모임 상세 응답에 차수별 `confirmedPlace`(label, 지도 링크 — `PlaceLinkFactory`) 추가. `RoundRepository.findAllWithConfirmedPlaceByMeetingId`(fetch join)로 N+1 방지
+  - [x] `og/controller/OgController`(`@Controller`, Thymeleaf) — `GET /share/meetings/{shareToken}`, `GET /share/invites/{token}`(비로그인)에서 OG 메타(title, description, url)만 담은 HTML + SPA로 이동. 크롤러가 이동하지 않도록 meta refresh 없이 스크립트로 이동하고 `<a>`를 폴백으로 둔다
+  - [x] ⚠️ 결정(2026-11-08): **OG는 SPA와 분리된 `/share/**` 경로**. 모임 상세·초대 응답의 `url`이 이 주소를 가리키며(앱 내부 이동은 id 사용), 기존 `meeting.link.base-url`·`group.invite.base-url`은 SPA 이동 대상 전용이다. 서버 주소는 `share.base-url`(`ShareLinkProperties`)
+  - [x] ⚠️ 결정(2026-11-08): **공개 링크는 `Meeting.shareToken`으로 식별**(43자 랜덤, unique) — OG 경로가 공개라 순번 id를 쓰면 번호 대입으로 다른 모임의 제목·장소·인원이 보인다
+  - [x] OG 설명 문구 생성기 `meeting/domain/MeetingShareText`(순수): "토요일 모임 · 강남 OO식당 · 5/8명 참석", 장소가 없으면 "장소 미정". ⚠️ 결정(2026-11-08): **"5/8명" = 1차 차수 `ATTEND` 수 / 그룹 전체 멤버 수**
+  - [x] 카카오톡 공유 문구 `MeetingDetailResponse.shareText`(제목·일시·1차 확정 장소 label·공유 링크)
+  - [x] 없거나 만료된 링크는 JSON 대신 404/410 안내 HTML(`og/unavailable`, 이동 없음). 컨트롤러 로컬 `@ExceptionHandler`
+  - [x] 토큰 생성을 `global/common/RandomTokens`로 추출(`InviteTokenGenerator`는 위임)
 - **테스트**
-  - [ ] 단위(문구 생성기): 1차 확정 장소 label 포함, 장소 미정 시 문구
-  - [ ] `@WebMvcTest`: OG HTML에 `og:description`·`og:title` 메타 포함, 카카오 API 목이 호출되지 않음
-  - [ ] 단위: 모임 상세의 지도 링크 — manualMapUrl이 있으면 그것, 없으면 `/link/search/{manualAddress 또는 label}`
+  - [x] 단위(`MeetingShareTextTest` 5건): 1차 확정 장소 label 포함, 장소 미정 시 문구, 카카오톡 문구, 첫 차수 장소 조회 + `RandomTokensTest`
+  - [x] 단위(`OgServiceTest` 4건): 5/8 계산, 장소 미정, 없는 토큰, 초대 메타
+  - [x] 단위(`ConfirmedPlaceResponseTest` 4건): 모임 상세의 지도 링크 — manualMapUrl이 있으면 그것, 없으면 `/link/search/{manualAddress 또는 label}`
+  - [x] `@DataJpaTest`(`MeetingShareQueriesTest` 4건): 토큰 조회·유니크, fetch 조회(seq 순·미확정 포함), 참석 수
+  - [x] `@WebMvcTest`(`OgControllerTest` 6건): OG HTML에 `og:description`·`og:title`·`og:url` 포함, 카카오 API 목이 호출되지 않음, 사용자 입력 이스케이프, 404·410 HTML, 공개 목록 밖 경로 401
+  - [x] 통합(`OgShareIntegrationTest` 4건, 실제 DB·시큐리티·템플릿): 비로그인 OG 설명, 순번 id로 접근 불가, 지도 링크 2종
 - **수락 기준**
-  - Given 1차 장소가 확정된 모임 / When 모임 링크의 OG 메타를 요청하면 / Then 미리보기 설명에 사용자가 입력한 확정 장소 label이 포함되고, 모임 상세에는 `manualMapUrl`이 있으면 그 링크, 없으면 `https://map.kakao.com/link/search/{manualAddress 또는 label}` 지도 링크가 노출된다(카카오 API 호출·저장 없음). (PRD P-5)
+  - [x] Given 1차 장소가 확정된 모임 / When 모임 링크의 OG 메타를 요청하면 / Then 미리보기 설명에 사용자가 입력한 확정 장소 label이 포함되고, 모임 상세에는 `manualMapUrl`이 있으면 그 링크, 없으면 `https://map.kakao.com/link/search/{manualAddress 또는 label}` 지도 링크가 노출된다(카카오 API 호출·저장 없음). (PRD P-5)
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 502건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
+- **참고:** 배포 전에 `share.base-url`을 채워야 `og:url`이 절대 주소가 된다. 로컬 DB에 `meeting` 행이 있으면 `ddl-auto=update`의 `share_token`(not null) 컬럼 추가가 실패하거나 unique에 걸릴 수 있어 `meeting` 관련 테이블을 한 번 비운다. 카카오 크롤러 실제 동작은 배포 후 카카오 공유 디버거로 확인한다(코드로 검증 불가)
 
 ---
 
