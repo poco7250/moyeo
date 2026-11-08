@@ -14,6 +14,7 @@ import com.poco7250.moyeo.auth.token.TokenCookieFactory;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.PlaceStatus;
+import com.poco7250.moyeo.meeting.dto.ConfirmedPlaceResponse;
 import com.poco7250.moyeo.meeting.dto.GroupMeetingsResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingCreateRequest;
 import com.poco7250.moyeo.meeting.dto.MeetingDetailResponse;
@@ -68,7 +69,11 @@ class MeetingControllerTest {
 				.andExpect(jsonPath("$.data.id").value(10))
 				.andExpect(jsonPath("$.data.hostMemberId").value(7))
 				.andExpect(jsonPath("$.data.host").value(true))
-				.andExpect(jsonPath("$.data.url").value("/meetings/10"))
+				.andExpect(jsonPath("$.data.url").value("/share/meetings/token"))
+				.andExpect(jsonPath("$.data.shareText").value("공유 문구"))
+				.andExpect(jsonPath("$.data.rounds[0].confirmedPlace.label").value("강남 식당"))
+				.andExpect(jsonPath("$.data.rounds[0].confirmedPlace.mapUrl").value("https://map.example.com/1"))
+				.andExpect(jsonPath("$.data.rounds[1].confirmedPlace").doesNotExist())
 				.andExpect(jsonPath("$.data.rounds[0].seq").value(1))
 				.andExpect(jsonPath("$.data.rounds[0].name").value("밥"))
 				.andExpect(jsonPath("$.data.rounds[1].name").value("볼링"))
@@ -189,9 +194,10 @@ class MeetingControllerTest {
 	}
 
 	private MeetingDetailResponse detail() {
-		return new MeetingDetailResponse(10L, 1L, "연말 모임", START_AT, "메모", null, 7L, true, "/meetings/10",
-				List.of(new RoundResponse(100L, 1, "밥", PlaceStatus.UNDECIDED, null, false),
-						new RoundResponse(101L, 2, "볼링", PlaceStatus.UNDECIDED, null, false)));
+		return new MeetingDetailResponse(10L, 1L, "연말 모임", START_AT, "메모", null, 7L, true, "/share/meetings/token", "공유 문구",
+				List.of(new RoundResponse(100L, 1, "밥", PlaceStatus.CONFIRMED, null, false,
+								new ConfirmedPlaceResponse("강남 식당", "https://map.example.com/1")),
+						new RoundResponse(101L, 2, "볼링", PlaceStatus.UNDECIDED, null, false, null)));
 	}
 
 	private Cookie accessCookie(Long memberId) {

@@ -12,7 +12,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 public record MeetingLinkProperties(@DefaultValue("") String baseUrl) {
 
 	/**
-	 * 모임 id로 공유할 모임 상세 URL을 만든다.
+	 * 모임 id로 SPA 모임 상세 URL을 만든다. 공유 링크를 연 사람을 이 주소로 보낸다.
 	 */
 	public String urlOf(Long meetingId) {
 		return baseUrl + "/meetings/" + meetingId;

@@ -3,6 +3,7 @@ package com.poco7250.moyeo.meeting.domain;
 import com.poco7250.moyeo.global.common.BaseTimeEntity;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
+import com.poco7250.moyeo.place.domain.Place;
 import com.poco7250.moyeo.place.domain.PlaceCandidate;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -145,6 +146,13 @@ public class Round extends BaseTimeEntity {
 	 */
 	public boolean isVoteCloseDue(LocalDateTime now) {
 		return placeStatus == PlaceStatus.VOTING && placeVoteClosedAt == null && now.isAfter(placeVoteDeadline);
+	}
+
+	/**
+	 * 확정된 장소를 돌려준다. 확정 전이면 null이다.
+	 */
+	public Place confirmedPlace() {
+		return confirmedCandidate == null ? null : confirmedCandidate.getPlace();
 	}
 
 	/**

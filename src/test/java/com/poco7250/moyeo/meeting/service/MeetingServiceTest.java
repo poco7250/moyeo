@@ -11,11 +11,11 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.poco7250.moyeo.global.auth.GroupAccessChecker;
 import com.poco7250.moyeo.global.auth.MeetingAccessChecker;
+import com.poco7250.moyeo.global.config.ShareLinkProperties;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.group.domain.Group;
 import com.poco7250.moyeo.group.repository.GroupRepository;
-import com.poco7250.moyeo.meeting.config.MeetingLinkProperties;
 import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.PlaceStatus;
 import com.poco7250.moyeo.meeting.domain.Round;
@@ -75,7 +75,7 @@ class MeetingServiceTest {
 	@BeforeEach
 	void setUp() {
 		meetingService = new MeetingService(meetingRepository, roundRepository, settlementRepository,
-				groupRepository, groupAccessChecker, meetingAccessChecker, new MeetingLinkProperties(""),
+				groupRepository, groupAccessChecker, meetingAccessChecker, new ShareLinkProperties(""),
 				TestClocks.fixed(NOW));
 		group = Group.create("대학 동기");
 		ReflectionTestUtils.setField(group, "id", GROUP_ID);
@@ -95,7 +95,8 @@ class MeetingServiceTest {
 
 		assertThat(response.hostMemberId()).isEqualTo(HOST_ID);
 		assertThat(response.host()).isTrue();
-		assertThat(response.url()).isEqualTo("/meetings/" + MEETING_ID);
+		assertThat(response.url()).matches("/share/meetings/[A-Za-z0-9_-]{43}");
+		assertThat(response.shareText()).contains("장소 미정", response.url());
 		assertThat(response.rounds()).extracting(RoundResponse::seq).containsExactly(1, 2);
 		assertThat(response.rounds()).extracting(RoundResponse::name).containsExactly("밥", "볼링");
 		assertThat(response.rounds()).extracting(RoundResponse::placeStatus)
@@ -128,7 +129,7 @@ class MeetingServiceTest {
 	void 상세_조회는_요청자가_호스트인지_알려준다() {
 		Meeting meeting = meeting(START_AT);
 		given(meetingAccessChecker.requireMember(MEETING_ID, 8L)).willReturn(meeting);
-		given(roundRepository.findAllByMeetingIdOrderBySeq(MEETING_ID))
+		given(roundRepository.findAllWithConfirmedPlaceByMeetingId(MEETING_ID))
 				.willReturn(List.of(Round.create(meeting, 1, "밥")));
 
 		MeetingDetailResponse response = meetingService.getDetail(MEETING_ID, 8L);

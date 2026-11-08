@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="noindex">
+	<title th:text="${og.title}">모여</title>
+	<meta property="og:type" content="website">
+	<meta property="og:site_name" content="모여">
+	<meta property="og:title" th:content="${og.title}">
+	<meta property="og:description" th:content="${og.description}">
+	<meta property="og:url" th:content="${og.url}">
+</head>
+<body>
+	<a th:href="${og.redirectUrl}">모여에서 열기</a>
+	<!-- 크롤러가 이동하지 않고 이 페이지의 메타를 읽도록 meta refresh 대신 스크립트로 이동한다 -->
+	<script th:inline="javascript">
+		location.replace(/*[[${og.redirectUrl}]]*/ '/');
+	</script>
+</body>
+</html>

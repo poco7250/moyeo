@@ -18,6 +18,13 @@ public interface RoundRepository extends JpaRepository<Round, Long> {
 	List<Round> findAllByMeetingIdOrderBySeq(Long meetingId);
 
 	/**
+	 * 모임의 차수를 확정 장소 후보와 함께 순서(seq)대로 조회한다(모임 상세·OG, N+1 방지). 미확정 차수도 포함한다.
+	 */
+	@Query("select r from Round r left join fetch r.confirmedCandidate "
+			+ "where r.meeting.id = :meetingId order by r.seq")
+	List<Round> findAllWithConfirmedPlaceByMeetingId(@Param("meetingId") Long meetingId);
+
+	/**
 	 * 마감이 지났고 아직 마감 처리하지 않은 투표 차수의 id를 조회한다. 마감 정각은 아직 열려 있어 제외한다.
 	 */
 	@Query("select r.id from Round r where r.placeStatus = com.poco7250.moyeo.meeting.domain.PlaceStatus.VOTING "

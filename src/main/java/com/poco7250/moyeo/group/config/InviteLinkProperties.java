@@ -16,7 +16,7 @@ public record InviteLinkProperties(
 		@DefaultValue("") String baseUrl) {
 
 	/**
-	 * 토큰으로 사용자에게 공유할 초대 링크 URL을 만든다.
+	 * 토큰으로 SPA 초대 화면 URL을 만든다. 공유 링크를 연 사람을 이 주소로 보낸다.
 	 */
 	public String urlOf(String token) {
 		return baseUrl + "/invites/" + token;

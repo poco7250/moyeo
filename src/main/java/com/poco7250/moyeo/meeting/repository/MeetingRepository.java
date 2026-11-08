@@ -20,6 +20,11 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 	Optional<Long> findGroupIdById(@Param("meetingId") Long meetingId);
 
 	/**
+	 * 공유 토큰으로 모임을 찾는다(비로그인 OG 경로).
+	 */
+	Optional<Meeting> findByShareToken(String shareToken);
+
+	/**
 	 * 그룹의 다가오는 모임(시작 시각이 기준 시각 이후, 같으면 포함)을 가까운 순으로 조회한다.
 	 */
 	List<Meeting> findAllByGroupIdAndStartAtGreaterThanEqualOrderByStartAtAsc(Long groupId, LocalDateTime now);
