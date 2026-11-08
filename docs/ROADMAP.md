@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-08 (`feature/expense-domain` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-09 (`feature/settlement-guard` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 5 진행 중(Task 020 완료, 2026-11-08) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). 다음은 Task 021. 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티(`settlement/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 공통 코드(`global/`)가 있다. 게임 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 5 진행 중(Task 021 완료, 2026-11-09) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). 다음은 Task 022. 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 공통 코드(`global/`)가 있다. 게임 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -15,7 +15,7 @@
 | 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 4 | ✅ 완료 |
 | 4 | 장소 결정 | 4 | 6 | 6 | ✅ 완료 |
-| 5 | 정산 기본·최초 확정 | 5-a | 6 | 1 | 🔄 진행 중 |
+| 5 | 정산 기본·최초 확정 | 5-a | 6 | 2 | 🔄 진행 중 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 0 | ⬜ 대기 |
 | 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 0 | ⬜ 대기 |
 | 8 | 벌칙 정산 연동·확정 게이트 | 8 | 4 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **20** | |
+| **합계** | | | **66** (MVP 43) | **21** | |
 
 ## 상태 범례
 
@@ -605,29 +605,32 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew test` 통과(전체 518건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
 - **참고:** `(expense, member)` 유니크가 있어 `shares`를 비우고 같은 회원으로 다시 넣으면 Hibernate가 INSERT를 DELETE보다 먼저 실행해 유니크 위반이 난다. Task 022의 조정 API는 기존 행을 고치거나 삭제 후 `flush`해야 한다
 
-### Task 021: 정산 직렬화·`REOPENED` 전이·`ChangeLog` 헬퍼·락 충돌 재시도 facade   ⬜ 대기
+### Task 021: 정산 직렬화·`REOPENED` 전이·`ChangeLog` 헬퍼·락 충돌 재시도 facade   ✅ 완료
 
+- **완료일:** 2026-11-09 · 브랜치 `feature/settlement-guard`
 - **관련 기능:** S-11, 6장 트랜잭션·동시성(정산 직렬화, 재시도 규칙 4차 m7)
 - **선행 Task:** Task 010, Task 020
-- **선행 조건:** PRD 오픈 이슈 17(`REOPENED` 판단 기준 — 현재 안 "변경 종류 기준"), 오픈 이슈 16(`ChangeLog` 공개 범위·필드 화이트리스트) — 착수 전 현재 안 유지 확인
+- **선행 조건:** PRD 오픈 이슈 17(`REOPENED` 판단 기준 — 현재 안 "변경 종류 기준"), 오픈 이슈 16(`ChangeLog` 공개 범위·필드 화이트리스트) — 현재 안 유지 확인(2026-11-08): 변경 종류 기준, 그룹 멤버 전원 조회·영구 보존, 전/후 JSON은 화이트리스트 DTO만
 - **구현 사항**
-  - [ ] `SettlementRepository.findByMeetingIdForUpdate` — `@Lock(OPTIMISTIC_FORCE_INCREMENT)`
-  - [ ] `settlement/service/SettlementGuard`
-    - [ ] `lockForAmountChange(meetingId)` — 직렬화용 강제 버전 증가 잠금
-    - [ ] `markAmountChanged(meetingId, actor)` — `CONFIRMED`면 `REOPENED`(같은 트랜잭션), `REOPENED`·`DRAFT`면 유지 → `SettlementReopenedEvent`(커밋 후 "재확정 필요" 브로드캐스트)
-    - [ ] `lockOnly(meetingId)` — 금액형 게임 취소용(직렬화만, `REOPENED` 없음, 5차 m7)
-  - [ ] `Settlement` 전이 메서드: `reopen()`(CONFIRMED→REOPENED, REOPENED 유지, DRAFT 유지)
-  - [ ] `settlement/service/ChangeLogRecorder.record(meetingId, actor, entity, changeType, before, after)` — 같은 트랜잭션 insert, JSON 직렬화는 화이트리스트 DTO만
-  - [ ] `global/concurrency/OptimisticRetryExecutor` — 트랜잭션 **바깥** facade에서 최대 2회 재시도, `ObjectOptimisticLockingFailureException`만 대상(유니크 위반·`BusinessException` 제외), 소진 시 409 `CONCURRENT_MODIFICATION`
+  - [x] `SettlementRepository.findByMeetingIdForUpdate` — `@Lock(OPTIMISTIC_FORCE_INCREMENT)`
+  - [x] `settlement/service/SettlementGuard` — `MANDATORY` 전파(트랜잭션 없이 부르면 바로 실패), 정산 행이 없으면 `MEETING_NOT_FOUND`
+    - [x] `lockForAmountChange(meetingId)` — 직렬화용 강제 버전 증가 잠금
+    - [x] `markAmountChanged(meetingId, actorId)` — `CONFIRMED`면 `REOPENED`(같은 트랜잭션), `REOPENED`·`DRAFT`면 유지. 잠금 조회를 다시 거쳐 호출자가 잠금을 빠뜨려도 직렬화된다. 실제 전이 때만 `SettlementReopenedEvent`(`SETTLEMENT_REOPENED`, 커밋 후 "재확정 필요" 브로드캐스트) — 이미 `REOPENED`면 재발행 없음
+    - [x] `lockOnly(meetingId)` — 금액형 게임 취소용(직렬화만, `REOPENED` 없음, 5차 m7)
+  - [x] `Settlement` 전이 메서드: `reopen()`(CONFIRMED→REOPENED, REOPENED 유지, DRAFT 유지, 전이 여부 boolean 반환)
+  - [x] `settlement/service/ChangeLogRecorder.record(meetingId, actorId, entityType, entityId, changeType, before, after)` — `MANDATORY`로 같은 트랜잭션 insert, 전/후 값은 표시 인터페이스 `ChangeLogSnapshot` 구현 DTO만(구체 DTO는 Task 022부터). 변경 후 정산 상태를 남기므로 `markAmountChanged` 뒤에 호출
+  - [x] `global/concurrency/OptimisticRetryExecutor` — 트랜잭션 **바깥** facade에서 최대 2회 재시도(활성 트랜잭션 안 호출은 `IllegalStateException`), `ObjectOptimisticLockingFailureException`만 대상(유니크 위반·`BusinessException` 제외), 소진 시 409 `CONCURRENT_MODIFICATION`
 - **테스트**
-  - [ ] 단위(`Settlement`): DRAFT→유지, CONFIRMED→REOPENED, REOPENED→유지
-  - [ ] 통합(DB): 같은 모임에 금액 영향 쓰기 2건 동시 → 하나 성공, 다른 쪽 `ObjectOptimisticLockingFailureException`
-  - [ ] 통합: 변경 트랜잭션 롤백 시 `ChangeLog`도 없음, 커밋 시 같은 트랜잭션에서 1건
-  - [ ] 단위(`OptimisticRetryExecutor`): 1회 실패 후 성공, 3회 연속 실패 → `CONCURRENT_MODIFICATION`, `DataIntegrityViolationException`·`BusinessException`은 재시도 없이 전파, 매 시도가 새 트랜잭션
+  - [x] 단위(`SettlementTest` 3건): DRAFT→유지, CONFIRMED→REOPENED, REOPENED→유지
+  - [x] 단위(`SettlementGuardTest` 5건·`ChangeLogRecorderTest` 3건): 전이 시에만 이벤트, 정산 없음 `MEETING_NOT_FOUND`, JSON·시각·변경 후 상태·null 처리
+  - [x] 통합(`SettlementGuardIntegrationTest` 7건, DB): 같은 모임에 금액 영향 쓰기 2건 동시 → 하나 성공, 다른 쪽 `ObjectOptimisticLockingFailureException`
+  - [x] 통합: 변경 트랜잭션 롤백 시 `ChangeLog`도 없음, 커밋 시 같은 트랜잭션에서 1건, 커밋 후에만 이벤트, 충돌 후 재시도가 새 트랜잭션에서 성공, `lockOnly`는 버전만 증가, 트랜잭션 없는 호출 거부
+  - [x] 단위(`OptimisticRetryExecutorTest` 7건): 1회 실패 후 성공, 3회 연속 실패 → `CONCURRENT_MODIFICATION`, `DataIntegrityViolationException`·`BusinessException`은 재시도 없이 전파, 활성 트랜잭션 안 호출 거부
 - **수락 기준**
-  - Given `CONFIRMED` 정산 / When 금액 영향 쓰기가 `markAmountChanged`를 호출하면 / Then 같은 트랜잭션에서 `REOPENED`가 되고 커밋 후에만 "재확정 필요" 이벤트가 나간다.
+  - [x] Given `CONFIRMED` 정산 / When 금액 영향 쓰기가 `markAmountChanged`를 호출하면 / Then 같은 트랜잭션에서 `REOPENED`가 되고 커밋 후에만 "재확정 필요" 이벤트가 나간다.
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 543건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
+- **참고:** 상태가 바뀌는 쓰기는 dirty flush와 강제 증가가 겹쳐 `version`이 2 오를 수 있어 테스트는 증가 여부만 본다. 강제 증가 충돌은 커밋 시점에 나므로 `@Transactional` 메서드 안에서는 잡을 수 없다(facade에서 처리)
 
 ### Task 022: 지출 등록·수정·삭제·개별 조정 API   ⬜ 대기
 
