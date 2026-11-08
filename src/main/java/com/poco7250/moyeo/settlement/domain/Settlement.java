@@ -64,4 +64,17 @@ public class Settlement extends BaseTimeEntity {
 	public static Settlement createDraft(Meeting meeting) {
 		return new Settlement(meeting);
 	}
+
+	/**
+	 * 확정된 정산을 재확정 필요 상태로 되돌린다. DRAFT·REOPENED는 그대로 둔다.
+	 *
+	 * @return 이번 호출로 CONFIRMED에서 REOPENED로 바뀌었으면 true
+	 */
+	public boolean reopen() {
+		if (status != SettlementStatus.CONFIRMED) {
+			return false;
+		}
+		status = SettlementStatus.REOPENED;
+		return true;
+	}
 }
