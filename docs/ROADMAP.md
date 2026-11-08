@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-08 (`feature/place-og` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-08 (`feature/expense-domain` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 4 완료 — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). 다음은 Phase 5(Task 020). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격 엔티티(`settlement/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 공통 코드(`global/`)가 있다. 게임 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 5 진행 중(Task 020 완료, 2026-11-08) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). 다음은 Task 021. 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티(`settlement/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 공통 코드(`global/`)가 있다. 게임 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -15,7 +15,7 @@
 | 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 4 | ✅ 완료 |
 | 4 | 장소 결정 | 4 | 6 | 6 | ✅ 완료 |
-| 5 | 정산 기본·최초 확정 | 5-a | 6 | 0 | ⬜ 대기 |
+| 5 | 정산 기본·최초 확정 | 5-a | 6 | 1 | 🔄 진행 중 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 0 | ⬜ 대기 |
 | 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 0 | ⬜ 대기 |
 | 8 | 벌칙 정산 연동·확정 게이트 | 8 | 4 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **19** | |
+| **합계** | | | **66** (MVP 43) | **20** | |
 
 ## 상태 범례
 
@@ -585,22 +585,25 @@ Phase 10 040 → 041, 042 → 043
 - **포함 기능 ID:** S-1, S-2, S-3, S-5, S-8, S-10(최초 확정), S-11(`REOPENED`·`ChangeLog`)
 - 이 Phase 직후엔 `REOPENED`에서 재확정할 수 없다(내부 개발 단계 허용, MVP 배포는 Phase 9 이후 — PRD 8장).
 
-### Task 020: 지출·개별 조정·변경 로그 도메인   ⬜ 대기
+### Task 020: 지출·개별 조정·변경 로그 도메인   ✅ 완료
 
+- **완료일:** 2026-11-08 · 브랜치 `feature/expense-domain`
 - **관련 기능:** S-1, S-3, S-11
 - **선행 Task:** Task 012
 - **구현 사항**
-  - [ ] `settlement/domain/Expense`(round, payer, amount `long`, memo) — 생성 시 1~1억 검증 메서드
-  - [ ] `settlement/domain/ExpenseShare`(expense, member, amount?, weight?, excluded) — ⚠️ 고정 금액·가중치·제외를 함께 쓸 때의 계산 의미는 PRD 미정(Task 023 참고)
-  - [ ] `settlement/domain/ChangeLog`(meeting, actorId, at, entityType, entityId, changeType, beforeJson?, afterJson?, settlementStatusAfter) — 수정·삭제 메서드 없음(append-only)
-  - [ ] Repository 3종(`ChangeLogRepository`는 save·조회만 노출)
+  - [x] `settlement/domain/Expense`(round, payer, amount `long`, memo) — 생성 시 1~1억 검증(`INVALID_INPUT`). ⚠️ 메모 길이는 PRD 미정이라 결정(2026-11-08): nullable·100자
+  - [x] `settlement/domain/ExpenseShare`(expense, member, amount?, weight?, excluded) — `(expense, member)` 유니크, `Expense.addShare`로만 생성, 고정 금액 1~1억 검증. ⚠️ 고정 금액·가중치·제외를 함께 쓸 때의 계산 의미와 가중치 범위는 PRD 미정이라 조합을 막지 않음(Task 022·023 참고)
+  - [x] `settlement/domain/ChangeLog`(meeting, actorId?, changedAt, entityType, entityId, changeType, beforeJson?, afterJson?, settlementStatusAfter) — 수정·삭제 메서드 없음(append-only, `@Immutable`). `actorId`는 스케줄러 변경을 위해 nullable, `entityId`는 삭제된 엔티티 로그를 위해 FK 아님. `ChangeLogEntityType`·`ChangeType` enum은 벌칙·게임 값을 해당 Task에서 추가
+  - [x] Repository 3종(`ChangeLogRepository`는 save·조회만 노출)
 - **테스트**
-  - [ ] `@DataJpaTest`: 매핑, 지출 삭제 시 `ExpenseShare` 함께 삭제(cascade/orphanRemoval)
-  - [ ] 단위: `Expense` 금액 0·1·100,000,000·100,000,001 경계
+  - [x] `@DataJpaTest`(`ExpenseRepositoryTest` 4건): 매핑, 지출 삭제 시 `ExpenseShare` 함께 삭제, 고아 삭제, `(expense, member)` 유니크
+  - [x] `@DataJpaTest`(`ChangeLogRepositoryTest` 4건): 시각 순 조회, nullable 필드, 저장 후 변경 미반영, 저장·조회 외 경로 없음
+  - [x] 단위(`ExpenseTest` 8건): `Expense` 금액 0·음수·1·100,000,000·100,000,001 경계, 고정 금액 경계, 제외·가중치 조정
 - **수락 기준**
-  - Given 금액 100,000,001원 / When `Expense`를 만들면 / Then 검증 실패한다. `ChangeLog`에는 수정 경로가 없다.
+  - [x] Given 금액 100,000,001원 / When `Expense`를 만들면 / Then 검증 실패한다. `ChangeLog`에는 수정 경로가 없다.
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 518건) · [x] `/spring-tools:validate` 통과(이번 변경 진단 0건, 기존 `InviteController` info 1건) · [x] 수락 기준 충족
+- **참고:** `(expense, member)` 유니크가 있어 `shares`를 비우고 같은 회원으로 다시 넣으면 Hibernate가 INSERT를 DELETE보다 먼저 실행해 유니크 위반이 난다. Task 022의 조정 API는 기존 행을 고치거나 삭제 후 `flush`해야 한다
 
 ### Task 021: 정산 직렬화·`REOPENED` 전이·`ChangeLog` 헬퍼·락 충돌 재시도 facade   ⬜ 대기
 
@@ -635,7 +638,7 @@ Phase 10 040 → 041, 042 → 043
   - [ ] 대상 지출 삭제 시 `PenaltyRule` 처리는 Task 037에서 연결(이 시점엔 규칙 없음)
   - [ ] `ExpenseShareService.adjust(expenseId, 조정 목록)` — 제외·고정 금액·가중치, 같은 직렬화·로그
   - [ ] 결제자는 그룹 멤버여야 함(아니면 400). ⚠️ 결제자가 차수 불참자일 수 있는지 PRD 미정
-  - [ ] DTO: `ExpenseRequest`(amount `@NotNull @Min(1) @Max(100_000_000)` `Long`, payerId `@NotNull`, memo 길이 제한)
+  - [ ] DTO: `ExpenseRequest`(amount `@NotNull @Min(1) @Max(100_000_000)` `Long`, payerId `@NotNull`, memo 100자 — `Expense` 컬럼과 동일)
   - [ ] Controller: `POST /api/rounds/{roundId}/expenses`, `PUT/DELETE /api/expenses/{id}`, `PUT /api/expenses/{id}/shares`, `GET /api/meetings/{id}/expenses`
   - [ ] 에러 코드: `EXPENSE_NOT_FOUND`(404)
 - **테스트**
