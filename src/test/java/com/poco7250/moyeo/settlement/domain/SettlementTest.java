@@ -1,9 +1,15 @@
 package com.poco7250.moyeo.settlement.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.poco7250.moyeo.global.error.BusinessException;
+import com.poco7250.moyeo.global.error.ErrorCode;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class SettlementTest {
@@ -33,6 +39,32 @@ class SettlementTest {
 
 		assertThat(settlement.reopen()).isFalse();
 		assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.REOPENED);
+	}
+
+	@Test
+	@DisplayName("DRAFT 정산을 확정하면 CONFIRMED·리비전 1·최초 확정 시각이 기록된다")
+	void confirmFirst() {
+		Settlement settlement = settlementWith(SettlementStatus.DRAFT);
+		LocalDateTime now = LocalDateTime.of(2026, 12, 20, 22, 0);
+
+		settlement.confirmFirst(now);
+
+		assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.CONFIRMED);
+		assertThat(settlement.getCurrentRevisionNo()).isEqualTo(1);
+		assertThat(settlement.getFirstConfirmedAt()).isEqualTo(now);
+	}
+
+	@ParameterizedTest
+	@EnumSource(value = SettlementStatus.class, names = {"CONFIRMED", "REOPENED"})
+	@DisplayName("DRAFT가 아니면 확정할 수 없고 상태도 바뀌지 않는다")
+	void confirmRejected(SettlementStatus status) {
+		Settlement settlement = settlementWith(status);
+
+		assertThatThrownBy(() -> settlement.confirmFirst(LocalDateTime.of(2026, 12, 20, 22, 0)))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.SETTLEMENT_ALREADY_CONFIRMED);
+		assertThat(settlement.getStatus()).isEqualTo(status);
+		assertThat(settlement.getFirstConfirmedAt()).isNull();
 	}
 
 	private Settlement settlementWith(SettlementStatus status) {

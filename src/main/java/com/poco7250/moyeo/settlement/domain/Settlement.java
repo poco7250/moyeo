@@ -1,6 +1,8 @@
 package com.poco7250.moyeo.settlement.domain;
 
 import com.poco7250.moyeo.global.common.BaseTimeEntity;
+import com.poco7250.moyeo.global.error.BusinessException;
+import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.Meeting;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -32,6 +34,8 @@ import lombok.NoArgsConstructor;
 				columnNames = "meeting_id"))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Settlement extends BaseTimeEntity {
+
+	public static final int FIRST_REVISION_NO = 1;
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -76,5 +80,28 @@ public class Settlement extends BaseTimeEntity {
 		}
 		status = SettlementStatus.REOPENED;
 		return true;
+	}
+
+	/**
+	 * 최초 확정이 가능한 상태인지 검사한다. REOPENED 재확정은 Task 039에서 연다.
+	 *
+	 * @throws BusinessException DRAFT가 아니면 SETTLEMENT_ALREADY_CONFIRMED
+	 */
+	public void requireConfirmable() {
+		if (status != SettlementStatus.DRAFT) {
+			throw new BusinessException(ErrorCode.SETTLEMENT_ALREADY_CONFIRMED);
+		}
+	}
+
+	/**
+	 * DRAFT 정산을 리비전 1로 확정한다.
+	 *
+	 * @throws BusinessException DRAFT가 아니면 SETTLEMENT_ALREADY_CONFIRMED
+	 */
+	public void confirmFirst(LocalDateTime now) {
+		requireConfirmable();
+		status = SettlementStatus.CONFIRMED;
+		currentRevisionNo = FIRST_REVISION_NO;
+		firstConfirmedAt = now;
 	}
 }

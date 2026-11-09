@@ -63,6 +63,8 @@ public enum ErrorCode {
 
 	// 정산
 	EXPENSE_NOT_FOUND(HttpStatus.NOT_FOUND, "지출을 찾을 수 없습니다."),
+	SETTLEMENT_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "이미 확정된 정산입니다."),
+	WARNING_UNCONFIRMED(HttpStatus.CONFLICT, "정산 경고를 확인한 뒤 다시 확정해 주세요."),
 
 	// 초대
 	INVITE_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "초대 링크를 찾을 수 없습니다."),
