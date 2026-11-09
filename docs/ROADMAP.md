@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-09 (`feature/settlement-calc` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-09 (`feature/settlement-confirm` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 5 진행 중(Task 023 완료, 2026-11-09) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). 다음은 Task 024. 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 벌칙 제외 정산 계산·송금 최소화 순수 도메인(`settlement/calc/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 공통 코드(`global/`)가 있다. 게임 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 5 진행 중(Task 024 완료, 2026-11-09) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). 다음은 Task 025. 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 벌칙 제외 정산 계산·송금 최소화 순수 도메인(`settlement/calc/`), 정산 조회·최초 확정 API와 리비전 스냅샷(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 공통 코드(`global/`)가 있다. 게임 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -15,7 +15,7 @@
 | 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 4 | ✅ 완료 |
 | 4 | 장소 결정 | 4 | 6 | 6 | ✅ 완료 |
-| 5 | 정산 기본·최초 확정 | 5-a | 6 | 4 | 🔄 진행 중 |
+| 5 | 정산 기본·최초 확정 | 5-a | 6 | 5 | 🔄 진행 중 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 0 | ⬜ 대기 |
 | 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 0 | ⬜ 대기 |
 | 8 | 벌칙 정산 연동·확정 게이트 | 8 | 4 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **23** | |
+| **합계** | | | **66** (MVP 43) | **24** | |
 
 ## 상태 범례
 
@@ -694,25 +694,37 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew test` 통과(전체 842건, 무작위 불변식 반복 200회 포함) · [x] `/spring-tools:validate` 통과 · [x] 수락 기준 충족
 - **참고:** `ATTEND` 필터링은 Task 024의 `SettlementInputAssembler` 몫이다. 경고는 계산을 막지 않고 결과에 담기기만 하므로 표시·확정 처리도 Task 024에서 정한다. 송금 건수는 상한만 보장하고 수학적 최소는 아니다(PRD 수용 기준이 상한)
 
-### Task 024: 정산 조회·최초 확정·리비전 1 스냅샷   ⬜ 대기
+### Task 024: 정산 조회·최초 확정·리비전 1 스냅샷   ✅ 완료
 
+- **완료일:** 2026-11-09 · 브랜치 `feature/settlement-confirm`
 - **관련 기능:** S-5, S-10(최초 확정), S-11
 - **선행 Task:** Task 022, Task 023
 - **구현 사항**
-  - [ ] 엔티티: `SettlementRevision`(settlement, revisionNo, confirmedBy, confirmedAt, warningsAcknowledged) — `(settlement, revisionNo)` 유니크, 수정 메서드 없음 / `RevisionMemberShare`(revision, member, shareAmount, netBalance) — `(revision, member)` 유니크 / `Transfer`(revision, from, to, amount) — 송금 상태 필드 없음(E1)
-  - [ ] `SettlementQueryService.get(meetingId)` — `basisRevisionNo`: `CONFIRMED`·`REOPENED` = `currentRevisionNo` 기준 저장된 `Transfer`, `DRAFT` = null + 현재 계산값 "미리보기"(저장 안 함)
-  - [ ] `SettlementConfirmService.confirm(meetingId, hostId, acknowledgeWarnings)` — 호스트만(403 `NOT_MEETING_HOST`), `lockForAmountChange`, `DRAFT → CONFIRMED`, 리비전 1 + 멤버별 스냅샷 + `Transfer`, `firstConfirmedAt`·`currentRevisionNo` 기록. `CONFIRMED`면 409 `SETTLEMENT_ALREADY_CONFIRMED`. `REOPENED` 재확정은 Task 039
-  - [ ] 정산 입력 조립기 `SettlementInputAssembler`(DB → `SettlementInput`) — 이후 벌칙 입력 확장 자리
-  - [ ] Controller: `GET /api/meetings/{id}/settlement`, `POST /api/meetings/{id}/settlement/confirm`
+  - [x] 엔티티(모두 `@Immutable`, 양방향 컬렉션 없이 각자 Repository로 저장): `SettlementRevision`(settlement, revisionNo, confirmedBy, confirmedAt, warningsAcknowledged) — `(settlement, revisionNo)` 유니크, 수정 메서드 없음 / `RevisionMemberShare`(revision, member, shareAmount, netBalance) — `(revision, member)` 유니크 / `Transfer`(revision, fromMember, toMember, amount) — 송금 상태 필드 없음(E1)
+  - [x] `SettlementQueryService.get(meetingId, memberId)` — `basisRevisionNo`: `CONFIRMED`·`REOPENED` = `currentRevisionNo` 기준 저장된 `Transfer`, `DRAFT` = null + 현재 계산값 "미리보기"(저장 안 함). 그룹 멤버 권한
+  - [x] `SettlementConfirmService.confirm(meetingId, hostId, acknowledgeWarnings)` — 호스트만(403 `NOT_MEETING_HOST`), `lockForAmountChange`, `DRAFT → CONFIRMED`, 리비전 1 + 멤버별 스냅샷 + `Transfer`, `firstConfirmedAt`·`currentRevisionNo` 기록. `CONFIRMED`면 409 `SETTLEMENT_ALREADY_CONFIRMED`. `REOPENED` 재확정은 Task 039
+  - [x] 정산 입력 조립기 `SettlementInputAssembler`(DB → `SettlementInput`, 차수별 `ATTEND`만) — 이후 벌칙 입력 확장 자리
+  - [x] Controller(`SettlementController`): `GET /api/meetings/{id}/settlement`, `POST /api/meetings/{id}/settlement/confirm`(200)
+  - [x] 에러 코드: `SETTLEMENT_ALREADY_CONFIRMED`(409), `WARNING_UNCONFIRMED`(409)
+  - [x] ⚠️ 결정(2026-11-09, PRD·ROADMAP 미정 항목)
+    - 계산 경고(`FIXED_AMOUNT_OVERFLOW`·`NO_SHARE_TARGET`)가 있는데 `acknowledgeWarnings`가 true가 아니면 409 `WARNING_UNCONFIRMED`. 에러 응답에 경고 목록을 싣는 건 Task 038, 지금은 `GET` 응답의 `warnings`로 본다
+    - `REOPENED`에서 확정 요청도 Task 039 전까지 409 `SETTLEMENT_ALREADY_CONFIRMED`
+    - 지출 0건 모임도 확정 가능(스냅샷·`Transfer` 0건인 리비전 1)
+    - `warningsAcknowledged`는 경고가 실제로 있었고 확인한 경우만 true
+    - `warnings`는 `DRAFT` 미리보기에서만 채움(리비전에 경고 내용을 저장하지 않음). `REOPENED`의 현재 경고 표시는 Task 039에서
+    - 요청 본문은 생략 가능, 본문·필드가 없으면 미확인(false)
+    - 최초 확정은 `ChangeLog`·실시간 이벤트 없음(PRD 기록·알림 대상 아님)
 - **테스트**
-  - [ ] 단위: 확정 시 리비전 1·`RevisionMemberShare`·`Transfer`가 계산값대로 저장, `firstConfirmedAt` 기록
-  - [ ] 단위: `CONFIRMED` 재요청 409 `SETTLEMENT_ALREADY_CONFIRMED`, 비호스트 403
-  - [ ] `@DataJpaTest`: `(settlement, revisionNo)`·`(revision, member)` 유니크
-  - [ ] `@WebMvcTest`: `DRAFT` 조회 시 `basisRevisionNo = null`·미리보기 표시, `CONFIRMED` 조회 시 `basisRevisionNo = 1`
+  - [x] 단위(`SettlementConfirmServiceTest` 9건): 리비전 1·`RevisionMemberShare`·`Transfer`가 계산값대로 저장, `firstConfirmedAt` 기록, `CONFIRMED`·`REOPENED` 재요청 409, 비호스트 403, 경고 미확인 409(`DRAFT` 유지), 경고 확인 기록, 지출 0건, 정산 flush 후 리비전 저장 순서
+  - [x] 단위: `SettlementTest` 3건 추가, `SettlementInputAssemblerTest` 3건, `SettlementQueryServiceTest` 7건
+  - [x] `@DataJpaTest`(`SettlementRevisionRepositoryTest` 5건): `(settlement, revisionNo)`·`(revision, member)` 유니크, 조회 순서
+  - [x] `@WebMvcTest`(`SettlementControllerTest` 12건): `DRAFT` 조회 시 `basisRevisionNo = null`·미리보기 표시, `CONFIRMED` 조회 시 `basisRevisionNo = 1`, 본문 생략·필드 값별 전달, 에러 코드별 응답, 비로그인 401
+  - [x] 통합(`SettlementConfirmIntegrationTest` 3건, DB): 확정 후 지출 수정 → `REOPENED`이고 조회는 리비전 1 금액 유지, 동시 확정 2건 → 1건만 성공, 확정 계산 뒤 지출 수정이 먼저 커밋 → 확정 충돌·`DRAFT` 유지
 - **수락 기준**
-  - Given `DRAFT` 정산 / When 호스트가 확정하면 / Then `Settlement`가 `CONFIRMED`가 되고 `SettlementRevision`(리비전 1, 확정자·시각, 멤버별 부담액·순잔액)과 그 리비전의 송금 안내 목록(`Transfer`: from·to·amount)이 그 시점 계산값으로 저장된다. `CONFIRMED` 상태에서 다시 요청하면 409(`SETTLEMENT_ALREADY_CONFIRMED`). (PRD S-10 중 벌칙 무관 부분)
+  - [x] Given `DRAFT` 정산 / When 호스트가 확정하면 / Then `Settlement`가 `CONFIRMED`가 되고 `SettlementRevision`(리비전 1, 확정자·시각, 멤버별 부담액·순잔액)과 그 리비전의 송금 안내 목록(`Transfer`: from·to·amount)이 그 시점 계산값으로 저장된다. `CONFIRMED` 상태에서 다시 요청하면 409(`SETTLEMENT_ALREADY_CONFIRMED`). (PRD S-10 중 벌칙 무관 부분)
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 884건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
+- **참고:** 리비전 INSERT의 FK 검사가 정산 행에 공유 잠금을 잡아서, 커밋 때 정산을 UPDATE하면 동시 확정끼리 MySQL 데드락(500)이 난다(통합 테스트로 재현). 그래서 `confirmFirst` 뒤 `settlementRepository.flush()`로 정산 UPDATE를 리비전 INSERT보다 먼저 내보내 늦은 쪽이 409 `CONCURRENT_MODIFICATION`으로 끝나게 했다. Task 039의 재확정도 같은 순서를 지켜야 한다
 
 ### Task 025: 확정 후 금액 영향 변경의 `REOPENED` 연결(참석 포함)   ⬜ 대기
 
