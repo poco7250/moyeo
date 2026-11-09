@@ -1,6 +1,7 @@
 package com.poco7250.moyeo.group.repository;
 
 import com.poco7250.moyeo.group.domain.GroupMember;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -26,6 +27,11 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 	 * 그룹의 멤버를 가입 순으로 모두 조회한다(멤버 목록). 회원은 id만 쓰므로 fetch join하지 않는다.
 	 */
 	List<GroupMember> findAllByGroupIdOrderByIdAsc(Long groupId);
+
+	/**
+	 * 주어진 회원들 중 그룹 멤버인 멤버십만 조회한다(지출 분배 조정 대상 검증).
+	 */
+	List<GroupMember> findAllByGroupIdAndMemberIdIn(Long groupId, Collection<Long> memberIds);
 
 	/**
 	 * 그룹의 멤버 수를 센다(초대 미리보기).

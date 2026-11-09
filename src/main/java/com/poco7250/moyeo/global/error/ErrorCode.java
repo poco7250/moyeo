@@ -61,6 +61,9 @@ public enum ErrorCode {
 	PLACE_VOTE_DEADLINE_PASSED(HttpStatus.CONFLICT, "투표가 마감되었습니다."),
 	PLACE_CANDIDATE_NOT_FOUND(HttpStatus.NOT_FOUND, "장소 후보를 찾을 수 없습니다."),
 
+	// 정산
+	EXPENSE_NOT_FOUND(HttpStatus.NOT_FOUND, "지출을 찾을 수 없습니다."),
+
 	// 초대
 	INVITE_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "초대 링크를 찾을 수 없습니다."),
 	// 만료·폐기된 링크. 예전엔 있었지만 이제 못 쓴다는 의미라 410으로 404와 구분한다

@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-09 (`feature/settlement-guard` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-09 (`feature/expense-api` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 5 진행 중(Task 021 완료, 2026-11-09) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). 다음은 Task 022. 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 공통 코드(`global/`)가 있다. 게임 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 5 진행 중(Task 022 완료, 2026-11-09) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). 다음은 Task 023. 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 공통 코드(`global/`)가 있다. 게임 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -15,7 +15,7 @@
 | 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 4 | ✅ 완료 |
 | 4 | 장소 결정 | 4 | 6 | 6 | ✅ 완료 |
-| 5 | 정산 기본·최초 확정 | 5-a | 6 | 2 | 🔄 진행 중 |
+| 5 | 정산 기본·최초 확정 | 5-a | 6 | 3 | 🔄 진행 중 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 0 | ⬜ 대기 |
 | 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 0 | ⬜ 대기 |
 | 8 | 벌칙 정산 연동·확정 게이트 | 8 | 4 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **21** | |
+| **합계** | | | **66** (MVP 43) | **22** | |
 
 ## 상태 범례
 
@@ -632,26 +632,31 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew test` 통과(전체 543건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
 - **참고:** 상태가 바뀌는 쓰기는 dirty flush와 강제 증가가 겹쳐 `version`이 2 오를 수 있어 테스트는 증가 여부만 본다. 강제 증가 충돌은 커밋 시점에 나므로 `@Transactional` 메서드 안에서는 잡을 수 없다(facade에서 처리)
 
-### Task 022: 지출 등록·수정·삭제·개별 조정 API   ⬜ 대기
+### Task 022: 지출 등록·수정·삭제·개별 조정 API   ✅ 완료
 
+- **완료일:** 2026-11-09 · 브랜치 `feature/expense-api`
 - **관련 기능:** S-1, S-3, S-11
 - **선행 Task:** Task 021
 - **구현 사항**
-  - [ ] `ExpenseService.create/update/delete` — 그룹 멤버 권한, `SettlementGuard.lockForAmountChange` + `markAmountChanged`, `ChangeLogRecorder`(항상 기록)
-  - [ ] 대상 지출 삭제 시 `PenaltyRule` 처리는 Task 037에서 연결(이 시점엔 규칙 없음)
-  - [ ] `ExpenseShareService.adjust(expenseId, 조정 목록)` — 제외·고정 금액·가중치, 같은 직렬화·로그
-  - [ ] 결제자는 그룹 멤버여야 함(아니면 400). ⚠️ 결제자가 차수 불참자일 수 있는지 PRD 미정
-  - [ ] DTO: `ExpenseRequest`(amount `@NotNull @Min(1) @Max(100_000_000)` `Long`, payerId `@NotNull`, memo 100자 — `Expense` 컬럼과 동일)
-  - [ ] Controller: `POST /api/rounds/{roundId}/expenses`, `PUT/DELETE /api/expenses/{id}`, `PUT /api/expenses/{id}/shares`, `GET /api/meetings/{id}/expenses`
-  - [ ] 에러 코드: `EXPENSE_NOT_FOUND`(404)
+  - [x] `ExpenseService.create/update/delete/list` — 그룹 멤버 권한, `SettlementGuard.lockForAmountChange` + `markAmountChanged`, `ChangeLogRecorder`(항상 기록, 호출당 1건). 지출 조회·인가는 `ExpenseLoader`로 공유. 재시도 facade는 PRD 6장 재시도 대상이 아니라 붙이지 않음(늦은 쪽 409)
+  - 대상 지출 삭제 시 `PenaltyRule` 처리는 Task 037에서 연결(이 시점엔 규칙 없음)
+  - [x] `ExpenseShareService.adjust(expenseId, 조정 목록)` — PUT 전체 교체(빈 목록은 조정 해제), 같은 직렬화. 로그는 호출당 1건(`EXPENSE_SHARE`, `entityId` = 지출 id). 같은 회원은 기존 행을 고쳐 유니크 위반을 피함(`Expense.putShare`·`removeSharesExcept`)
+  - [x] ⚠️ 결정(2026-11-09): 조정은 **한 사람당 제외/고정 금액/가중치 중 정확히 하나**(아니면 400 `singleAdjustment`), 가중치 **1~100** 정수. 조정 대상은 **그룹 멤버 전체** 허용(참석자 기준 반영은 Task 023 계산에서)
+  - [x] 결제자는 그룹 멤버여야 함(아니면 400 `INVALID_INPUT`). ⚠️ 결정(2026-11-09): **차수 불참자도 결제자가 될 수 있음**
+  - [x] DTO: `ExpenseRequest`(amount `@NotNull @Min(1) @Max(100_000_000)` `Long`, payerId `@NotNull`, memo 100자 — `Expense` 컬럼과 동일, 공백은 null), `ExpenseShareAdjustRequest`·`ExpenseShareItem`, `ExpenseResponse`·`ExpenseShareResponse`, 로그용 `ExpenseSnapshot`(삭제 로그에 조정 포함)·`ExpenseSharesSnapshot`
+  - [x] Controller(`ExpenseController`): `POST /api/rounds/{roundId}/expenses`(201), `PUT/DELETE /api/expenses/{id}`, `PUT /api/expenses/{id}/shares`, `GET /api/meetings/{id}/expenses`
+  - [x] 에러 코드: `EXPENSE_NOT_FOUND`(404)
+  - [x] (추가) `spring.jackson.deserialization.accept-float-as-int=false` — Jackson 기본값은 `1.5`를 정수 필드에서 1로 잘라 통과시킨다(전역 적용)
 - **테스트**
-  - [ ] `@WebMvcTest`: 금액 0·음수·소수(`1.5`)·100,000,001 → 400, 1·100,000,000 → 성공
-  - [ ] 단위: 생성·수정·삭제 시 `ChangeLog` 1건(전/후 JSON), 정산 `CONFIRMED`면 `REOPENED`
-  - [ ] 단위: 비멤버 403 `NOT_GROUP_MEMBER`
+  - [x] `@WebMvcTest`(`ExpenseControllerTest`): 금액 0·음수·소수(`1.5`, `1.0`)·문자열·100,000,001 → 400, 1·100,000,000 → 성공, 조정 조합·범위·회원 중복 400, 비로그인 401
+  - [x] 단위(`ExpenseServiceTest`·`ExpenseShareServiceTest`·`ExpenseLoaderTest`): 생성·수정·삭제·조정 시 `ChangeLog` 1건(전/후 값), `markAmountChanged` 호출 순서, 비멤버 403 `NOT_GROUP_MEMBER`, 없는 지출 404, 비그룹 결제자·조정 대상 400
+  - [x] `ExpenseTest`·`ExpenseRepositoryTest` 추가: 수정·`putShare`·`removeSharesExcept`, 목록 정렬·다른 모임 제외
+  - [x] 통합(`ExpenseServiceIntegrationTest` 7건, DB): `CONFIRMED` → `REOPENED` + `ChangeLog` + 커밋 후 이벤트 1회, 조정 재요청 유니크 위반 없음, 삭제 시 조정 함께 삭제, `DRAFT` 유지
 - **수락 기준**
-  - Given 2차 차수 / When 금액 100,000원·결제자 철수로 지출을 등록하면 / Then 지출이 저장된다. 금액이 0 이하이거나 정수가 아니거나 1억 원을 넘으면 400을 받는다. 정산이 `CONFIRMED`면 지출 추가·수정·삭제 모두 처리되고 같은 트랜잭션에서 `Settlement`가 `REOPENED`가 된다. (PRD S-1 중 벌칙 무관 부분)
+  - [x] Given 2차 차수 / When 금액 100,000원·결제자 철수로 지출을 등록하면 / Then 지출이 저장된다. 금액이 0 이하이거나 정수가 아니거나 1억 원을 넘으면 400을 받는다. 정산이 `CONFIRMED`면 지출 추가·수정·삭제 모두 처리되고 같은 트랜잭션에서 `Settlement`가 `REOPENED`가 된다. (PRD S-1 중 벌칙 무관 부분)
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 615건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
+- **참고:** 고정 금액 합이 지출 금액을 넘는 경우는 막지 않았다. 지출 금액 수정으로도 생길 수 있어 Task 023의 조정 계산 규칙과 함께 정한다
 
 ### Task 023: 정산 계산 순수 도메인(벌칙 제외)·송금 최소화   ⬜ 대기
 
@@ -661,7 +666,7 @@ Phase 10 040 → 041, 042 → 043
 - **구현 사항**
   - [ ] `settlement/calc/` 패키지 — JPA·Spring 의존 없음
   - [ ] 입력 모델 `SettlementInput`(지출 목록: 금액·결제자·분배 대상자(차수 참석자 기본)·조정), 출력 `SettlementResult`(멤버별 부담액·순잔액, 송금 안내 목록, 이후 벌칙·경고 확장 자리)
-  - [ ] `ShareDistributor` — N빵: `1인 = ceil(금액 ÷ 인원)`을 100원 단위 올림, 초과분(`1인 × 인원 − 금액`)은 결제자 몫에서 차감, 제외자 0원. ⚠️ 가중치·고정 금액 조정 시 올림·초과분 처리 규칙 PRD 미정 — 결정 후 구현
+  - [ ] `ShareDistributor` — N빵: `1인 = ceil(금액 ÷ 인원)`을 100원 단위 올림, 초과분(`1인 × 인원 − 금액`)은 결제자 몫에서 차감, 제외자 0원. ⚠️ 가중치·고정 금액 조정 시 올림·초과분 처리 규칙, 고정 금액 합이 지출 금액을 넘을 때의 처리 PRD 미정 — 결정 후 구현(조정은 Task 022 결정대로 한 사람당 한 종류)
   - [ ] `NetBalanceCalculator` — 결제자별 받을 돈 − 낼 돈, 합 0 검증
   - [ ] `TransferMinimizer` — 순잔액 → 송금 안내 목록(건수 ≤ 0 아닌 인원 − 1, 결정적 정렬)
   - [ ] 모든 연산 `long`, 곱셈 `Math.multiplyExact`

@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * 지출의 회원별 분배 조정(제외·고정 금액·가중치). 지출당 1인 1건이며 Expense를 통해서만 만든다.
- * 금액·가중치·제외를 함께 쓸 때의 의미는 PRD 미정이라 여기서 조합을 제한하지 않는다(Task 022·023).
+ * 한 사람당 제외·고정 금액·가중치 중 하나만 쓰는 규칙은 API 입력(ExpenseShareItem)에서 검사한다.
  */
 @Getter
 @Entity
@@ -53,6 +53,12 @@ public class ExpenseShare extends BaseTimeEntity {
 	ExpenseShare(Expense expense, Member member, Long amount, Integer weight, boolean excluded) {
 		this.expense = expense;
 		this.member = member;
+		this.amount = amount;
+		this.weight = weight;
+		this.excluded = excluded;
+	}
+
+	void update(Long amount, Integer weight, boolean excluded) {
 		this.amount = amount;
 		this.weight = weight;
 		this.excluded = excluded;

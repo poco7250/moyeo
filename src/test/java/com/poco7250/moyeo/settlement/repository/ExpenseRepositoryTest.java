@@ -17,6 +17,7 @@ import com.poco7250.moyeo.settlement.domain.ExpenseShare;
 import com.poco7250.moyeo.support.TestcontainersConfiguration;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
+import org.hibernate.Hibernate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -115,6 +116,45 @@ class ExpenseRepositoryTest {
 		expenseRepository.flush();
 
 		assertThat(expenseShareRepository.count()).isZero();
+	}
+
+	@Test
+	@DisplayName("차수와 함께 지출을 조회하고, 없는 지출은 비어 있다")
+	void findsWithRound() {
+		Long expenseId = expenseRepository.saveAndFlush(Expense.create(round, payer, 100_000L, null)).getId();
+		entityManager.clear();
+
+		assertThat(expenseRepository.findWithRoundById(expenseId)).hasValueSatisfying(
+				found -> assertThat(Hibernate.isInitialized(found.getRound())).isTrue());
+		assertThat(expenseRepository.findWithRoundById(expenseId + 1)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("모임 지출 목록은 차수 순·등록 순이고 조정 없는 지출도 포함하며 다른 모임은 제외한다")
+	void listsByMeeting() {
+		Round secondRound = roundRepository.saveAndFlush(Round.create(round.getMeeting(), 2, "볼링"));
+		Round otherRound = roundRepository.saveAndFlush(Round.create(saveOtherMeeting(), 1, "밥"));
+		Expense inSecond = expenseRepository.saveAndFlush(Expense.create(secondRound, payer, 3_000L, null));
+		Expense first = Expense.create(round, payer, 1_000L, null);
+		first.addShare(payer, null, 2, false);
+		first.addShare(other, null, null, true);
+		expenseRepository.saveAndFlush(first);
+		Expense second = expenseRepository.saveAndFlush(Expense.create(round, payer, 2_000L, null));
+		expenseRepository.saveAndFlush(Expense.create(otherRound, payer, 9_000L, null));
+		entityManager.clear();
+
+		var found = expenseRepository.findAllWithSharesByMeetingId(round.getMeeting().getId());
+
+		assertThat(found).extracting(Expense::getId)
+				.containsExactly(first.getId(), second.getId(), inSecond.getId());
+		assertThat(found.getFirst().getShares()).hasSize(2);
+		assertThat(found.get(1).getShares()).isEmpty();
+	}
+
+	private Meeting saveOtherMeeting() {
+		Group group = groupRepository.saveAndFlush(Group.create("고등 동창"));
+		return meetingRepository.saveAndFlush(Meeting.create(
+				group, "신년 모임", LocalDateTime.of(2027, 1, 2, 18, 0), null, null, 1L));
 	}
 
 	@Test
