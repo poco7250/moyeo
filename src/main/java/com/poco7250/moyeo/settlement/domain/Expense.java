@@ -17,6 +17,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -76,12 +78,53 @@ public class Expense extends BaseTimeEntity {
 	 * @throws BusinessException 고정 금액이 1원~1억 원을 벗어나면 INVALID_INPUT
 	 */
 	public ExpenseShare addShare(Member member, Long fixedAmount, Integer weight, boolean excluded) {
-		if (fixedAmount != null) {
-			requireValidAmount(fixedAmount);
-		}
+		requireValidFixedAmount(fixedAmount);
 		ExpenseShare share = new ExpenseShare(this, member, fixedAmount, weight, excluded);
 		shares.add(share);
 		return share;
+	}
+
+	/**
+	 * 결제자·금액·메모를 바꾼다. 분배 조정은 그대로 둔다.
+	 *
+	 * @throws BusinessException 금액이 1원~1억 원을 벗어나면 INVALID_INPUT
+	 */
+	public void update(Member payer, long amount, String memo) {
+		requireValidAmount(amount);
+		this.payer = payer;
+		this.amount = amount;
+		this.memo = memo;
+	}
+
+	/**
+	 * 회원의 분배 조정을 저장한다. 이미 있으면 그 행을 고친다.
+	 * 지우고 다시 넣으면 Hibernate가 INSERT를 먼저 실행해 (expense, member) 유니크를 위반하기 때문이다.
+	 *
+	 * @throws BusinessException 고정 금액이 1원~1억 원을 벗어나면 INVALID_INPUT
+	 */
+	public void putShare(Member member, Long fixedAmount, Integer weight, boolean excluded) {
+		Optional<ExpenseShare> existing = shares.stream()
+				.filter(share -> share.getMember().getId().equals(member.getId()))
+				.findFirst();
+		if (existing.isEmpty()) {
+			addShare(member, fixedAmount, weight, excluded);
+			return;
+		}
+		requireValidFixedAmount(fixedAmount);
+		existing.get().update(fixedAmount, weight, excluded);
+	}
+
+	/**
+	 * 주어진 회원을 뺀 나머지 분배 조정을 지운다.
+	 */
+	public void removeSharesExcept(Set<Long> memberIds) {
+		shares.removeIf(share -> !memberIds.contains(share.getMember().getId()));
+	}
+
+	private static void requireValidFixedAmount(Long fixedAmount) {
+		if (fixedAmount != null) {
+			requireValidAmount(fixedAmount);
+		}
 	}
 
 	private static void requireValidAmount(long amount) {
