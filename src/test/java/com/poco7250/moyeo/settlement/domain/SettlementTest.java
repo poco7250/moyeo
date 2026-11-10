@@ -67,6 +67,18 @@ class SettlementTest {
 		assertThat(settlement.getFirstConfirmedAt()).isNull();
 	}
 
+	@Test
+	@DisplayName("확정 전에는 확정 이력이 없고, 최초 확정 뒤에는 REOPENED가 돼도 확정 이력이 남는다")
+	void hasBeenConfirmed() {
+		Settlement settlement = settlementWith(SettlementStatus.DRAFT);
+		assertThat(settlement.hasBeenConfirmed()).isFalse();
+
+		settlement.confirmFirst(LocalDateTime.of(2026, 12, 20, 22, 0));
+		settlement.reopen();
+
+		assertThat(settlement.hasBeenConfirmed()).isTrue();
+	}
+
 	private Settlement settlementWith(SettlementStatus status) {
 		Settlement settlement = Settlement.createDraft(null);
 		ReflectionTestUtils.setField(settlement, "status", status);

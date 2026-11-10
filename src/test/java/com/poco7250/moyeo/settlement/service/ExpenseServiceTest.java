@@ -26,6 +26,7 @@ import com.poco7250.moyeo.settlement.dto.ExpenseRequest;
 import com.poco7250.moyeo.settlement.dto.ExpenseResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseShareSnapshot;
 import com.poco7250.moyeo.settlement.dto.ExpenseSnapshot;
+import com.poco7250.moyeo.settlement.dto.SettlementChangeSummary;
 import com.poco7250.moyeo.settlement.repository.ExpenseRepository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -105,7 +106,8 @@ class ExpenseServiceTest {
 		InOrder order = inOrder(settlementGuard, expenseRepository, changeLogRecorder);
 		order.verify(settlementGuard).lockForAmountChange(MEETING_ID);
 		order.verify(expenseRepository).save(any(Expense.class));
-		order.verify(settlementGuard).markAmountChanged(MEETING_ID, ACTOR_ID);
+		order.verify(settlementGuard).markAmountChanged(MEETING_ID, ACTOR_ID,
+				List.of(new SettlementChangeSummary(ChangeLogEntityType.EXPENSE, EXPENSE_ID, ChangeType.CREATE)));
 		order.verify(changeLogRecorder).record(MEETING_ID, ACTOR_ID, ChangeLogEntityType.EXPENSE, EXPENSE_ID,
 				ChangeType.CREATE, null, new ExpenseSnapshot(ROUND_ID, PAYER_ID, 100_000L, "볼링", List.of()));
 	}
@@ -164,7 +166,8 @@ class ExpenseServiceTest {
 		assertThat(response.shares()).hasSize(1);
 		InOrder order = inOrder(settlementGuard, changeLogRecorder);
 		order.verify(settlementGuard).lockForAmountChange(MEETING_ID);
-		order.verify(settlementGuard).markAmountChanged(MEETING_ID, ACTOR_ID);
+		order.verify(settlementGuard).markAmountChanged(MEETING_ID, ACTOR_ID,
+				List.of(new SettlementChangeSummary(ChangeLogEntityType.EXPENSE, EXPENSE_ID, ChangeType.UPDATE)));
 		order.verify(changeLogRecorder).record(MEETING_ID, ACTOR_ID, ChangeLogEntityType.EXPENSE, EXPENSE_ID,
 				ChangeType.UPDATE,
 				new ExpenseSnapshot(ROUND_ID, PAYER_ID, 10_000L, "밥", shares),
@@ -194,7 +197,8 @@ class ExpenseServiceTest {
 		InOrder order = inOrder(settlementGuard, expenseRepository, changeLogRecorder);
 		order.verify(settlementGuard).lockForAmountChange(MEETING_ID);
 		order.verify(expenseRepository).delete(expense);
-		order.verify(settlementGuard).markAmountChanged(MEETING_ID, ACTOR_ID);
+		order.verify(settlementGuard).markAmountChanged(MEETING_ID, ACTOR_ID,
+				List.of(new SettlementChangeSummary(ChangeLogEntityType.EXPENSE, EXPENSE_ID, ChangeType.DELETE)));
 		order.verify(changeLogRecorder).record(MEETING_ID, ACTOR_ID, ChangeLogEntityType.EXPENSE, EXPENSE_ID,
 				ChangeType.DELETE,
 				new ExpenseSnapshot(ROUND_ID, PAYER_ID, 10_000L, "밥",

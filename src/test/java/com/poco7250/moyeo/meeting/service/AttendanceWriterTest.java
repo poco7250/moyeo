@@ -5,6 +5,7 @@ import static com.poco7250.moyeo.meeting.domain.AttendanceStatus.ATTEND;
 import static com.poco7250.moyeo.meeting.domain.AttendanceStatus.UNDECIDED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -28,6 +29,8 @@ import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.member.domain.Member;
 import com.poco7250.moyeo.member.repository.MemberRepository;
+import com.poco7250.moyeo.settlement.dto.AttendanceChange;
+import com.poco7250.moyeo.settlement.service.AttendanceSettlementHandler;
 import com.poco7250.moyeo.support.TestClocks;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -66,6 +69,9 @@ class AttendanceWriterTest {
 	MemberRepository memberRepository;
 
 	@Mock
+	AttendanceSettlementHandler attendanceSettlementHandler;
+
+	@Mock
 	ApplicationEventPublisher eventPublisher;
 
 	private Meeting meeting;
@@ -88,6 +94,7 @@ class AttendanceWriterTest {
 		givenMember(MEMBER_ID);
 		givenRounds(List.of());
 		given(memberRepository.getReferenceById(MEMBER_ID)).willReturn(Member.ofKakao(1L, "멤버", null, null));
+		givenSaveReturnsArgument();
 
 		MemberAttendanceResponse response = writer(DEADLINE)
 				.respondMine(MEETING_ID, MEMBER_ID, shortcut(AttendanceShortcut.LATE_FROM_SECOND));
@@ -115,6 +122,54 @@ class AttendanceWriterTest {
 		assertThat(existing.getStatus()).isEqualTo(ATTEND);
 		assertThat(existing.getRespondedAt()).isEqualTo(DEADLINE);
 		verify(attendanceRepository, never()).save(any());
+		verify(attendanceSettlementHandler).onChanged(MEETING_ID, MEMBER_ID,
+				List.of(new AttendanceChange(null, 101L, MEMBER_ID, ABSENT, ATTEND)));
+	}
+
+	@Test
+	@DisplayName("같은 값으로 다시 응답하면 쓰지 않고 정산 반영·이벤트도 없이 현재 응답을 돌려준다")
+	void sameAnswerIsIdempotent() {
+		givenMember(MEMBER_ID);
+		LocalDateTime respondedAt = DEADLINE.minusDays(1);
+		Attendance existing = Attendance.respond(first, null, ATTEND, respondedAt);
+		givenRounds(List.of(existing));
+
+		MemberAttendanceResponse response = writer(DEADLINE)
+				.respondMine(MEETING_ID, MEMBER_ID, rounds(new RoundAttendanceItem(101L, ATTEND)));
+
+		assertThat(response.rounds()).containsExactly(new RoundAttendanceItem(101L, ATTEND));
+		assertThat(existing.getRespondedAt()).isEqualTo(respondedAt);
+		verify(attendanceRepository, never()).save(any());
+		verifyNoInteractions(attendanceSettlementHandler, eventPublisher);
+	}
+
+	@Test
+	@DisplayName("여러 차수 중 값이 달라진 차수만 정산 반영 대상으로 넘긴다")
+	void onlyChangedRoundsAreHandled() {
+		givenMember(MEMBER_ID);
+		givenRounds(List.of(
+				Attendance.respond(first, null, ATTEND, DEADLINE.minusDays(1)),
+				Attendance.respond(second, null, ATTEND, DEADLINE.minusDays(1))));
+
+		writer(DEADLINE).respondMine(MEETING_ID, MEMBER_ID,
+				rounds(new RoundAttendanceItem(101L, ATTEND), new RoundAttendanceItem(102L, ABSENT)));
+
+		verify(attendanceSettlementHandler).onChanged(MEETING_ID, MEMBER_ID,
+				List.of(new AttendanceChange(null, 102L, MEMBER_ID, ATTEND, ABSENT)));
+		verify(eventPublisher).publishEvent(any(AttendanceChangedEvent.class));
+	}
+
+	@Test
+	@DisplayName("대리 수정의 행위자는 호스트이고 대상은 응답 주인이다")
+	void proxyActorIsHost() {
+		given(meetingAccessChecker.requireHost(MEETING_ID, HOST_ID)).willReturn(meeting);
+		given(groupMemberRepository.existsByGroupIdAndMemberId(GROUP_ID, MEMBER_ID)).willReturn(true);
+		givenRounds(List.of(Attendance.respond(first, null, ATTEND, DEADLINE.minusDays(1))));
+
+		writer(DEADLINE).respondFor(MEETING_ID, HOST_ID, MEMBER_ID, rounds(new RoundAttendanceItem(101L, ABSENT)));
+
+		verify(attendanceSettlementHandler).onChanged(MEETING_ID, HOST_ID,
+				List.of(new AttendanceChange(null, 101L, MEMBER_ID, ATTEND, ABSENT)));
 	}
 
 	@Test
@@ -123,6 +178,7 @@ class AttendanceWriterTest {
 		givenMember(MEMBER_ID);
 		givenRounds(List.of(Attendance.respond(first, null, ATTEND, DEADLINE.minusDays(1))));
 		given(memberRepository.getReferenceById(MEMBER_ID)).willReturn(Member.ofKakao(1L, "멤버", null, null));
+		givenSaveReturnsArgument();
 
 		MemberAttendanceResponse response = writer(DEADLINE)
 				.respondMine(MEETING_ID, MEMBER_ID, rounds(new RoundAttendanceItem(102L, UNDECIDED)));
@@ -148,6 +204,7 @@ class AttendanceWriterTest {
 		givenMember(HOST_ID);
 		givenRoundsFor(HOST_ID, List.of());
 		given(memberRepository.getReferenceById(HOST_ID)).willReturn(Member.ofKakao(1L, "호스트", null, null));
+		givenSaveReturnsArgument();
 
 		MemberAttendanceResponse response = writer(DEADLINE.plusDays(1))
 				.respondMine(MEETING_ID, HOST_ID, shortcut(AttendanceShortcut.FIRST_ONLY));
@@ -162,6 +219,7 @@ class AttendanceWriterTest {
 		given(groupMemberRepository.existsByGroupIdAndMemberId(GROUP_ID, MEMBER_ID)).willReturn(true);
 		givenRounds(List.of());
 		given(memberRepository.getReferenceById(MEMBER_ID)).willReturn(Member.ofKakao(1L, "멤버", null, null));
+		givenSaveReturnsArgument();
 
 		MemberAttendanceResponse response = writer(DEADLINE.plusDays(1))
 				.respondFor(MEETING_ID, HOST_ID, MEMBER_ID, shortcut(AttendanceShortcut.FIRST_ONLY));
@@ -219,7 +277,12 @@ class AttendanceWriterTest {
 
 	private AttendanceWriter writer(LocalDateTime now) {
 		return new AttendanceWriter(meetingAccessChecker, groupMemberRepository, roundRepository,
-				attendanceRepository, memberRepository, eventPublisher, TestClocks.fixed(now));
+				attendanceRepository, memberRepository, attendanceSettlementHandler, eventPublisher,
+				TestClocks.fixed(now));
+	}
+
+	private void givenSaveReturnsArgument() {
+		given(attendanceRepository.save(any())).willAnswer(returnsFirstArg());
 	}
 
 	private void givenMember(Long memberId) {

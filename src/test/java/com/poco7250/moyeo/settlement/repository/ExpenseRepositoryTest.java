@@ -17,6 +17,7 @@ import com.poco7250.moyeo.settlement.domain.ExpenseShare;
 import com.poco7250.moyeo.support.TestcontainersConfiguration;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.hibernate.Hibernate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -66,6 +67,17 @@ class ExpenseRepositoryTest {
 		round = roundRepository.saveAndFlush(Round.create(meeting, 1, "밥"));
 		payer = memberRepository.saveAndFlush(Member.ofKakao(1L, "철수", null, null));
 		other = memberRepository.saveAndFlush(Member.ofKakao(2L, "지수", null, null));
+	}
+
+	@Test
+	@DisplayName("지출이 있는 차수의 id만 중복 없이 돌려준다")
+	void findsRoundIdsWithExpense() {
+		Round withoutExpense = roundRepository.saveAndFlush(Round.create(round.getMeeting(), 2, "볼링"));
+		expenseRepository.saveAndFlush(Expense.create(round, payer, 1_000L, null));
+		expenseRepository.saveAndFlush(Expense.create(round, other, 2_000L, null));
+
+		assertThat(expenseRepository.findRoundIdsWithExpense(List.of(round.getId(), withoutExpense.getId())))
+				.containsExactly(round.getId());
 	}
 
 	@Test

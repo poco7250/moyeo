@@ -3,7 +3,10 @@ package com.poco7250.moyeo.settlement.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
+import com.poco7250.moyeo.global.event.RealtimeMessage;
 import com.poco7250.moyeo.group.domain.Group;
 import com.poco7250.moyeo.group.domain.GroupMember;
 import com.poco7250.moyeo.group.domain.GroupRole;
@@ -18,13 +21,18 @@ import com.poco7250.moyeo.meeting.repository.MeetingRepository;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.member.domain.Member;
 import com.poco7250.moyeo.member.repository.MemberRepository;
+import com.poco7250.moyeo.settlement.domain.ChangeLogEntityType;
+import com.poco7250.moyeo.settlement.domain.ChangeType;
 import com.poco7250.moyeo.settlement.domain.Expense;
 import com.poco7250.moyeo.settlement.domain.Settlement;
 import com.poco7250.moyeo.settlement.domain.SettlementStatus;
 import com.poco7250.moyeo.settlement.dto.ExpenseRequest;
+import com.poco7250.moyeo.settlement.dto.SettlementChangeSummary;
 import com.poco7250.moyeo.settlement.dto.SettlementMemberResponse;
+import com.poco7250.moyeo.settlement.dto.SettlementReopenedResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementTransferResponse;
+import com.poco7250.moyeo.settlement.repository.ChangeLogRepository;
 import com.poco7250.moyeo.settlement.repository.ExpenseRepository;
 import com.poco7250.moyeo.settlement.repository.SettlementRepository;
 import com.poco7250.moyeo.support.TestcontainersConfiguration;
@@ -42,6 +50,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
@@ -90,8 +99,14 @@ class SettlementConfirmIntegrationTest {
 	@Autowired
 	JdbcTemplate jdbcTemplate;
 
+	@Autowired
+	ChangeLogRepository changeLogRepository;
+
 	@MockitoSpyBean
 	SettlementInputAssembler inputAssembler;
+
+	@MockitoSpyBean
+	SimpMessagingTemplate messagingTemplate;
 
 	private Group group;
 	private Member host;
@@ -163,6 +178,30 @@ class SettlementConfirmIntegrationTest {
 
 		assertThat(queryService.get(meeting.getId(), other.getId())).isEqualTo(new SettlementResponse(
 				SettlementStatus.REOPENED, 1, false, expectedMembers, expectedTransfers, List.of()));
+	}
+
+	@Test
+	@DisplayName("리비전 1 확정 뒤 멤버가 지출 금액을 고치면 REOPENED, 변경 로그 저장, 커밋 후 재확정 필요 이벤트 1회다")
+	void expenseUpdateAfterConfirmReopens() {
+		confirmService.confirm(meeting.getId(), host.getId(), false);
+
+		expenseService.update(expense.getId(), other.getId(), new ExpenseRequest(30_000L, host.getId(), "볼링"));
+
+		assertThat(currentSettlement().getStatus()).isEqualTo(SettlementStatus.REOPENED);
+		assertThat(changeLogRepository.findAllByMeetingIdOrderByChangedAtAscIdAsc(meeting.getId()))
+				.singleElement().satisfies(log -> {
+					assertThat(log.getActorId()).isEqualTo(other.getId());
+					assertThat(log.getChangedAt()).isNotNull();
+					assertThat(log.getEntityType()).isEqualTo(ChangeLogEntityType.EXPENSE);
+					assertThat(log.getEntityId()).isEqualTo(expense.getId());
+					assertThat(log.getChangeType()).isEqualTo(ChangeType.UPDATE);
+					assertThat(log.getBeforeJson()).contains("\"amount\":90000");
+					assertThat(log.getAfterJson()).contains("\"amount\":30000");
+				});
+		verify(messagingTemplate, times(1)).convertAndSend("/topic/meetings/" + meeting.getId(),
+				new RealtimeMessage(SettlementReopenedEvent.TYPE, new SettlementReopenedResponse(other.getId(),
+						List.of(new SettlementChangeSummary(ChangeLogEntityType.EXPENSE, expense.getId(),
+								ChangeType.UPDATE)))));
 	}
 
 	@Test

@@ -21,6 +21,7 @@ import com.poco7250.moyeo.settlement.domain.ChangeType;
 import com.poco7250.moyeo.settlement.domain.Settlement;
 import com.poco7250.moyeo.settlement.domain.SettlementStatus;
 import com.poco7250.moyeo.settlement.dto.ChangeLogSnapshot;
+import com.poco7250.moyeo.settlement.dto.SettlementChangeSummary;
 import com.poco7250.moyeo.settlement.dto.SettlementReopenedResponse;
 import com.poco7250.moyeo.settlement.repository.ChangeLogRepository;
 import com.poco7250.moyeo.settlement.repository.SettlementRepository;
@@ -57,6 +58,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 class SettlementGuardIntegrationTest {
 
 	private static final Long ACTOR_ID = 7L;
+	private static final List<SettlementChangeSummary> CHANGES =
+			List.of(new SettlementChangeSummary(ChangeLogEntityType.EXPENSE, 1L, ChangeType.UPDATE));
 
 	@Autowired
 	SettlementGuard settlementGuard;
@@ -154,7 +157,7 @@ class SettlementGuardIntegrationTest {
 		confirmSettlement();
 
 		transactionTemplate.executeWithoutResult(status -> {
-			settlementGuard.markAmountChanged(meeting.getId(), ACTOR_ID);
+			settlementGuard.markAmountChanged(meeting.getId(), ACTOR_ID, CHANGES);
 			assertThat(settlementRepository.findByMeetingId(meeting.getId()).orElseThrow().getStatus())
 					.isEqualTo(SettlementStatus.REOPENED);
 			verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
@@ -162,7 +165,7 @@ class SettlementGuardIntegrationTest {
 
 		assertThat(currentStatus()).isEqualTo(SettlementStatus.REOPENED);
 		verify(messagingTemplate, times(1)).convertAndSend("/topic/meetings/" + meeting.getId(),
-				new RealtimeMessage(SettlementReopenedEvent.TYPE, new SettlementReopenedResponse(ACTOR_ID)));
+				new RealtimeMessage(SettlementReopenedEvent.TYPE, new SettlementReopenedResponse(ACTOR_ID, CHANGES)));
 	}
 
 	@Test
@@ -241,7 +244,7 @@ class SettlementGuardIntegrationTest {
 	}
 
 	private void markAndRecord() {
-		settlementGuard.markAmountChanged(meeting.getId(), ACTOR_ID);
+		settlementGuard.markAmountChanged(meeting.getId(), ACTOR_ID, CHANGES);
 		changeLogRecorder.record(meeting.getId(), ACTOR_ID, ChangeLogEntityType.EXPENSE, 1L, ChangeType.UPDATE,
 				new AmountSnapshot(1000L), new AmountSnapshot(2000L));
 	}

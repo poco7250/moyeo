@@ -13,6 +13,7 @@ import com.poco7250.moyeo.settlement.dto.ExpenseResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseShareAdjustRequest;
 import com.poco7250.moyeo.settlement.dto.ExpenseShareItem;
 import com.poco7250.moyeo.settlement.dto.ExpenseSharesSnapshot;
+import com.poco7250.moyeo.settlement.dto.SettlementChangeSummary;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -47,7 +48,8 @@ public class ExpenseShareService {
 		Map<Long, Member> targets = findTargets(meeting.getGroup().getId(), request.shares());
 		ExpenseSharesSnapshot before = ExpenseSharesSnapshot.from(expense);
 		replaceShares(expense, request.shares(), targets);
-		settlementGuard.markAmountChanged(meeting.getId(), memberId);
+		settlementGuard.markAmountChanged(meeting.getId(), memberId,
+				List.of(new SettlementChangeSummary(ChangeLogEntityType.EXPENSE_SHARE, expense.getId(), ChangeType.UPDATE)));
 		changeLogRecorder.record(meeting.getId(), memberId, ChangeLogEntityType.EXPENSE_SHARE, expense.getId(),
 				ChangeType.UPDATE, before, ExpenseSharesSnapshot.from(expense));
 		return ExpenseResponse.from(expense);

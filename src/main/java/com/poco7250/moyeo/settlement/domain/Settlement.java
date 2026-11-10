@@ -83,6 +83,13 @@ public class Settlement extends BaseTimeEntity {
 	}
 
 	/**
+	 * 정산이 한 번이라도 확정됐는지(리비전 1 이상이 있는지) 돌려준다.
+	 */
+	public boolean hasBeenConfirmed() {
+		return currentRevisionNo != null;
+	}
+
+	/**
 	 * 최초 확정이 가능한 상태인지 검사한다. REOPENED 재확정은 Task 039에서 연다.
 	 *
 	 * @throws BusinessException DRAFT가 아니면 SETTLEMENT_ALREADY_CONFIRMED

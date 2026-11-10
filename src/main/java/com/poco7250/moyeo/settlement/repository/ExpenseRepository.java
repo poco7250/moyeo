@@ -1,8 +1,10 @@
 package com.poco7250.moyeo.settlement.repository;
 
 import com.poco7250.moyeo.settlement.domain.Expense;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,4 +26,10 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 	@Query("select e from Expense e join fetch e.round r left join fetch e.shares "
 			+ "where r.meeting.id = :meetingId order by r.seq, e.id")
 	List<Expense> findAllWithSharesByMeetingId(@Param("meetingId") Long meetingId);
+
+	/**
+	 * 주어진 차수 중 지출이 1건 이상 있는 차수의 id를 조회한다.
+	 */
+	@Query("select distinct e.round.id from Expense e where e.round.id in :roundIds")
+	Set<Long> findRoundIdsWithExpense(@Param("roundIds") Collection<Long> roundIds);
 }
