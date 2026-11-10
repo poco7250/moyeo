@@ -66,6 +66,14 @@ public enum ErrorCode {
 	SETTLEMENT_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "이미 확정된 정산입니다."),
 	WARNING_UNCONFIRMED(HttpStatus.CONFLICT, "정산 경고를 확인한 뒤 다시 확정해 주세요."),
 
+	// 게임
+	GAME_NOT_FOUND(HttpStatus.NOT_FOUND, "게임을 찾을 수 없습니다."),
+	NOT_GAME_OPERATOR(HttpStatus.FORBIDDEN, "게임 진행자나 모임 호스트만 할 수 있습니다."),
+	GAME_INVALID_TRANSITION(HttpStatus.CONFLICT, "지금 게임 상태에서는 할 수 없는 요청입니다."),
+	GAME_NOT_READY(HttpStatus.CONFLICT, "아직 준비하지 않은 참가자가 있습니다."),
+	GAME_NOT_CANCELABLE(HttpStatus.CONFLICT, "지금 상태에서는 취소할 수 없는 게임입니다."),
+	SLOT_ALREADY_PICKED(HttpStatus.CONFLICT, "이미 선택된 카드입니다."),
+
 	// 초대
 	INVITE_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "초대 링크를 찾을 수 없습니다."),
 	// 만료·폐기된 링크. 예전엔 있었지만 이제 못 쓴다는 의미라 410으로 404와 구분한다
