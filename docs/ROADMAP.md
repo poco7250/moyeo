@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-10 (`feature/game-domain` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-10 (`feature/game-lobby` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 6 진행 중(Task 026 완료, 2026-11-10) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. 다음은 Task 027(게임 방 API). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 벌칙 제외 정산 계산·송금 최소화 순수 도메인(`settlement/calc/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기(`game/`), 공통 코드(`global/`)가 있다. 게임 API는 아직 코드가 없다.
+- **현재 단계:** Phase 6 진행 중(Task 027 완료, 2026-11-10) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. 다음은 Task 030(재접속 상태 복구·게임 목록). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 벌칙 제외 정산 계산·송금 최소화 순수 도메인(`settlement/calc/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API(`game/`), 공통 코드(`global/`)가 있다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -16,7 +16,7 @@
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 4 | ✅ 완료 |
 | 4 | 장소 결정 | 4 | 6 | 6 | ✅ 완료 |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 6 | ✅ 완료 |
-| 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 1 | 🔄 진행 중 |
+| 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 4 | 🔄 진행 중 |
 | 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 0 | ⬜ 대기 |
 | 8 | 벌칙 정산 연동·확정 게이트 | 8 | 4 | 0 | ⬜ 대기 |
 | 9 | 재확정·리비전 비교·알림 | 5-b | 2 | 0 | ⬜ 대기 |
@@ -24,7 +24,7 @@
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **25** | |
+| **합계** | | | **66** (MVP 43) | **29** | |
 
 ## 상태 범례
 
@@ -63,8 +63,8 @@ Phase 4  012 → 014 → 016 → 017 → 018 → 019 (← 013)
          006 → 015 ─────┘(016이 015 사용)
 Phase 5  012 → 020 → 021 → 022 → 024 → 025 (← 013)
                        023 ─────┘(024가 023 사용)
-Phase 6  013, 021 → 026 → 027 → 028 / 029 → 030
-Phase 7  026 → 031 → 032 (← 028, 029) → 033 → 034
+Phase 6  013, 021 → 026 → 027(028·029 흡수) → 030
+Phase 7  026 → 031 → 032 (← 027) → 033 → 034
 Phase 8  023, 031 → 035;  022, 034 → 036;  035, 036 → 037;  024, 037 → 038
 Phase 9  038 → 039 → 040
 Phase 10 040 → 041, 042 → 043
@@ -759,7 +759,7 @@ Phase 10 040 → 041, 042 → 043
 
 ## Phase 6: 게임 방·사다리·꽝뽑기
 
-- **목표:** 서버가 관리하는 게임 상태 머신(`WAITING → PLAYING → REVEALED → CLOSED`, `→ CANCELED`), 각자 폰 게임(사다리·꽝뽑기), 공정성(공개 전 결과 비노출), 이탈 처리
+- **목표:** 서버가 관리하는 게임 상태 머신(`WAITING → PLAYING → REVEALED → CLOSED`, `→ CANCELED`), 시작 즉시 서버 추첨(사다리·꽝뽑기는 연출 차이), 공정성(공개 전 결과 비노출), 재접속 복구
 - **포함 기능 ID:** R-0, R-1, R-2, R-4(벌칙 종류·안내 문구), R-8, R-10
 
 ### Task 026: 게임 도메인 골격과 상태 전이 규칙   ✅ 완료
@@ -791,85 +791,66 @@ Phase 10 040 → 041, 042 → 043
 - **완료 조건**
   - [x] `./gradlew test` 통과(전체 950건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
 
-### Task 027: 게임 방 생성·입장·준비·시작·종료·취소 API   ⬜ 대기
+### Task 027: 게임 방 생성·즉시 추첨·종료·취소 API   ✅ 완료
 
-- **관련 기능:** R-0, R-4(벌칙 종류·안내 문구), R-10
+- **완료일:** 2026-11-10 · 브랜치 `feature/game-lobby`
+- **관련 기능:** R-0, R-1, R-2, R-4(벌칙 종류·안내 문구), R-10
 - **선행 Task:** Task 026
 - **구현 사항**
-  - [ ] `GameLobbyService.create(roundId, type, penaltyKind, penaltyNote, 게임별 설정)` — 그룹 멤버 누구나, `createdBy` = 요청자, `rootSessionId` = 자기 id, `PenaltyRule`·`Penalty` 생성 없음. ⚠️ 참가자 결정 방식(차수 참석자 자동 로드 vs 로비 입장자) PRD에서 R-0("각자 입장")과 R-1("참가자 자동 로드")이 갈림
-  - [ ] 룰렛 동작은 Task 053이므로 그 전까지 `ROULETTE` 게임 생성은 거부한다
-  - [ ] `join`, `ready`, `start`(진행자·호스트, 미준비 참가자 있으면 409 `GAME_NOT_READY`, 결과 생성은 Task 028·029 전략에 위임), `close`(진행자·호스트, `REVEALED → CLOSED`, 금액 영향 없음), `cancel`(진행자·호스트, 금액형이면 `SettlementGuard.lockOnly`)
-  - [ ] ⚠️ 게임 취소 `ChangeLog` 기록 범위(전 종류 vs 금액형만) — PRD 7장은 "게임 취소" 기록, 6장은 금액 비영향. 결정 후 구현
-  - [ ] 상태 변경마다 커밋 후 게임 토픽 브로드캐스트
-  - [ ] DTO: `GameCreateRequest`(penaltyNote `@Size(max = 100)`), `GameStateResponse`(공개 전 결과 필드 없음)
-  - [ ] Controller: `POST /api/rounds/{roundId}/games`, `POST /api/games/{id}/join|ready|start|close|cancel`
+  - [x] ⚠️ 결정(2026-11-10, PRD R-0·R-1·R-2·R-8과 결정 사항에 반영)
+    - 만드는 사람이 **그 차수 `ATTEND` 회원 중 일부 또는 전부**를 골라 방을 만든다(2~50명, 진행자도 하려면 목록에 넣는다). 입장(`join`)·준비(`ready`) 단계는 없다. 참가자는 생성 시점에 확정되고, 이후 참석 변경으로 자동 제외되지 않는다
+    - **시작하면 그 자리에서 서버가 벌칙자를 뽑아 공개**한다(`WAITING → PLAYING → REVEALED`를 한 트랜잭션에서). 사다리·꽝뽑기는 화면 연출만 다르고 카드 선택·결과 공개 요청·제한 시간 자동 배정은 없다
+    - 권한은 PRD대로 생성은 그룹 멤버 누구나, 시작·종료·취소는 진행자 또는 호스트
+    - 벌칙자 수 `penaltyCount`는 선택 입력(기본 1), 1 이상 참가자 수 미만
+    - 게임 취소 `ChangeLog`는 **금액형만** 기록한다. 행동형·`NONE` 취소 이력은 `CANCELED` 상태로 남는다
+  - [x] `GameLobbyService`: `create`(`rootSessionId` = 자기 id, `PenaltyRule`·`Penalty` 생성 없음, `ROULETTE`는 400 `GAME_TYPE_NOT_SUPPORTED`), `start`, `close`(금액 영향 없음), `cancel`(금액형이면 `SettlementGuard.lockOnly`)
+  - [x] `GameDrawer`(순수 함수, memberId 정렬 후 seed로 섞음) + `GameSeedGenerator`(`SecureRandom`, JS 안전 정수 범위). 결과는 `GameResult`의 `PENALTY`/`SAFE`로 전원 저장, `seed`도 저장해 재현 가능
+  - [x] 동시 시작은 `GameSession.version`으로 1건만 성공. 결과 insert의 FK 공유 잠금과 데드락이 나지 않도록 상태 변경을 먼저 flush한다
+  - [x] 커밋 후 `GAME_STATE_CHANGED` 브로드캐스트: 시작·종료·취소는 게임·모임 토픽 양쪽, 생성은 모임 토픽
+  - [x] `global/auth/GameAccessChecker.requireOperator`(없는 게임도 403 `NOT_GROUP_MEMBER`)
+  - [x] DTO: `GameCreateRequest`, `GameStateResponse`(`result`는 공개 전 null), `GameParticipantResponse`, `GameResultResponse`(seed, 벌칙자 id), `GameChangeSnapshot`
+  - [x] Controller: `POST /api/rounds/{roundId}/games`(201), `POST /api/games/{gameId}/start|close|cancel`
+  - [x] 에러 코드 추가: `GAME_PARTICIPANT_NOT_ATTENDING`(400), `GAME_TYPE_NOT_SUPPORTED`(400)
+  - [x] 결정으로 쓸모없어진 코드 제거: `GameParticipant.ready`·`pickedSlot`, `GameSession.timeLimitSeconds`, `findByIdForPick`, `GAME_NOT_READY`, `SLOT_ALREADY_PICKED`
 - **테스트**
-  - [ ] 단위: 진행자·호스트 시작 성공, 그 외 멤버 403 `NOT_GAME_OPERATOR`, 미준비 409 `GAME_NOT_READY`
-  - [ ] 단위: 종료 후 정산 상태·버전 변화 없음, 그 외 멤버 403, `REVEALED` 아님 409
-  - [ ] 단위: 취소 — `CANCELED` + 브로드캐스트, `Penalty` 없음, `REVEALED` 409 `GAME_NOT_CANCELABLE`, 금액형 취소는 정산 버전 증가하되 `REOPENED` 아님
-  - [ ] 단위(R-4): 금액형·안내 문구 저장, `PenaltyRule`·`Penalty` 0건, 안내 문구 101자 400
-  - [ ] `@WebMvcTest`: 응답 형식, 안내 문구가 공개 전 응답에 포함
+  - [x] 단위(`GameDrawerTest`): 벌칙자 수, 고정 seed 재현, 입력 순서 무관
+  - [x] 단위(`GameLobbyServiceTest`): 생성·미참석자 거부·룰렛 거부, 시작(결과 저장·공개·브로드캐스트), 권한 403, 재시작 409, 종료(정산 무변화), 취소(금액형만 직렬화·`ChangeLog`, 공개 후 409)
+  - [x] `@DataJpaTest`: 참가자·결과 조회
+  - [x] `@WebMvcTest`(`GameControllerTest`): 응답 형식, 공개 전 결과 없음과 안내 문구 포함, 입력 검증 400, 권한 403, 비로그인 401
+  - [x] 통합(`GameLobbyIntegrationTest`): 일부 참석자로 생성 → 시작과 양쪽 토픽 전송, 금액형 취소 시 정산 version 증가·`REOPENED` 아님, 동시 시작 시 추첨 1회, 참석자 조회(불참·다른 차수 제외)
 - **수락 기준**
-  - Given 진행자가 만든 `WAITING` 게임 방 / When 참가자 전원이 준비를 누르면 / Then 진행자 또는 호스트가 시작할 수 있고 상태가 `PLAYING`으로 바뀌어 모든 참가자에게 브로드캐스트된다. 그 외 멤버가 시작하면 403(`NOT_GAME_OPERATOR`), 준비 안 한 참가자가 있으면 409(`GAME_NOT_READY`), `WAITING`이 아니면 409(`GAME_INVALID_TRANSITION`)이고 상태는 그대로다. Given `REVEALED` 게임 / When 진행자 또는 호스트가 "게임 종료"를 누르면 / Then `CLOSED`가 되어 브로드캐스트되고 `Penalty`·`PenaltyRule`·정산 상태는 바뀌지 않는다. 그 외 멤버면 403(`NOT_GAME_OPERATOR`), `REVEALED`가 아니면 409(`GAME_INVALID_TRANSITION`). (PRD R-0)
-  - Given 게임 생성 화면 / When 벌칙 종류 "금액형"과 안내 문구 "꼴찌가 2차 30%"를 입력하면 / Then `GameSession.penaltyKind = MONEY`, `penaltyNote`가 저장되고 `PenaltyRule`·`Penalty`는 생성되지 않는다. 안내 문구는 선택 입력(최대 100자)이며 정산 계산에 쓰이지 않는다. (PRD R-4 앞부분)
-  - Given 진행자가 만든 `WAITING`/`PLAYING` 게임 / When 진행자 또는 호스트가 취소하면 / Then 상태가 `CANCELED`가 되어 브로드캐스트되고 `Penalty`는 생성되지 않는다. 그 외 멤버가 취소하면 403(`NOT_GAME_OPERATOR`), `REVEALED`/`CLOSED` 게임이면 409(`GAME_NOT_CANCELABLE`). 취소와 결과 공개가 동시에 오면 `GameSession.version`으로 하나만 성공한다. (PRD R-10 앞부분)
+  - [x] Given 차수 참석자 중 고른 회원으로 만든 `WAITING` 게임 / When 진행자 또는 호스트가 시작하면 / Then 벌칙자가 정해져 `REVEALED`가 되고 결과가 브로드캐스트된다. 그 외 멤버는 403(`NOT_GAME_OPERATOR`), `WAITING`이 아니면 409(`GAME_INVALID_TRANSITION`)이고 상태는 그대로다.
+  - [x] Given `REVEALED` 게임 / When 진행자 또는 호스트가 종료하면 / Then `CLOSED`가 되어 브로드캐스트되고 정산 상태는 바뀌지 않는다. 그 외 멤버면 403, `REVEALED`가 아니면 409.
+  - [x] Given 게임 생성 / When 금액형과 안내 문구를 입력하면 / Then `penaltyKind = MONEY`, `penaltyNote`가 저장되고 `PenaltyRule`·`Penalty`는 생성되지 않는다.
+  - [x] Given `WAITING` 게임 / When 진행자 또는 호스트가 취소하면 / Then `CANCELED`가 되어 브로드캐스트된다. 그 외 멤버면 403, `REVEALED`/`CLOSED`면 409(`GAME_NOT_CANCELABLE`).
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 982건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
+- **참고:** 로컬 DB는 `ddl-auto=update`라 제거한 `game_participant.ready`(NOT NULL) 컬럼이 남아 insert가 실패한다 → 로컬에서 `game_participant` 테이블을 한 번 drop 후 실행. `Penalty` 생성과 정산 연동은 Task 032에서 한다
 
-### Task 028: 사다리 타기   ⬜ 대기
+### Task 028: 사다리 타기   ✅ 완료(Task 027로 흡수)
 
 - **관련 기능:** R-1
-- **선행 Task:** Task 027
-- **구현 사항**
-  - [ ] `game/ladder/LadderGenerator`(순수, `SecureRandom` 주입 가능) — 시작 시 연결 생성·저장
-  - [ ] 결과 항목 입력(꽝/벌칙/당첨) — ⚠️ 항목 수 = 참가자 수인지, 어떤 결과(꽝·벌칙)가 벌칙자가 되는지 PRD 미정(Task 032에 영향)
-  - [ ] `reveal`(진행자·호스트) → `REVEALED`, 공개 응답·브로드캐스트에 동일 연결 데이터
-  - [ ] 공개 전 응답·메시지에서 연결 정보 제외(DTO 수준에서 필드 자체 없음)
-  - [ ] 공개 요청은 `OptimisticRetryExecutor` facade 경유(이미 `REVEALED`면 멱등 성공)
-- **테스트**
-  - [ ] 단위(`LadderGenerator`): 참가자 4·항목 4 → 전단사 매핑, 고정 시드 재현성
-  - [ ] `@WebMvcTest`/직렬화 테스트: `PLAYING` 상태 응답 JSON에 연결 필드 없음
-  - [ ] 단위: 비운영자 공개 403 `NOT_GAME_OPERATOR`, `PLAYING` 아님 409 `GAME_INVALID_TRANSITION`
-- **수락 기준**
-  - Given 참가자 4명·결과 항목 4개 / When 게임이 시작되면 / Then 서버가 사다리 연결을 생성·저장하고, `REVEALED` 전까지 어떤 클라이언트 응답·WebSocket 메시지에도 연결 정보가 포함되지 않는다. Given `PLAYING` 사다리 / When 진행자 또는 호스트가 결과 공개를 요청하면 / Then `REVEALED`가 되고 모든 참가자가 같은 연결 데이터를 받는다. 그 외 멤버면 403(`NOT_GAME_OPERATOR`), `PLAYING`이 아니면 409(`GAME_INVALID_TRANSITION`). (PRD R-1)
-- **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+- 시작 즉시 공개로 결정(2026-11-10)되어 별도 연결 생성·공개 요청이 없다. 공개 응답의 `seed`와 벌칙자 목록으로 프론트가 같은 연출을 재생한다
 
-### Task 029: 꽝뽑기 카드 선택·동시 공개   ⬜ 대기
+### Task 029: 꽝뽑기   ✅ 완료(Task 027로 흡수)
 
 - **관련 기능:** R-2
+- 시작 즉시 공개로 결정(2026-11-10)되어 카드 선택·동시 공개가 없다. 종류 차이는 화면 연출뿐이다
+
+### Task 030: 재접속 상태 복구·게임 목록   ⬜ 대기
+
+- **관련 기능:** R-8(재접속 상태 복구만, 제한 시간 자동 배정은 2026-11-10 결정으로 폐지)
 - **선행 Task:** Task 027
 - **구현 사항**
-  - [ ] `game/draw/DrawDeckGenerator`(순수) — N장 중 꽝 K장을 시작 시 섞어 저장. ⚠️ N과 참가자 수의 관계(N = 참가자 수 강제 여부) PRD 미정
-  - [ ] `DrawPickService.pick(gameId, memberId, slot)` — `findByIdForPick`(`PESSIMISTIC_WRITE`) → `PLAYING`·참가자 본인·미선택 검사 → 슬롯 점유 검사 → 저장(`saveAndFlush`), `(gameSession, pickedSlot)` 유니크 위반은 409 `SLOT_ALREADY_PICKED`, **재시도 없음**
-  - [ ] 전원 선택 시 같은 트랜잭션에서 `REVEALED` + 결과 일괄 공개(커밋 후 브로드캐스트)
-  - [ ] 공개 전 응답에 카드 배열 없음(본인 선택 슬롯 번호만)
+  - [ ] `GET /api/games/{id}/state` — 현재 상태, 공개 후엔 결과 포함(그룹 멤버)
+  - [ ] 차수별 게임 목록 조회 — 모임 화면을 안 열어둬 실시간 알림을 놓친 참가자가 결과를 찾는 경로
 - **테스트**
-  - [ ] 단위(`DrawDeckGenerator`): N=5, K=1 → 꽝 정확히 1장
-  - [ ] 통합(DB, 동시성): 두 참가자가 같은 카드를 동시에 선택 → 1명 성공, 1명 409 `SLOT_ALREADY_PICKED`
-  - [ ] 통합(DB, 동시성): 서로 다른 카드 동시 선택 → 둘 다 성공(낙관적 락 실패 없음)
-  - [ ] 단위: 마지막 선택 시 `REVEALED`, 이미 선택한 참가자 재선택 거부
+  - [ ] `@WebMvcTest`: 공개 전 응답에 결과 없음, 공개 후 결과 포함, 비멤버 403
 - **수락 기준**
-  - Given N=5, K=1 꽝뽑기 / When 두 참가자가 같은 카드를 동시에 고르면 / Then `GameSession` 행 잠금(`PESSIMISTIC_WRITE`) 순서대로 처리되어 먼저 도착한 요청만 성공하고 다른 쪽은 409(`SLOT_ALREADY_PICKED`)를 받는다(재시도 없음). 전원이 뽑으면 상태가 `REVEALED`가 되고 결과가 동시에 공개된다. (PRD R-2)
+  - Given 연결이 끊겼던 참가자 / When 재접속하면 / Then REST로 현재 게임 상태와(공개 후라면) 벌칙자를 받아 화면을 복구한다.
 - **완료 조건**
   - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
 
-### Task 030: 이탈 처리·재접속 상태 복구   ⬜ 대기
-
-- **관련 기능:** R-8
-- **선행 Task:** Task 028, Task 029
-- **구현 사항**
-  - [ ] `DrawTimeoutScheduler`(`@Scheduled`) — 제한 시간 지난 `PLAYING` 꽝뽑기 → `PESSIMISTIC_WRITE` 획득 후 아직 `PLAYING`이고 미선택자가 있을 때만 남은 카드 자동 배정·공개, 이미 `REVEALED`면 쓰기 없이 종료(멱등). ⚠️ 제한 시간 기본값·설정 주체 PRD 미정
-  - [ ] `GET /api/games/{id}/state` — 현재 상태 + 본인 선택(공개 전 결과 제외), 공개 후엔 전체 결과
-  - [ ] 자동 배정 순서 결정적(예: 미선택자 memberId 순 × 남은 슬롯 순)
-- **테스트**
-  - [ ] 단위: 제한 시간 경과 → 남은 카드 자동 배정·`REVEALED`(고정 `Clock`)
-  - [ ] 통합(DB, 동시성): 마지막 수동 선택과 자동 배정이 동시에 → 이중 배정·이중 공개 없음
-  - [ ] `@WebMvcTest`: 재접속 상태 조회 — 공개 전 응답에 다른 사람 카드·꽝 위치 없음, 본인 선택 포함
-- **수락 기준**
-  - Given 제한 시간이 있는 꽝뽑기 / When 제한 시간이 지나도 안 뽑은 참가자가 있으면 / Then 서버가 남은 카드를 자동 배정하고 공개한다. Given 연결이 끊긴 참가자 / When 재접속하면 / Then REST로 현재 게임 상태(본인 선택 포함, 공개 전 결과 제외)를 받아 화면을 복구한다. (PRD R-8)
-- **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
 
 ---
 
@@ -899,12 +880,12 @@ Phase 10 040 → 041, 042 → 043
 ### Task 032: 결과 공개 시 벌칙자 확정   ⬜ 대기
 
 - **관련 기능:** R-5, R-4
-- **선행 Task:** Task 028, Task 029, Task 031
+- **선행 Task:** Task 027, Task 031
 - **구현 사항**
   - [ ] `PenaltyAssigner.onRevealed(gameSession)` — 공개 전이와 같은 트랜잭션. `penaltyKind = NONE`이면 생성 없음, `MONEY`·`ACTION`이면 벌칙자별 `ASSIGNED`를 **memberId 오름차순** insert
   - [ ] 금액형이면 `SettlementGuard.lockForAmountChange` + `markAmountChanged` + 최초 공개 `ChangeLog`
   - [ ] 공개 중복 실행 방어: `(gameSession, member)` 유니크 + `GameSession.version`
-  - [ ] ⚠️ 사다리 결과 중 어떤 항목이 벌칙자가 되는지(Task 028 참고) 결정 후 반영
+  - [ ] `GameResult.outcome = PENALTY`인 참가자가 벌칙자다(Task 027 결정). 공개 전이는 `GameLobbyService.start`에서 일어난다
 - **테스트**
   - [ ] 단위: 금액형 사다리 "꽝" 2명(민수·영희) → `Penalty` 2건 `ASSIGNED`, 금액 필드 없음, `revealedAt`·`applyOrderAt` 기록, `ChangeLog` 1건
   - [ ] 단위: `NONE` → `Penalty` 0건, `ACTION` → `ASSIGNED`지만 정산 상태·버전 변화 없음
@@ -1142,7 +1123,7 @@ Phase 10 040 → 041, 042 → 043
   - [ ] 그룹 가입 동시 클릭 → 멤버 1건
   - [ ] 참석 응답 동시 → 1건, 재시도 facade 동작
   - [ ] 장소 마감 vs 수동 확정 → 1건 반영
-  - [ ] 꽝뽑기 같은 카드·다른 카드 동시 선택, 마지막 선택 vs 자동 배정
+  - [x] 게임 시작 동시 요청(추첨 1회) — Task 027 `GameLobbyIntegrationTest`
   - [ ] 다시 돌리기 동시 2건 → 1건
   - [ ] 정산 확정 vs 지출 수정 / 조건 설정 / 금액형 게임 취소 → 직렬화(한쪽 409)
   - [ ] 롤백된 쓰기는 STOMP 메시지 0건, 커밋된 쓰기는 1건(실제 STOMP 클라이언트 또는 브로커 채널 캡처)
@@ -1247,8 +1228,8 @@ Phase 10 040 → 041, 042 → 043
 | P-9 | P2 | 065 |
 | P-10 | P2 | 064 |
 | R-0 | P0 | 010, 026, 027 |
-| R-1 | P0 | 028 |
-| R-2 | P0 | 029 |
+| R-1 | P0 | 027 |
+| R-2 | P0 | 027 |
 | R-3 | P1 | 053 |
 | R-4 | P0 | 027, 032, 036 |
 | R-5 | P0 | 031, 032, 033, 034 |

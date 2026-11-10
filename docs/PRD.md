@@ -105,7 +105,7 @@
 
 > 설계 포인트: **참석 데이터 = 정산 데이터의 기본값.** 차수별 참석자가 그대로 정산 분배 대상이 된다. 그래서 지출이 있는 차수의 참석 변경은 금액 영향 변경이다(정산 확정 후면 `REOPENED`, 4.5).
 
-> 설계 포인트: **호스트 정의(D4).** MVP에서 호스트 = **모임을 만든 사람**(`Meeting.hostMemberId`, 생성 시 고정, 위임 없음). M-4 대리 수정, P-2·P-4 장소 확정·재투표, R-9 벌칙 조건·면제, R-0 게임 시작·R-1 사다리 결과 공개·R-10 게임 취소·R-5 다시 돌리기·게임 종료(진행자와 함께, E3·5차 M-A), S-10 정산 확정·재확정 권한은 모두 이 호스트 기준이다. 그룹 역할(G-4 방장/총무, P1)은 그룹 단위라 별개이며, 도입 시 "총무에게 호스트 권한 위임" 같은 연결은 오픈 이슈 15에서 정한다.
+> 설계 포인트: **호스트 정의(D4).** MVP에서 호스트 = **모임을 만든 사람**(`Meeting.hostMemberId`, 생성 시 고정, 위임 없음). M-4 대리 수정, P-2·P-4 장소 확정·재투표, R-9 벌칙 조건·면제, R-0 게임 시작·R-10 게임 취소·R-5 다시 돌리기·게임 종료(진행자와 함께, E3·5차 M-A), S-10 정산 확정·재확정 권한은 모두 이 호스트 기준이다. 그룹 역할(G-4 방장/총무, P1)은 그룹 단위라 별개이며, 도입 시 "총무에게 호스트 권한 위임" 같은 연결은 오픈 이슈 15에서 정한다.
 
 **수용 기준 (P0)**
 
@@ -158,25 +158,24 @@
 
 | ID | 기능 | 우선순위 |
 |---|---|---|
-| R-0 | **게임 방(로비)**: 진행자가 게임 생성 → 참가자 각자 폰으로 입장 → 전원 준비 시 시작 | P0 |
-| R-1 | **사다리 타기**: 참가자 자동 로드, 결과 항목 입력(꽝/벌칙/당첨), 모두의 폰에서 같은 애니메이션 동시 재생 | P0 |
-| R-2 | **꽝뽑기(제비뽑기)**: N장 중 꽝 K장, 각자 자기 폰에서 카드 1장 선택 → 전원 뽑으면 동시 공개 | P0 |
+| R-0 | **게임 방**: 진행자가 그 차수 참석자(`ATTEND`) 중 일부 또는 전부를 참가자로 골라 게임 생성 → 진행자 또는 호스트가 시작하면 서버가 즉시 벌칙자를 뽑아 공개하고 참가자 전원에게 알림. 입장·준비 단계 없음 | P0 |
+| R-1 | **사다리 타기**: 시작 즉시 나온 벌칙자 결과를 사다리 연출로 표시. 공개 응답의 `seed`로 모두의 폰에서 같은 애니메이션 재생 | P0 |
+| R-2 | **꽝뽑기(제비뽑기)**: 시작 즉시 나온 벌칙자 결과를 카드 뽑기 연출로 표시. 사용자가 카드를 고르는 입력은 없음 | P0 |
 | R-3 | 룰렛 / 랜덤 순서 정하기(볼링 레인 순서, 보드게임 선) | P1 |
 | R-4 | **벌칙 프리셋**: 게임 생성 시 벌칙 종류(금액형 / 행동형 "다음 모임 장소 정하기·예약"(P-9 연동) / 없음) + 안내 문구(선택, 예: "꼴찌가 2차 30%", 계산에 안 쓰임). 금액 조건 입력(R-9) 시 고정 금액 / 비율 / 전액 프리셋 제공(4.5 벌칙 정산 규칙 참고) | P0 |
 | R-5 | **게임 결과 → 정산 연동**: 결과 공개 시 벌칙자 확정(`Penalty` `ASSIGNED`), 호스트가 조건을 설정(R-9)하면 대상 지출 정산에 자동 반영, 지출 변경 시 자동 재계산. 다시 돌리기(진행자·호스트만, 원 회차 설정 복제 — E3) | P0 |
 | R-6 | 볼링 점수 입력 → 순위 산출 → 꼴찌/하위 N명 자동 벌칙 | P1 |
 | R-7 | 보드게임 승패 기록(게임명, 순위) | P1 |
-| R-8 | 이탈자 처리: 제한 시간 내 안 뽑으면 남은 카드 자동 배정, 재접속 시 상태 복구 | P0 |
+| R-8 | 재접속 시 상태 복구: REST로 현재 게임 상태·공개된 결과 조회 | P0 |
 | R-9 | **게임 후 벌칙 조건 설정**: 지출 등록 뒤 호스트가 게임 단위로 금액 조건(`FIXED_AMOUNT`/`RATIO`/`FULL`, 값, **대상 지출 1건**(기존 지출))을 설정·변경·해제하거나 "금액 벌칙 없음(면제)"·면제 취소 처리(적용 ↔ 면제 직접 전환 포함, E2). 조건은 그 게임의 벌칙자 전원에게 **각자** 적용. 게임이 `REVEALED`·`CLOSED` 모두 가능, 정산 확정 후에도 가능(정산 `REOPENED`, 4.5) | P0 |
 | R-10 | **게임 취소**: `WAITING`/`PLAYING` 게임을 진행자 또는 호스트가 취소(`CANCELED`). 다시 돌린 회차를 취소하면 원 회차 결과·벌칙이 그대로 유지된다 | P0 |
 
-> 설계 포인트: **게임 진행 방식은 각자 폰.** 게임 상태(`WAITING` 대기 → `PLAYING` 진행 → `REVEALED` 공개 → `CLOSED` 종료, `WAITING`/`PLAYING` → `CANCELED` 취소)는 서버가 관리하고 WebSocket으로 모든 참가자에게 브로드캐스트한다(전이 규칙은 아래 게임 상태 전이 표). **진행자** = 게임을 만든 멤버(`GameSession.createdBy`, 호스트일 필요 없음). 다시 돌린 회차의 진행자는 다시 돌리기를 요청한 사람이다(E3).
+> 설계 포인트: **게임은 시작 한 번으로 끝난다.** 진행자가 참가자를 골라 방을 만들고 시작을 누르면 서버가 벌칙자를 뽑아 공개하며, 사다리·꽝뽑기의 차이는 화면 연출뿐이다(2026-11-10 결정). 게임 상태(`WAITING` 대기 → `PLAYING` 진행 → `REVEALED` 공개 → `CLOSED` 종료, `WAITING`/`PLAYING` → `CANCELED` 취소)는 서버가 관리하고 WebSocket으로 모든 참가자에게 브로드캐스트한다(전이 규칙은 아래 게임 상태 전이 표). `PLAYING`은 시작 트랜잭션 안에서만 거치므로 커밋된 상태로는 남지 않는다. **진행자** = 게임을 만든 멤버(`GameSession.createdBy`, 호스트일 필요 없음). 참가자로 자동 포함되지 않으며 직접 하려면 목록에 넣는다. 다시 돌린 회차의 진행자는 다시 돌리기를 요청한 사람이다(E3).
 
 > 설계 포인트: **게임은 벌칙자만 정하고, 금액은 나중에 정한다.** 실제 모임에서는 게임을 먼저 하고 벌칙 금액은 지출이 나온 뒤 당첨자 기준으로 나누기 때문. 게임 생성 시 금액 조건(`PenaltyRule`)은 만들지 않고, 결과 공개 시 벌칙자별 `Penalty`(`ASSIGNED`)만 생긴다. 금액 조건은 게임 후 호스트가 설정한다(R-9, 4.5).
 
 **공정성 요구사항 (중요)**
-- 결과(사다리 연결, 카드 배치)는 **게임 시작 시점에 서버에서 생성**하고, 클라이언트에는 공개 시점 전까지 보내지 않는다.
-- 꽝뽑기에서 "카드를 고르는 행위"는 연출이고, 실제 결과는 서버가 미리 섞어둔 배열의 위치로 결정된다. 같은 카드를 동시에 고르면 먼저 도착한 요청이 가져간다 — 카드 선택은 `GameSession` 행 **`PESSIMISTIC_WRITE`**(행 잠금 대기)로 직렬화하고, 같은 카드 충돌은 `(gameSession, pickedSlot)` 유니크로 막아 늦은 쪽은 409(`SLOT_ALREADY_PICKED`)(5차 m2, 기존 "낙관적 락" 대체).
+- 벌칙자는 **게임 시작 시점에 서버에서 뽑는다.** `SecureRandom`으로 만든 `seed`로 참가자(`memberId` 정렬)를 섞어 앞에서 벌칙자 수(`penaltyCount`)만큼 고르므로 저장된 `seed`로 결과를 재현할 수 있다. 결과와 `seed`는 공개 전 응답·메시지에 포함하지 않는다.
 - 실행 시각·참가자·결과를 기록으로 남기고, "다시 돌리기"는 가능하되 **재실행 이력이 모두에게 보인다** (조작 의심 방지 = 친구 사이 신뢰).
 - **다시 돌리기 제한:** 같은 회차를 두 번 다시 돌릴 수 없다(`rerunOf` 유니크 — 동시 요청 중 하나만 성공). 정산이 확정된 모임의 금액형 게임도 다시 돌릴 수 있고, 그 순간 정산이 `REOPENED`(재확정 필요)가 되며 변경 로그에 남는다(D2, 기존 N4 차단 방침 대체).
 - **다시 돌리기 대상(4차 M7):** 원 회차가 `REVEALED`/`CLOSED`이면서 **비무효 최신 회차**(그 회차를 `rerunOf`로 가리키는 후속 회차가 없음 — 취소된 후속 회차는 `rerunOf`를 비우므로 해당 없음)일 때만 가능. 그 외(`WAITING`/`PLAYING`/`CANCELED`, 이미 후속 회차가 있는 회차)는 409(`GAME_NOT_RERUNNABLE`). 사전 검사를 통과한 동시 요청끼리는 `rerunOf` 유니크 위반으로 늦은 쪽 409(`RERUN_ALREADY_EXISTS`).
@@ -193,26 +192,26 @@
 | 전이 | 트리거 | 권한 / 비고 |
 |---|---|---|
 | (생성) → `WAITING` | 게임 생성(R-0), 또는 다시 돌리기 요청(R-5) | 생성: 그룹 멤버 누구나(생성자 = 진행자). 다시 돌리기: 원 회차 진행자 또는 호스트(E3) |
-| `WAITING → PLAYING` | 진행자 또는 호스트가 시작(전원 준비) | **진행자 또는 호스트**(5차 M-A). 서버가 결과(사다리 연결·카드 배열) 생성. 준비 안 한 참가자가 있으면 409(`GAME_NOT_READY`) |
-| `PLAYING → REVEALED` | 결과 공개 — 꽝뽑기: 전원 선택 또는 제한 시간 후 자동 배정(R-8, 서버 처리), 사다리: 진행자 또는 호스트의 공개 요청 | 사다리 공개 요청 권한 = **진행자 또는 호스트**(5차 M-A). `revealedAt` 기록, 첫 공개면 `applyOrderAt` 기록, `penaltyKind ≠ NONE`이면 `Penalty` 생성. 금액형이면 금액 영향 변경(정산 직렬화·`REOPENED`) |
-| `REVEALED → CLOSED` | **진행자 또는 호스트가 "게임 종료"** | 게임 방(로비) 닫힘 — 이후 참가자 입장·선택 이벤트 없음. 결과·벌칙은 그대로, 금액 영향 없음(`REOPENED` 유발 안 함). 종료하지 않아도 정산·다시 돌리기에 지장 없음 |
+| `WAITING → PLAYING` | 진행자 또는 호스트가 시작 | **진행자 또는 호스트**(5차 M-A). 서버가 벌칙자를 뽑는다. 다음 전이와 같은 트랜잭션에서 일어난다(2026-11-10) |
+| `PLAYING → REVEALED` | 시작 직후 서버가 자동 공개 | 별도 공개 요청 없음. `revealedAt` 기록, 첫 공개면 `applyOrderAt` 기록, `penaltyKind ≠ NONE`이면 `Penalty` 생성. 금액형이면 금액 영향 변경(정산 직렬화·`REOPENED`) |
+| `REVEALED → CLOSED` | **진행자 또는 호스트가 "게임 종료"** | 게임 방 닫힘. 결과·벌칙은 그대로, 금액 영향 없음(`REOPENED` 유발 안 함). 종료하지 않아도 정산·다시 돌리기에 지장 없음 |
 | `WAITING`/`PLAYING` → `CANCELED` | 진행자 또는 호스트가 취소(R-10) | 종단 상태. 다시 돌린 회차 취소 시 `rerunOf` 비우고 `canceledRerunOf` 기록 |
 
 - `REVEALED`·`CLOSED`에서 가능한 것: R-9 조건 설정·변경·해제·면제·면제 취소(둘 다 허용), 다시 돌리기(비무효 최신 회차일 때). `WAITING`/`PLAYING`/`CANCELED`에서는 둘 다 409.
 - `CLOSED`·`CANCELED`는 다른 상태로 돌아가지 않는다. 다시 돌린 원 회차의 상태는 바뀌지 않는다(`REVEALED`/`CLOSED` 유지). 원 회차 결과가 무효가 됐는지는 후속 회차가 공개됐는지(원 회차 `Penalty.status = VOIDED`)로 판단한다.
-- 모든 전이는 `GameSession.version` 낙관적 락. 권한 위반(시작·사다리 공개·종료·취소·다시 돌리기를 진행자도 호스트도 아닌 멤버가 요청)은 403(`NOT_GAME_OPERATOR`), 허용되지 않은 전이는 409.
-- **전이 에러 코드(5차 M-A, 모두 409):** `GAME_INVALID_TRANSITION`(현재 상태에서 허용되지 않은 전이 — 예: `REVEALED`가 아닌데 종료, `WAITING`이 아닌데 시작, `PLAYING`이 아닌데 공개), `GAME_NOT_READY`(준비 안 한 참가자가 있는데 시작), `SLOT_ALREADY_PICKED`(꽝뽑기에서 이미 선택된 카드), 취소 불가는 기존 `GAME_NOT_CANCELABLE`, 다시 돌리기 불가는 기존 `GAME_NOT_RERUNNABLE`.
+- 모든 전이는 `GameSession.version` 낙관적 락. 권한 위반(시작·종료·취소·다시 돌리기를 진행자도 호스트도 아닌 멤버가 요청)은 403(`NOT_GAME_OPERATOR`), 허용되지 않은 전이는 409.
+- **전이 에러 코드(5차 M-A, 모두 409):** `GAME_INVALID_TRANSITION`(현재 상태에서 허용되지 않은 전이 — 예: `REVEALED`가 아닌데 종료, `WAITING`이 아닌데 시작), 취소 불가는 기존 `GAME_NOT_CANCELABLE`, 다시 돌리기 불가는 기존 `GAME_NOT_RERUNNABLE`.
 
 **수용 기준 (P0)**
 
 | ID | Given / When / Then |
 |---|---|
-| R-0 | Given 진행자가 만든 `WAITING` 게임 방 / When 참가자 전원이 준비를 누르면 / Then 진행자 또는 호스트가 시작할 수 있고 상태가 `PLAYING`으로 바뀌어 모든 참가자에게 브로드캐스트된다. 그 외 멤버가 시작하면 403(`NOT_GAME_OPERATOR`), 준비 안 한 참가자가 있으면 409(`GAME_NOT_READY`), `WAITING`이 아니면 409(`GAME_INVALID_TRANSITION`)이고 상태는 그대로다. Given `REVEALED` 게임 / When 진행자 또는 호스트가 "게임 종료"를 누르면 / Then `CLOSED`가 되어 브로드캐스트되고 `Penalty`·`PenaltyRule`·정산 상태는 바뀌지 않는다. 그 외 멤버면 403(`NOT_GAME_OPERATOR`), `REVEALED`가 아니면 409(`GAME_INVALID_TRANSITION`). |
-| R-1 | Given 참가자 4명·결과 항목 4개 / When 게임이 시작되면 / Then 서버가 사다리 연결을 생성·저장하고, `REVEALED` 전까지 어떤 클라이언트 응답·WebSocket 메시지에도 연결 정보가 포함되지 않는다. Given `PLAYING` 사다리 / When 진행자 또는 호스트가 결과 공개를 요청하면 / Then `REVEALED`가 되고 모든 참가자가 같은 연결 데이터를 받는다. 그 외 멤버면 403(`NOT_GAME_OPERATOR`), `PLAYING`이 아니면 409(`GAME_INVALID_TRANSITION`). |
-| R-2 | Given N=5, K=1 꽝뽑기 / When 두 참가자가 같은 카드를 동시에 고르면 / Then `GameSession` 행 잠금(`PESSIMISTIC_WRITE`) 순서대로 처리되어 먼저 도착한 요청만 성공하고 다른 쪽은 409(`SLOT_ALREADY_PICKED`)를 받는다(재시도 없음). 전원이 뽑으면 상태가 `REVEALED`가 되고 결과가 동시에 공개된다. |
+| R-0 | Given 차수 참석자 중 2명 이상을 고른 게임 생성 요청 / When 그룹 멤버가 생성하면 / Then 고른 회원이 참가자로 확정된 `WAITING` 게임이 만들어진다. 참석자가 아닌 회원이 섞이면 400(`GAME_PARTICIPANT_NOT_ATTENDING`)이고 게임은 생성되지 않는다. 벌칙자 수는 선택 입력(기본 1)이고 1 이상 참가자 수 미만이어야 한다(위반 400). Given `WAITING` 게임 / When 진행자 또는 호스트가 시작하면 / Then 벌칙자가 정해져 상태가 `REVEALED`가 되고 결과가 모든 참가자에게 브로드캐스트된다. 그 외 멤버가 시작하면 403(`NOT_GAME_OPERATOR`), `WAITING`이 아니면 409(`GAME_INVALID_TRANSITION`)이고 상태는 그대로다. 시작 요청이 동시에 와도 추첨은 한 번만 일어난다. Given `REVEALED` 게임 / When 진행자 또는 호스트가 "게임 종료"를 누르면 / Then `CLOSED`가 되어 브로드캐스트되고 `Penalty`·`PenaltyRule`·정산 상태는 바뀌지 않는다. 그 외 멤버면 403(`NOT_GAME_OPERATOR`), `REVEALED`가 아니면 409(`GAME_INVALID_TRANSITION`). |
+| R-1 | Given `WAITING` 사다리 / When 시작 전 게임 상태를 응답·WebSocket으로 받으면 / Then 결과와 `seed`는 포함되지 않는다. When 시작되면 / Then 모든 참가자가 같은 벌칙자 목록과 `seed`를 받는다. |
+| R-2 | Given 참가자 5명, 벌칙자 1명 꽝뽑기 / When 시작되면 / Then 정확히 1명이 벌칙자가 되고 모든 참가자가 같은 결과를 받는다. 카드 선택 API는 없다. |
 | R-4 | Given 게임 생성 화면 / When 벌칙 종류 "금액형"과 안내 문구 "꼴찌가 2차 30%"를 입력하면 / Then `GameSession.penaltyKind = MONEY`, `penaltyNote`가 저장되고 `PenaltyRule`·`Penalty`는 생성되지 않는다. 안내 문구는 선택 입력(최대 100자)이며 정산 계산에 쓰이지 않는다. 벌칙 종류 "없음"으로 만든 게임은 결과가 공개돼도 `Penalty`가 생성되지 않는다. |
 | R-5 | Given `penaltyKind = MONEY` 사다리, 결과 "꽝" 2명(민수·영희) / When 결과가 공개되면 / Then 민수·영희 각각 `Penalty(gameSession, member)`가 `ASSIGNED`로 생성되고 금액은 계산·저장되지 않으며, `revealedAt`·`applyOrderAt`이 기록된다. 공개 처리가 중복 실행돼도 `(gameSession, member)` 유니크로 1인 1건이며, `Penalty`는 `memberId` 오름차순으로 생성된다. 금액형 게임의 최초 결과 공개는 `ChangeLog`에 기록된다. When 원 회차 진행자 또는 호스트가 "다시 돌리기"를 요청하면 / Then `rerunOf`가 원 회차를 가리키고 `applyOrderAt`을 이어받은 새 `GameSession`(`WAITING`, `createdBy` = 요청자, `type`·`penaltyKind`·`penaltyNote`·참가자 목록은 원 회차 복제)이 생기고, 원 회차 `Penalty`는 아직 바뀌지 않는다. 진행자·호스트가 아닌 그룹 멤버가 요청하면 403(`NOT_GAME_OPERATOR`), 원 회차가 `REVEALED`/`CLOSED`가 아니거나 이미 후속 회차가 있으면 409(`GAME_NOT_RERUNNABLE`)를 받고 아무것도 생성되지 않는다. When 새 회차 결과가 공개되면 / Then 원 회차 `Penalty`는 삭제되지 않고 `VOIDED`(이력에만 표시, 정산 제외)가 되고, 원 회차 `PenaltyRule`은 새 회차로 이관되며, 새 벌칙자는 원 회차의 공개 직전 조건 상태대로 `APPLIED`/`WAIVED`/`ASSIGNED`로 생성된다. 같은 회차에 다시 돌리기 요청 2건이 동시에 오면 1건만 성공하고, 늦은 쪽은 도착 시점에 따라 409 `RERUN_ALREADY_EXISTS`(사전 검사 통과 후 `rerunOf` 유니크 위반) 또는 409 `GAME_NOT_RERUNNABLE`(먼저 온 요청이 커밋된 뒤라 사전 검사에서 후속 회차 발견) 중 하나를 받는다(5차 m3). Given 정산이 `CONFIRMED`인 모임의 금액형 게임 / When 다시 돌리기를 요청하면 / Then 새 회차가 생성되고 같은 트랜잭션에서 `Settlement`가 `REOPENED`가 되며 `ChangeLog`에 다시 돌리기가 기록된다. |
-| R-8 | Given 제한 시간이 있는 꽝뽑기 / When 제한 시간이 지나도 안 뽑은 참가자가 있으면 / Then 서버가 남은 카드를 자동 배정하고 공개한다. Given 연결이 끊긴 참가자 / When 재접속하면 / Then REST로 현재 게임 상태(본인 선택 포함, 공개 전 결과 제외)를 받아 화면을 복구한다. |
+| R-8 | Given 연결이 끊긴 참가자 / When 재접속하면 / Then REST로 현재 게임 상태(공개 전이면 결과 제외, 공개 후면 벌칙자 포함)를 받아 화면을 복구한다. |
 | R-9 | Given 벌칙자 민수·영희가 `ASSIGNED`인 금액형 게임, 2차 지출 "볼링" 87,650원 등록됨 / When 호스트가 `RATIO 30%`·대상 지출 "볼링"으로 조건을 설정하면 / Then `PenaltyRule` 1건이 저장되고 두 벌칙이 `APPLIED`가 되며, 정산 계산 시 각자 26,300원이 부과된다(예 5-a). `targetExpense`가 없으면 400, 존재하지 않는 지출이면 404, 다른 모임의 지출이면 400, 비율이 1~100 정수가 아니면 400, 고정 금액이 1 이상 정수가 아니거나 1억 원을 넘으면 400, 호스트(모임 생성자)가 아니면 403(`NOT_MEETING_HOST`), 게임 `penaltyKind`가 `MONEY`가 아니거나 결과 공개 전(`WAITING`/`PLAYING`/`CANCELED`)이면 409, 대상 벌칙이 `VOIDED`면 409를 받는다. 게임이 `CLOSED`여도 `REVEALED`와 똑같이 처리된다. When "금액 벌칙 없음"을 고르면 / Then 그 게임의 비무효 벌칙 전원이 동시에 `WAIVED`가 되고 `waivedBy`·`waivedAt`이 기록되며 정산에 반영되지 않는다. Given 벌칙이 `APPLIED`인 게임 / When 호스트가 "금액 벌칙 없음"을 고르면 / Then 한 트랜잭션에서 `PenaltyRule`이 삭제되고 전원 `WAIVED`가 되며 `ChangeLog`가 2건(규칙 해제, 면제) 남는다(E2). Given 벌칙이 `WAIVED`인 게임 / When 호스트가 조건을 설정하면 / Then 한 트랜잭션에서 면제가 취소(`waivedBy`·`waivedAt` 비움)되고 `PenaltyRule`이 생성되어 전원 `APPLIED`가 되며 `ChangeLog`가 2건(면제 취소, 규칙 설정) 남는다(E2). 조건 설정·변경·해제·면제·면제 취소는 모두 `ChangeLog`에 전/후 값과 함께 기록되고, 정산이 `CONFIRMED`면 같은 트랜잭션에서 `REOPENED`가 된다. |
 | R-10 | Given 진행자가 만든 `WAITING`/`PLAYING` 게임 / When 진행자 또는 호스트가 취소하면 / Then 상태가 `CANCELED`가 되어 브로드캐스트되고 `Penalty`는 생성되지 않는다. 그 외 멤버가 취소하면 403(`NOT_GAME_OPERATOR`), `REVEALED`/`CLOSED` 게임이면 409(`GAME_NOT_CANCELABLE`). Given 다시 돌린 회차(`WAITING`) / When 취소하면 / Then 원 회차 `Penalty`·`PenaltyRule`은 바뀌지 않고, 원 회차에 다시 돌리기를 새로 요청할 수 있다. 취소와 결과 공개가 동시에 오면 `GameSession.version`으로 하나만 성공한다. |
 
@@ -448,7 +447,7 @@
 2. **모임 상세** — 탭: `장소` / `참석` / `게임` / `정산`
    - 장소 탭: 차수별 장소 카드(확정 장소 label + 사용자 지도 링크 또는 카카오맵 검색 링크), 투표 중이면 후보 목록·득표 현황·후보 추가(참고용 장소 검색 + 이름·주소·지도 링크 직접 입력, 자동 채우기 없음)
    - 참석 탭: 차수별 응답 현황판, 내 응답 버튼
-   - 게임 탭: 사다리 / 꽝뽑기 / 룰렛 / 볼링 점수 카드, 결과 로그(다시 돌리기·취소 이력 포함), 게임별 벌칙자·벌칙 상태(조건 미설정 / 적용 / 면제), 게임 시작(`WAITING`, 전원 준비 시 활성)·사다리 결과 공개(`PLAYING`)·진행 중 게임 취소·결과 공개 게임의 다시 돌리기·게임 종료(진행자·호스트에게만 버튼 노출, E3·5차 M-A)
+   - 게임 탭: 사다리 / 꽝뽑기 / 룰렛 / 볼링 점수 카드, 결과 로그(다시 돌리기·취소 이력 포함), 게임별 벌칙자·벌칙 상태(조건 미설정 / 적용 / 면제), 게임 생성(차수 참석자 중 참가자 선택)·게임 시작(`WAITING`)·공개 전 게임 취소·결과 공개 게임의 다시 돌리기·게임 종료(진행자·호스트에게만 버튼 노출, E3·5차 M-A)
    - 정산 탭: 지출 목록 → **벌칙 조건 입력(호스트, 조건 미설정 게임 목록 + 고정/비율/전액 프리셋 + 대상 지출 1건 선택(차수별 지출 목록) + "금액 벌칙 없음", 적용·면제 게임도 서로 전환 가능(E2))** → 1인당 금액 → 경고·확정 → **송금 안내 목록**("누가 누구에게 얼마" + 카톡 공유 문구, 송금은 앱 밖 — E1. 딥링크·계좌 복사는 S-7(P1))
      - 송금 안내 상단에 **"리비전 n 기준"** 라벨(`basisRevisionNo`). `REOPENED`면 마지막 확정 리비전 기준 + "재확정 필요", `DRAFT`면 라벨 대신 **"미리보기"**(확정 전 계산값, 5차 m5)
      - 확정 후 금액 영향 변경 시 상단에 **"재확정 필요" 배너**(무엇이 바뀌었는지 `ChangeLog` 요약) + 호스트 재확정 버튼
@@ -467,12 +466,12 @@
 | 공유 | **카카오톡 공유**(OG 태그 미리보기: "토요일 모임 · 강남 OO식당 · 5/8명 참석") — 바이럴 핵심 경로 |
 | 구조 | **SPA + REST API.** Spring Boot는 JSON API와 WebSocket만 맡고, 화면은 별도 SPA(React 계열)가 담당. OG 태그는 SPA가 못 만들어주니까 초대/모임 링크 경로는 서버에서 OG 메타만 담은 HTML을 내려준다 |
 | 인증 | **카카오 로그인(OAuth2).** 백엔드가 카카오 인가 코드를 받아 회원 조회/생성 후 자체 토큰(Access + Refresh, `HttpOnly` 쿠키) 발급. 카카오톡 인앱 브라우저에서 로그인이 깨지지 않는지 꼭 확인 |
-| 인가 | 초대 링크로 들어온 사람은 로그인 직후 원래 링크로 돌아가 그룹에 자동 가입. 그룹 리소스는 그룹 멤버만 접근. 금융 정보(계좌)는 그룹 멤버에게만 노출. 벌칙 조건 설정·면제·면제 취소·정산 확정·재확정은 호스트만(403 `NOT_MEETING_HOST`). **호스트 = `Meeting.hostMemberId`(모임 생성자, D4)**. 게임 시작(R-0)·사다리 결과 공개(R-1)·게임 취소(R-10)·다시 돌리기(R-5)·게임 종료(`REVEALED → CLOSED`)는 진행자(`GameSession.createdBy`) 또는 호스트(그 외 403 `NOT_GAME_OPERATOR`, E3·5차 M-A). 꽝뽑기 카드 선택은 참가자 본인. 비멤버의 그룹 리소스 접근은 403 `NOT_GROUP_MEMBER`. 정산 리비전·변경 로그는 그룹 멤버 조회 가능 |
-| 실시간 | **MVP부터 WebSocket(STOMP)** — 게임 방(로비/진행/공개)은 필수. 참석 현황·장소 투표 현황·정산 현황(벌칙 조건 설정, `REOPENED` 전이, 재확정 결과 포함) 갱신도 같은 채널 사용. **브로드캐스트는 트랜잭션 커밋 후에만**(`@TransactionalEventListener(phase = AFTER_COMMIT)`) 보내 롤백된 상태가 클라이언트에 나가지 않게 한다. 끊겼다 다시 붙으면 REST로 현재 상태를 받아 복구 |
+| 인가 | 초대 링크로 들어온 사람은 로그인 직후 원래 링크로 돌아가 그룹에 자동 가입. 그룹 리소스는 그룹 멤버만 접근. 금융 정보(계좌)는 그룹 멤버에게만 노출. 벌칙 조건 설정·면제·면제 취소·정산 확정·재확정은 호스트만(403 `NOT_MEETING_HOST`). **호스트 = `Meeting.hostMemberId`(모임 생성자, D4)**. 게임 시작(R-0)·게임 취소(R-10)·다시 돌리기(R-5)·게임 종료(`REVEALED → CLOSED`)는 진행자(`GameSession.createdBy`) 또는 호스트(그 외 403 `NOT_GAME_OPERATOR`, E3·5차 M-A). 비멤버의 그룹 리소스 접근은 403 `NOT_GROUP_MEMBER`. 정산 리비전·변경 로그는 그룹 멤버 조회 가능 |
+| 실시간 | **MVP부터 WebSocket(STOMP)** — 게임 방(생성/공개/종료/취소)은 필수. 참석 현황·장소 투표 현황·정산 현황(벌칙 조건 설정, `REOPENED` 전이, 재확정 결과 포함) 갱신도 같은 채널 사용. **브로드캐스트는 트랜잭션 커밋 후에만**(`@TransactionalEventListener(phase = AFTER_COMMIT)`) 보내 롤백된 상태가 클라이언트에 나가지 않게 한다. 끊겼다 다시 붙으면 REST로 현재 상태를 받아 복구 |
 | 알림(재확정) | 정산이 `REOPENED`가 되면 모임 구독자에게 "재확정 필요" 이벤트(호스트 화면엔 재확정 버튼 강조). 재확정되면 "정산이 바뀌었어요(리비전 n)" 이벤트와 함께 **이전 확정 리비전 대비 1인당 변동액(0이 아닌 멤버 목록)**과 새 송금 안내 목록을 보내고, 호스트용 카톡 공유 문구("정산이 수정됐어요(리비전 2): 민수 −20,000원, 철수 +6,600원, 영희 +6,700원, 지수 +6,700원. 이미 송금했다면 변동분만 주고받으세요 …")를 생성한다(E1 — 송금 확인 요청 알림은 없음, 웹 푸시는 기존 범위대로 P1) |
 | 외부 API | **카카오 로컬(장소 검색)** — 서버가 매 요청마다 실시간 프록시 호출, **검색 결과 캐싱·저장 금지, 장소 ID 포함 카카오 응답 값 무저장**(검색은 참고용 — 4.3 장소 도메인 규칙), 서버 측 호출량 제한, 일일 쿼터 초과 시 직접 입력 안내. 지도는 URL 링크로 대체(`manualMapUrl`(https, ≤2,048자) 또는 `/link/search/` 링크) |
 | 금액 처리 | 금액은 정수(원, `long`) 처리, 부동소수점 금지. 비율은 1~100 정수 %, `ceil(금액 × pct / 100 / 100) × 100`을 `(금액 × pct + 9,999) / 10,000 × 100` 정수 연산으로 계산 후 대상 잔액 상한, `FULL`은 올림 없음, 같은 규칙 벌칙자는 잔액 초과 시 균등 분할(S-8). 지출·고정 금액 1~1억 원(`@Max(100_000_000)`), 곱셈은 `Math.multiplyExact`. 벌칙 부담액은 파생값이며 정산 확정·재확정 시 리비전 스냅샷. **정산 확정 후 수정은 허용하고 이력을 남긴다** — 확정마다 `SettlementRevision` 스냅샷, 변경마다 `ChangeLog`(전/후 JSON), 정산은 `REOPENED` 후 재확정(4.5 정산 확정 후 수정, 7장 설계 메모) |
-| 트랜잭션·동시성 | 정산/게임 결과 저장은 트랜잭션 처리, 동시 응답 충돌 시 낙관적 락 (아래 표). 사용자 행동이 몰리는 쓰기(참석 응답, 게임 결과 공개·자동 배정)는 락 충돌 시 서버에서 최대 2회 재시도 후 409(`CONCURRENT_MODIFICATION`). 꽝뽑기 카드 선택은 `PESSIMISTIC_WRITE`로 직렬화하므로 재시도 대상에서 제외(5차 m2). **재시도 규칙(4차 m7):** ① `@Transactional` Service **바깥의 facade**에서 재시도(매 시도가 새 트랜잭션), ② 대상 예외는 `ObjectOptimisticLockingFailureException`만(유니크 위반 `DataIntegrityViolationException`·`BusinessException`은 재시도 안 함 — 예: 같은 카드 선택은 바로 409 `SLOT_ALREADY_PICKED`), ③ 재시도 시 상태를 다시 읽어 이미 목표 상태면(이미 `REVEALED`, 같은 응답 저장됨 등) 쓰기 없이 현재 상태로 성공 응답(멱등). 송금 체크는 E1로 폐지돼 대상에서 제외 |
+| 트랜잭션·동시성 | 정산/게임 결과 저장은 트랜잭션 처리, 동시 응답 충돌 시 낙관적 락 (아래 표). 사용자 행동이 몰리는 쓰기(참석 응답)는 락 충돌 시 서버에서 최대 2회 재시도 후 409(`CONCURRENT_MODIFICATION`). 게임 시작은 추첨을 한 번만 해야 하므로 재시도하지 않는다. **재시도 규칙(4차 m7):** ① `@Transactional` Service **바깥의 facade**에서 재시도(매 시도가 새 트랜잭션), ② 대상 예외는 `ObjectOptimisticLockingFailureException`만(유니크 위반 `DataIntegrityViolationException`·`BusinessException`은 재시도 안 함), ③ 재시도 시 상태를 다시 읽어 이미 목표 상태면(같은 응답 저장됨 등) 쓰기 없이 현재 상태로 성공 응답(멱등). 송금 체크는 E1로 폐지돼 대상에서 제외 |
 
 **아키텍처 방침 (CLAUDE.md 반영)**
 - Spring Boot 4.1 + Java 21, Gradle 9, MySQL, Spring Data JPA.
@@ -489,8 +488,8 @@
 | 그룹 가입 (G-3) | 같은 링크 동시 클릭 | `(group, member)` 유니크 제약 |
 | 장소 투표 (P-3) | 중복 투표 | `(candidate, member)` 유니크 제약 |
 | 장소 확정 (P-4) | 자동 마감 vs 수동 확정 | `Round.version` 낙관적 락, 늦은 쪽 409 |
-| 꽝뽑기 선택 (R-2) | 같은 카드 동시 선택, 여러 참가자 동시 선택 | `GameSession` 행 **`PESSIMISTIC_WRITE`**(`@Lock`, 행 잠금 대기)로 선택 요청 직렬화 → 잠금 획득 후 슬롯 점유 검사, 같은 카드 충돌은 `(gameSession, pickedSlot)` 유니크 제약으로 최종 차단 → 늦은 쪽 409(`SLOT_ALREADY_PICKED`), 재시도 안 함(5차 m2, 기존 "`GameSession.version` 낙관적 락" 대체 — 서로 다른 카드 동시 선택이 낙관적 락 충돌로 실패하는 문제 제거) |
-| 게임 상태 전이 (R-0/R-8/R-10, 게임 종료) | 시작·공개·자동 배정·취소·종료(`REVEALED → CLOSED`) 경합 | `GameSession.version` 낙관적 락. 단 **꽝뽑기 R-8 자동 배정**은 카드 선택(R-2)과 같은 `GameSession` 행 `PESSIMISTIC_WRITE`를 잡아 마지막 카드 선택과 직렬화한다 — 잠금 획득 후 아직 `PLAYING`이고 미선택 참가자가 있을 때만 배정·공개, 이미 `REVEALED`면 쓰기 없이 종료(멱등) |
+| 게임 시작·추첨 (R-0) | 시작 요청 동시 도착 → 중복 추첨 위험 | `GameSession.version` 낙관적 락으로 1건만 성공, 늦은 쪽 409(`CONCURRENT_MODIFICATION` 또는 `GAME_INVALID_TRANSITION`), 재시도 안 함. 결과 insert의 FK 공유 잠금과 데드락이 나지 않도록 상태 변경을 먼저 flush한다 |
+| 게임 상태 전이 (R-0/R-10, 게임 종료) | 시작·취소·종료(`REVEALED → CLOSED`) 경합 | `GameSession.version` 낙관적 락 |
 | 벌칙자 생성 (R-5) | 결과 공개 중복 처리 | `(gameSession, member)` 유니크 제약 + `GameSession.version` 낙관적 락(공개 전이와 같은 트랜잭션), `memberId` 오름차순 insert. 금액형이면 정산 직렬화 대상 |
 | 다시 돌리기 (R-5) | 같은 회차에 동시 요청 → 새 회차 2개 생성 위험 | 사전 검사(원 회차 `REVEALED`/`CLOSED`·후속 회차 없음, 아니면 409 `GAME_NOT_RERUNNABLE`) + `GameSession.rerunOf` **유니크 제약**(NULL 허용, 회차당 후속 회차 1개, 취소 시 `rerunOf` 비움)으로 충분 — 늦은 쪽은 유니크 위반 409(`RERUN_ALREADY_EXISTS`), 또는 먼저 온 요청이 이미 커밋됐으면 사전 검사에서 409(`GAME_NOT_RERUNNABLE`) — 둘 중 하나의 409(5차 m3). 요청 트랜잭션은 원 회차 행을 수정하지 않으므로 원 회차에 별도 락(`OPTIMISTIC_FORCE_INCREMENT`)을 잡지 않는다(4차 m5, 기존 "원 `GameSession.version` 낙관적 락" 표기 대체 — 원 회차를 읽기만 하면 version 검사가 일어나지 않아 의미가 없었음). 원 회차 `Penalty → VOIDED`·규칙 이관·새 벌칙 생성은 **새 회차 결과 공개** 트랜잭션에서 처리 |
 | 벌칙 조건 설정·면제·해제 (R-9) | 조건 설정 vs 새 회차 결과 공개(원 회차 `→VOIDED`·규칙 이관), 조건 설정 vs 대상 지출 삭제(`APPLIED→ASSIGNED`), 적용 ↔ 면제 직접 전환(E2), 호스트 동시 수정 | `PenaltyRule.gameSession` 유니크 제약 + `Penalty.version`·`PenaltyRule.version` 낙관적 락, 늦은 쪽 409. `VOIDED`는 종단 상태라 늦게 도착한 조건 설정은 409. `APPLIED ↔ WAIVED` 전환은 규칙 삭제/생성과 벌칙 전원 전이를 한 트랜잭션에서 처리 |
@@ -539,14 +538,13 @@ Member(kakaoId) ─┬─< GroupMember(nickname, emoji, role) >── Group ─<
                  │                                                       │           status: WAITING/PLAYING/REVEALED/CLOSED/CANCELED,
                  │                                                       │           createdBy(진행자, 다시 돌린 회차는 요청자 — E3),
                  │                                                       │           penaltyKind: MONEY/ACTION/NONE, penaltyNote?(≤100자, 계산 미사용),
-                 │                                                       │           seed/결과 배열(공개 전 비노출), revealedAt?,
+                 │                                                       │           penaltyCount(뽑을 벌칙자 수), seed(공개 전 비노출), revealedAt?,
                  │                                                       │           applyOrderAt?(DATETIME(6), 원 회차 첫 공개 시각, 다시 돌리기 시 상속),
                  │                                                       │           rootSessionId(원 회차 id, 타이브레이크), rerunOf?, canceledRerunOf?, version)
                  │                                                       │   ※ rerunOf 유니크(NULL 허용, 취소 시 비우고 canceledRerunOf에 기록)
                  │                                                       │   ※ 다시 돌린 회차: type·penaltyKind·penaltyNote·참가자 목록 원 회차 복제, 변경 불가
-                 │                                                       ├─< GameParticipant (member, ready, pickedSlot)
-                 │                                                       │     ※ (gameSession, pickedSlot) 유니크
-                 │                                                       ├─< GameResult (member, outcome, rank/score)
+                 │                                                       ├─< GameParticipant (member) ※ 생성 시 고른 차수 참석자, (gameSession, member) 유니크
+                 │                                                       ├─< GameResult (member, outcome: PENALTY/SAFE, rank/score)
                  │                                                       ├─< Penalty (벌칙자, 결과 공개 시 생성:
                  │                                                       │     member, status: ASSIGNED/APPLIED/WAIVED/VOIDED,
                  │                                                       │     waivedBy?, waivedAt?, version)
@@ -576,7 +574,7 @@ Member(kakaoId) ─┬─< GroupMember(nickname, emoji, role) >── Group ─<
   - `SettlementRevision`: 확정·재확정마다 1건(리비전 번호, 확정자·시각, 경고 확인 여부) + 하위 `RevisionMemberShare`(멤버별 부담액·순잔액), `PenaltyCharge`(벌칙별 부담액), 그 리비전의 `Transfer`(송금 안내). 생성 후 수정하지 않는 스냅샷이다. `Settlement.currentRevisionNo`가 최신 리비전을 가리킨다.
   - **리비전 참조 표기 통일(4차 M2):** 리비전 식별은 모임 안 번호 `revisionNo`(1부터)로만 말하고, `Settlement.currentRevisionNo`가 최신 번호를 갖는다. 하위 엔티티(`RevisionMemberShare`·`PenaltyCharge`·`Transfer`)는 `revision` FK(→ `SettlementRevision`)로 소속된다. `revisionId`라는 표기·`revisionId == currentRevisionNo` 같은 id/번호 혼용 비교는 쓰지 않는다(그 검사를 하던 송금 체크는 E1로 폐지).
   - `PenaltyCharge` 스냅샷 컬럼(4차 m2): 부담액 `amount`와 함께 확정 시점의 `moneyType`·값(`fixedAmount` 또는 `ratioPct`)·`targetExpenseId`·`targetExpenseAmount`(확정 시점 대상 지출 금액)·`targetExpenseMemo`(확정 시점 대상 지출 메모, 5차 m4)를 복사해 둔다. 이후 규칙이 바뀌거나 대상 지출이 삭제돼도 그 리비전에서 "왜 이 금액인지"를 설명할 수 있게 하려는 것이며, `targetExpenseId`는 지출 삭제를 막지 않도록 FK가 아닌 값 컬럼이다.
-  - `ChangeLog`: 모임 단위 append-only 로그(누가·언제·대상 엔티티·변경 종류·전/후 JSON·변경 후 정산 상태). 기록 대상: R-9 조건 설정·변경·해제, 면제·면제 취소(적용 ↔ 면제 직접 전환은 2건 — 규칙 해제+면제 / 면제 취소+규칙 설정, E2), `PenaltyRule` 삭제(대상 지출 삭제)·이관(다시 돌리기), **금액형 게임 최초 결과 공개**(벌칙자 `ASSIGNED` 생성, 4차 m1), 다시 돌리기 요청·새 회차 공개(`VOIDED`), 게임 취소, 지출·`ExpenseShare`·개별 조정 추가/수정/삭제는 **항상**, 참석 변경은 **정산이 한 번이라도 확정된 뒤**(리비전 ≥ 1)부터 기록(확정 전 참석 응답은 양이 많고 분쟁 가치가 낮음).
+  - `ChangeLog`: 모임 단위 append-only 로그(누가·언제·대상 엔티티·변경 종류·전/후 JSON·변경 후 정산 상태). 기록 대상: R-9 조건 설정·변경·해제, 면제·면제 취소(적용 ↔ 면제 직접 전환은 2건 — 규칙 해제+면제 / 면제 취소+규칙 설정, E2), `PenaltyRule` 삭제(대상 지출 삭제)·이관(다시 돌리기), **금액형 게임 최초 결과 공개**(벌칙자 `ASSIGNED` 생성, 4차 m1), 다시 돌리기 요청·새 회차 공개(`VOIDED`), 금액형 게임 취소, 지출·`ExpenseShare`·개별 조정 추가/수정/삭제는 **항상**, 참석 변경은 **정산이 한 번이라도 확정된 뒤**(리비전 ≥ 1)부터 기록(확정 전 참석 응답은 양이 많고 분쟁 가치가 낮음).
   - `Transfer`는 `revision`에 속한 **송금 안내(계산 결과)**다 — from·to·amount만 있고 송금 상태(`sentAt`·`confirmedAt`·`supersededAt`·`version`)는 없다(E1). 리비전마다 그 리비전 순잔액 전체 기준으로 새로 만들고, 이전 리비전 `Transfer`는 그대로 남는다. 재확정 시 1인당 변동액은 `RevisionMemberShare` 두 리비전 비교로 파생한다(4.5 재확정 & 변동액 안내 규칙).
 
 **현재 코드와의 차이 → 전환 계획**
@@ -590,7 +588,7 @@ Member(kakaoId) ─┬─< GroupMember(nickname, emoji, role) >── Group ─<
 | `member/controller/MemberController` — `@Controller` + 서버 렌더링 회원가입 폼(`member/joinForm`) | SPA + REST API 결정과 어긋남 | `@RestController` 기반 인증 API(카카오 콜백, 토큰 재발급, 내 정보)로 교체, 회원가입 폼·뷰 제거 |
 | `member/dto/MemberJoinRequest` | 이메일·비밀번호 입력 DTO | 제거, 카카오 사용자 정보·로그인 응답 DTO로 대체 |
 | `global/config/PasswordEncoderConfig` (BCrypt `PasswordEncoder` 빈) | 비밀번호를 안 씀 | **제거**. 대신 OAuth2 클라이언트·토큰 설정으로 대체 |
-| `global/error/ErrorCode` — `DUPLICATE_EMAIL`, `DUPLICATE_NICKNAME` | 이메일 가입 전용 에러 | 제거, 인증·도메인 에러 코드 추가. 정산·게임 관련(모두 409 외 명시): `PENALTY_CONDITION_UNSET`(미설정 벌칙으로 확정 불가), `MONEY_GAME_IN_PROGRESS`(진행 중 금액형 게임), `WARNING_UNCONFIRMED`(`acknowledgeWarnings=true` 필요), `SETTLEMENT_ALREADY_CONFIRMED`, `RERUN_ALREADY_EXISTS`(다시 돌리기 동시 요청의 `rerunOf` 유니크 위반), `GAME_NOT_RERUNNABLE`(원 회차가 `REVEALED`/`CLOSED` 아님·이미 후속 회차 있음), `PENALTY_NOT_CONFIGURABLE`(금액형 아님·결과 공개 전·`VOIDED`), `GAME_NOT_CANCELABLE`, `GAME_INVALID_TRANSITION`(허용되지 않은 게임 상태 전이 — 예: `REVEALED`가 아닌데 종료), `GAME_NOT_READY`(준비 안 한 참가자가 있는데 시작), `SLOT_ALREADY_PICKED`(꽝뽑기 이미 선택된 카드, `(gameSession, pickedSlot)` 유니크 위반도 이 코드로 변환), `CONCURRENT_MODIFICATION`(낙관적 락 충돌), `NOT_MEETING_HOST`(403), `NOT_GAME_OPERATOR`(403, 진행자도 호스트도 아님 — 게임 시작·사다리 결과 공개·게임 취소·다시 돌리기·게임 종료, 5차 M-A), `NOT_GROUP_MEMBER`(403, 비멤버의 그룹 리소스 접근), `EXPENSE_NOT_FOUND`(404), `EXPENSE_NOT_IN_MEETING`(400). 기존 안의 "확정된 정산 변경 불가"는 D2로 **불필요**(확정 후 수정 허용). 기존 안의 `TRANSFER_CONFIRMATION_PENDING`(보류 송금)·`STALE_TRANSFER_REVISION`(현재 리비전 아닌 송금 체크)은 E1(송금 체크 폐지)로 **불필요** |
+| `global/error/ErrorCode` — `DUPLICATE_EMAIL`, `DUPLICATE_NICKNAME` | 이메일 가입 전용 에러 | 제거, 인증·도메인 에러 코드 추가. 정산·게임 관련(모두 409 외 명시): `PENALTY_CONDITION_UNSET`(미설정 벌칙으로 확정 불가), `MONEY_GAME_IN_PROGRESS`(진행 중 금액형 게임), `WARNING_UNCONFIRMED`(`acknowledgeWarnings=true` 필요), `SETTLEMENT_ALREADY_CONFIRMED`, `RERUN_ALREADY_EXISTS`(다시 돌리기 동시 요청의 `rerunOf` 유니크 위반), `GAME_NOT_RERUNNABLE`(원 회차가 `REVEALED`/`CLOSED` 아님·이미 후속 회차 있음), `PENALTY_NOT_CONFIGURABLE`(금액형 아님·결과 공개 전·`VOIDED`), `GAME_NOT_CANCELABLE`, `GAME_INVALID_TRANSITION`(허용되지 않은 게임 상태 전이 — 예: `REVEALED`가 아닌데 종료), `GAME_PARTICIPANT_NOT_ATTENDING`(400, 차수 참석자가 아닌 회원을 참가자로 고름), `GAME_TYPE_NOT_SUPPORTED`(400, 아직 지원하지 않는 게임 종류), `CONCURRENT_MODIFICATION`(낙관적 락 충돌), `NOT_MEETING_HOST`(403), `NOT_GAME_OPERATOR`(403, 진행자도 호스트도 아님 — 게임 시작·게임 취소·다시 돌리기·게임 종료, 5차 M-A), `NOT_GROUP_MEMBER`(403, 비멤버의 그룹 리소스 접근), `EXPENSE_NOT_FOUND`(404), `EXPENSE_NOT_IN_MEETING`(400). 기존 안의 "확정된 정산 변경 불가"는 D2로 **불필요**(확정 후 수정 허용). 기존 안의 `TRANSFER_CONFIRMATION_PENDING`(보류 송금)·`STALE_TRANSFER_REVISION`(현재 리비전 아닌 송금 체크)은 E1(송금 체크 폐지)로 **불필요** |
 | `global/error/GlobalExceptionHandler` — `@ControllerAdvice` + `ModelAndView` 에러 페이지 | JSON API에 HTML 에러 페이지를 내려줌 | `@RestControllerAdvice` + 공통 에러 응답(JSON)으로 전환. `DataIntegrityViolationException`→409 처리는 유지(`rerunOf`·`(gameSession, member)` 유니크 위반도 이 경로, `rerunOf` 위반은 Service에서 `saveAndFlush` 후 `RERUN_ALREADY_EXISTS`로 변환). `ObjectOptimisticLockingFailureException`→409 `CONCURRENT_MODIFICATION` 추가(재시도 대상 쓰기는 facade 재시도 2회 후 이 응답, 6장) |
 
 ---
@@ -599,7 +597,7 @@ Member(kakaoId) ─┬─< GroupMember(nickname, emoji, role) >── Group ─<
 
 | 단계 | 범위 | 검증 질문 |
 |---|---|---|
-| **MVP (v0.1)** | 카카오 로그인(G-3), 그룹·초대링크(G-1, G-2), 모임·차수·차수별 참석(M-1~M-4), 차수별 장소 검색·투표·확정·노출(P-1~P-5), 게임 방(WebSocket) + 사다리·꽝뽑기(각자 폰) + 이탈 처리(R-0, R-1, R-2, R-8), 게임 취소(R-10), 벌칙 프리셋(종류·안내 문구 / 고정·비율·전액, R-4) + 게임 후 벌칙 조건 설정(R-9) + 정산 연동(R-5), 정산(N빵·조정·벌칙 표시·송금최소화(송금 안내)·원 단위 규칙·정산 확정·재확정, S-1~S-5, S-8, S-10) + 확정 후 수정·리비전·변경 로그·1인당 변동액 안내(S-11). (S-6 송금 체크는 E1로 폐지 — 송금은 앱 밖) | 우리 친구들이 단톡방 대신 이 링크를 쓰나? |
+| **MVP (v0.1)** | 카카오 로그인(G-3), 그룹·초대링크(G-1, G-2), 모임·차수·차수별 참석(M-1~M-4), 차수별 장소 검색·투표·확정·노출(P-1~P-5), 게임 방(WebSocket) + 시작 즉시 추첨하는 사다리·꽝뽑기 + 재접속 복구(R-0, R-1, R-2, R-8), 게임 취소(R-10), 벌칙 프리셋(종류·안내 문구 / 고정·비율·전액, R-4) + 게임 후 벌칙 조건 설정(R-9) + 정산 연동(R-5), 정산(N빵·조정·벌칙 표시·송금최소화(송금 안내)·원 단위 규칙·정산 확정·재확정, S-1~S-5, S-8, S-10) + 확정 후 수정·리비전·변경 로그·1인당 변동액 안내(S-11). (S-6 송금 체크는 E1로 폐지 — 송금은 앱 밖) | 우리 친구들이 단톡방 대신 이 링크를 쓰나? |
 | v0.2 | 날짜 투표(M-5), 리마인드(M-6), 체크인(M-7), 볼링 점수→자동 벌칙(R-6), 송금 딥링크(S-7), 영수증 사진(S-1 확장), 1차 근처 2차 장소 추천(P-7) | 총무가 정산을 10분 안에 끝내나? |
 | v0.3 | 명예의 전당(H-2), 히스토리(H-1), 룰렛(R-3) + 장소 동점 룰렛(P-6), 보드게임 기록(R-7), PWA 푸시, 단골 장소(P-8), 역할(G-4), 그룹 계좌(G-5) | 그룹이 매달 다시 오나? |
 | v1.0 | 결산 카드(H-3), 연말 결산(H-4), 회비 모드(S-9), 임시 게스트(G-6), 중간 지점 추천(P-10), 장소 정하기 벌칙(P-9), 노쇼 통계(M-8) | 공유를 통한 신규 그룹 유입이 생기나? |
@@ -652,7 +650,7 @@ Member(kakaoId) ─┬─< GroupMember(nickname, emoji, role) >── Group ─<
 | 카카오 로컬 API 쿼터/장애 | 정책상 캐싱 불가 → 서버 측 호출량 제한(사용자별 검색 빈도 제한 등), 실패 시 직접 입력(이름 + 주소·지도 링크)으로 폴백 |
 | 카카오 로컬 데이터 저장 정책 위반 | 무저장 원칙 적용(오픈 이슈 5 종결): 검색은 참고용 실시간 표시만, 장소 ID 포함 카카오 응답 값 저장 금지, 후보는 사용자 직접 입력만 저장, 입력칸 자동 채우기 금지(프론트 규칙), 지도는 사용자 링크 또는 `/link/search/` 링크. 남는 위험은 프론트가 자동 채우기를 넣는 것 — 백엔드가 막을 수 없으므로 프론트 구현 규칙과 리뷰로 관리 |
 | 직접 입력 지도 링크로 악성 URL 공유 | `https` 스킴만 허용·2,048자 제한(400), 서버는 URL을 호출하지 않고 링크로만 노출 |
-| 각자 폰 게임 중 접속 끊김 | 제한 시간 후 자동 배정(R-8), 재접속 시 REST로 상태 복구 |
+| 게임 공개 때 접속이 끊겨 있거나 화면을 안 열어둠 | 재접속 시 REST로 상태·결과 복구(R-8). 게임·모임 토픽 양쪽으로 브로드캐스트 |
 | 게임 결과 조작 의심 | 서버 생성 결과 + 공개 전 비노출 + 재실행 이력 공개 + 회차당 다시 돌리기 1회 경로(`rerunOf` 유니크). 다시 돌리기는 진행자·호스트만 요청 가능하고 게임 종류·벌칙 종류·안내 문구·참가자를 바꿀 수 없다(E3 — 벌칙자를 빼고 다시 돌리는 식의 조작 차단) |
 | 벌칙자를 안 뒤 금액 조건을 정해서 생기는 분쟁("나 걸리니까 비율 올렸지?") | 게임 생성 시 안내 문구를 결과 공개 전 모두에게 노출, 조건 설정자·시각을 정산 탭에 표시, 조건은 게임 단위로 벌칙자 전원 동일 적용. 조건 설정·변경·해제·면제 이력은 `ChangeLog`에 전/후 값으로 남고 그룹 멤버 누구나 조회 |
 | 호스트가 벌칙 조건 입력을 잊고 정산이 벌칙 없이 끝남 | 조건 미설정 벌칙이 있으면 정산 확정 차단(S-10), 정산 탭에 "조건 미설정" 배지와 입력 진입점 |
@@ -678,7 +676,7 @@ Member(kakaoId) ─┬─< GroupMember(nickname, emoji, role) >── Group ─<
 |---|---|---|
 | 로그인 | **카카오 로그인 단독** | 기존 이메일 회원가입 → 카카오 기반으로 전환(7장 전환 계획), 비로그인 게스트는 P2로 미룸 |
 | 프론트엔드 | **SPA + REST API** | 백엔드는 JSON API·WebSocket 전용, OG 태그용 서버 렌더링 경로 별도 |
-| 게임 진행 | **각자 폰** | MVP부터 WebSocket 필수, 게임 상태 머신·이탈 처리 필요 |
+| 게임 진행 | ~~각자 폰~~ → **진행자가 시작하면 서버가 즉시 추첨해 전원에게 공개**(2026-11-10) | MVP부터 WebSocket 필수, 게임 상태 머신 필요, 이탈 처리 불필요 |
 | 벌칙 금액 | **고정 금액 + 비율 둘 다** (전액은 비율 100% 프리셋) | 4.5 벌칙 정산 규칙 참고 |
 | 장소 결정 | **차수별 장소 + 후보 투표, 카카오 로컬 API로 검색** | Round에 장소 상태 추가, 백엔드에 카카오 로컬 프록시 필요 |
 | 복수 벌칙의 `RATIO` 기준 금액 (오픈 이슈 7 종결) | **원래 대상 금액 × 비율, 단 그 시점 대상 잔액 상한** | 앞 벌칙을 차감한 잔액이 아니라 원래 대상 금액에 비율을 곱하고, 적용 순서대로 잔액에서 차감하되 잔액을 넘으면 잔액까지만 부담. 4.5 S-8 `RATIO` 규칙, 예 4-b·5-b와 일치 |
@@ -699,8 +697,10 @@ Member(kakaoId) ─┬─< GroupMember(nickname, emoji, role) >── Group ─<
 | 호스트 정의 (D4) | **MVP 호스트 = 모임을 만든 사람**(`Meeting.hostMemberId`, 위임 없음) | M-4·P-2·P-4·R-9·R-10·S-10 권한 기준. G-4(그룹 역할, P1)와는 별개, 연결은 오픈 이슈 15 |
 | 다시 돌리기 처리 시점 | **요청 시 새 회차만 생성, 원 회차 `VOIDED`·규칙 이관·조건 상태 상속은 새 회차 결과 공개 시.** 새 회차 취소 시 원 회차 유지(`rerunOf` 해제) | 금액형 새 회차가 진행 중이면 정산 확정 409. R-5·R-10 |
 | 다시 돌리기 동시성 | **`GameSession.rerunOf` 유니크** ~~+ 원 회차 `version` 낙관적 락~~ → 4차 m5: 요청 트랜잭션이 원 회차 행을 수정하지 않으므로 `rerunOf` 유니크만으로 충분(원 회차 락 없음) | 회차당 후속 회차 1개, 동시 요청 중 1건만 성공(늦은 쪽 409 `RERUN_ALREADY_EXISTS`) |
-| 게임 운영 권한·전이 에러 (5차 M-A) | **게임 시작·사다리 결과 공개도 진행자 또는 모임 호스트**(종료·취소·다시 돌리기와 같은 규칙), 그 외 403(`NOT_GAME_OPERATOR`). 잘못된 전이 409 `GAME_INVALID_TRANSITION`, 미준비 시작 409 `GAME_NOT_READY`, 이미 선택된 카드 409 `SLOT_ALREADY_PICKED` | 4.4 게임 상태 전이 표, R-0·R-1·R-2 AC, 5장 게임 탭, 6장 인가, 7장 ErrorCode |
-| 꽝뽑기 카드 선택 동시성 (5차 m2) | **`GameSession` 행 `PESSIMISTIC_WRITE`로 직렬화 + `(gameSession, pickedSlot)` 유니크 → `SLOT_ALREADY_PICKED`.** 기존 "`GameSession.version` 낙관적 락" 대체, 재시도 대상에서 제외 | 4.4 공정성 요구사항, R-2 AC, 6장 재시도 규칙·락 표 |
+| 게임 운영 권한·전이 에러 (5차 M-A) | **게임 시작도 진행자 또는 모임 호스트**(종료·취소·다시 돌리기와 같은 규칙), 그 외 403(`NOT_GAME_OPERATOR`). 잘못된 전이 409 `GAME_INVALID_TRANSITION`. ~~사다리 결과 공개 권한, 미준비 시작 409 `GAME_NOT_READY`, 이미 선택된 카드 409 `SLOT_ALREADY_PICKED`~~ → 게임 진행 단순화(2026-11-10)로 폐지 | 4.4 게임 상태 전이 표, R-0 AC, 5장 게임 탭, 6장 인가, 7장 ErrorCode |
+| 꽝뽑기 카드 선택 동시성 (5차 m2) | ~~`GameSession` 행 `PESSIMISTIC_WRITE`로 직렬화 + `(gameSession, pickedSlot)` 유니크 → `SLOT_ALREADY_PICKED`~~ → 카드 선택 폐지(2026-11-10)로 해당 없음 | 6장 락 표 |
+| 게임 진행 단순화 (2026-11-10) | **진행자가 차수 참석자 중 일부 또는 전부를 골라 방을 만들고, 시작하면 서버가 즉시 벌칙자를 뽑아 공개한다.** 입장·준비, 사다리 공개 요청, 꽝뽑기 카드 선택, 제한 시간 자동 배정 폐지. 사다리·꽝뽑기는 화면 연출만 다르다. 벌칙자 수는 `penaltyCount`(기본 1, 참가자 수 미만). 권한은 기존 유지(생성 = 그룹 멤버, 시작·종료·취소 = 진행자 또는 호스트) | R-0·R-1·R-2·R-8, 4.4 공정성·상태 전이 표, 5장 게임 탭, 6장 인가·재시도·락 표, 7장 `GameParticipant`·`ErrorCode` |
+| 게임 취소 변경 로그 범위 (2026-11-10) | **금액형 게임 취소만 `ChangeLog`에 기록한다.** 행동형·`NONE` 취소 이력은 `CANCELED` 상태로 남는다 | 7장 `ChangeLog` 기록 대상 |
 | 카카오 데이터 무저장 (오픈 이슈 5 종결, 2026-11-04) | **카카오에 문의하지 않고, 허용이 확인되지 않은 활용은 전부 불가로 본다.** 검색은 참고용(실시간 표시만, 입력칸 자동 채우기 금지), 장소 ID·이름·주소·좌표·place_url 등 카카오 응답 값은 저장하지 않음, `Place`는 사용자 입력(`label`·`manualAddress?`·`manualMapUrl?`)만, 지도는 `manualMapUrl` 또는 `/link/search/`(길찾기 `/link/to` 제공 안 함), P-7·P-10 보류(재설계) | P-1·P-5·P-7·P-10, 4.3 장소 도메인 규칙, 5장 장소 탭, 6장 외부 API, 7장 `Place`, 9장 리스크 |
 | 직접 입력 지도 링크 (N6) | **`manualMapUrl`은 `https`만, 최대 2,048자(위반 400). 없으면 `https://map.kakao.com/link/search/{manualAddress 또는 label}`로 대체**(API 호출·저장 없음) | P-1·P-5 수용 기준, 장소 도메인 규칙 |
 

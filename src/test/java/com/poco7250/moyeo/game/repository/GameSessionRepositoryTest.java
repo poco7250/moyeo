@@ -16,7 +16,6 @@ import com.poco7250.moyeo.meeting.repository.MeetingRepository;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.support.TestcontainersConfiguration;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -104,18 +103,6 @@ class GameSessionRepositoryTest {
 	}
 
 	@Test
-	@DisplayName("findByIdForPick은 쓰기 잠금으로 게임을 조회한다")
-	void findByIdForPickLocks() {
-		Long id = save(newGame()).getId();
-		entityManager.clear();
-
-		GameSession found = gameSessionRepository.findByIdForPick(id).orElseThrow();
-
-		assertThat(found.getId()).isEqualTo(id);
-		assertThat(entityManager.getLockMode(found)).isEqualTo(LockModeType.PESSIMISTIC_WRITE);
-	}
-
-	@Test
 	@DisplayName("게임이 속한 그룹 id를 조회한다")
 	void findGroupIdById() {
 		Long id = save(newGame()).getId();
@@ -130,7 +117,7 @@ class GameSessionRepositoryTest {
 	}
 
 	private GameSession newGame() {
-		return GameSession.create(round, GameType.LADDER, 1L, PenaltyKind.MONEY, null, null);
+		return GameSession.create(round, GameType.LADDER, 1L, PenaltyKind.MONEY, null, 1);
 	}
 
 	private GameSession rerunOf(GameSession original) {
