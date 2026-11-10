@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * 차수에서 벌칙자를 정하는 게임 한 회차. 상태 전이는 version 낙관적 락으로 먼저 온 요청만 반영한다.
- * seed와 resultData는 공개 전 결과이므로 응답 DTO에 매핑하지 않는다.
+ * seed는 결과를 재현하는 값이라 공개 뒤에만 응답에 싣는다.
  */
 @Getter
 @Entity
@@ -91,28 +91,30 @@ public class GameSession extends BaseTimeEntity {
 	@JoinColumn(name = "canceled_rerun_of_id")
 	private GameSession canceledRerunOf;
 
-	private Integer timeLimitSeconds;
+	// 시작할 때 뽑을 벌칙자 수
+	@Column(nullable = false)
+	private int penaltyCount;
 
 	@Version
 	private Long version;
 
 	private GameSession(Round round, GameType type, Long createdBy, PenaltyKind penaltyKind,
-			String penaltyNote, Integer timeLimitSeconds) {
+			String penaltyNote, int penaltyCount) {
 		this.round = round;
 		this.type = type;
 		this.status = GameStatus.WAITING;
 		this.createdBy = createdBy;
 		this.penaltyKind = penaltyKind;
 		this.penaltyNote = penaltyNote;
-		this.timeLimitSeconds = timeLimitSeconds;
+		this.penaltyCount = penaltyCount;
 	}
 
 	/**
 	 * 대기(WAITING) 상태의 새 게임을 만든다. 만든 회원이 진행자가 된다.
 	 */
 	public static GameSession create(Round round, GameType type, Long createdBy, PenaltyKind penaltyKind,
-			String penaltyNote, Integer timeLimitSeconds) {
-		return new GameSession(round, type, createdBy, penaltyKind, penaltyNote, timeLimitSeconds);
+			String penaltyNote, int penaltyCount) {
+		return new GameSession(round, type, createdBy, penaltyKind, penaltyNote, penaltyCount);
 	}
 
 	/**
@@ -173,6 +175,20 @@ public class GameSession extends BaseTimeEntity {
 			throw new BusinessException(ErrorCode.GAME_NOT_CANCELABLE);
 		}
 		this.status = GameStatus.CANCELED;
+	}
+
+	/**
+	 * 추첨에 쓴 seed를 기록한다.
+	 */
+	public void recordDraw(long seed) {
+		this.seed = seed;
+	}
+
+	/**
+	 * 결과가 공개된 게임인지 확인한다.
+	 */
+	public boolean isRevealed() {
+		return status == GameStatus.REVEALED || status == GameStatus.CLOSED;
 	}
 
 	/**

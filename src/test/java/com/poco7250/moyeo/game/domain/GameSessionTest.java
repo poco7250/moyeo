@@ -179,7 +179,7 @@ class GameSessionTest {
 	}
 
 	private GameSession sessionWith(GameStatus status) {
-		GameSession session = GameSession.create(null, GameType.LADDER, CREATOR_ID, PenaltyKind.MONEY, null, null);
+		GameSession session = GameSession.create(null, GameType.LADDER, CREATOR_ID, PenaltyKind.MONEY, null, 1);
 		ReflectionTestUtils.setField(session, "status", status);
 		return session;
 	}

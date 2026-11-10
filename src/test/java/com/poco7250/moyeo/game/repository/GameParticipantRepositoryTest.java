@@ -1,7 +1,6 @@
 package com.poco7250.moyeo.game.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.poco7250.moyeo.game.domain.GameParticipant;
@@ -78,15 +77,6 @@ class GameParticipantRepositoryTest {
 	}
 
 	@Test
-	@DisplayName("참가자는 준비 전 상태로 저장된다")
-	void savedNotReady() {
-		GameParticipant saved = gameParticipantRepository.saveAndFlush(GameParticipant.create(session, first));
-
-		assertThat(saved.isReady()).isFalse();
-		assertThat(saved.getPickedSlot()).isNull();
-	}
-
-	@Test
 	@DisplayName("같은 게임에 같은 회원은 한 번만 참가한다")
 	void memberUnique() {
 		gameParticipantRepository.saveAndFlush(GameParticipant.create(session, first));
@@ -96,30 +86,15 @@ class GameParticipantRepositoryTest {
 	}
 
 	@Test
-	@DisplayName("같은 게임에서 같은 카드는 한 명만 고를 수 있다")
-	void pickedSlotUnique() {
-		gameParticipantRepository.saveAndFlush(participantWithSlot(session, first, 1));
-
-		assertThatThrownBy(() -> gameParticipantRepository.saveAndFlush(participantWithSlot(session, second, 1)))
-				.isInstanceOf(DataIntegrityViolationException.class);
-	}
-
-	@Test
-	@DisplayName("다른 게임이면 같은 카드 번호를 쓸 수 있다")
-	void pickedSlotAllowedInOtherGame() {
-		gameParticipantRepository.saveAndFlush(participantWithSlot(session, first, 1));
-
-		assertThatCode(() -> gameParticipantRepository.saveAndFlush(participantWithSlot(otherSession, first, 1)))
-				.doesNotThrowAnyException();
-	}
-
-	@Test
-	@DisplayName("아직 카드를 고르지 않은 참가자는 여러 명일 수 있다")
-	void pickedSlotAllowsMultipleNulls() {
+	@DisplayName("게임의 참가자만 등록 순으로 조회한다")
+	void findsParticipantsOfGame() {
+		gameParticipantRepository.saveAndFlush(GameParticipant.create(session, second));
 		gameParticipantRepository.saveAndFlush(GameParticipant.create(session, first));
+		gameParticipantRepository.saveAndFlush(GameParticipant.create(otherSession, first));
 
-		assertThatCode(() -> gameParticipantRepository.saveAndFlush(GameParticipant.create(session, second)))
-				.doesNotThrowAnyException();
+		assertThat(gameParticipantRepository.findAllByGameSessionIdOrderByIdAsc(session.getId()))
+				.extracting(participant -> participant.getMember().getId())
+				.containsExactly(second.getId(), first.getId());
 	}
 
 	@Test
@@ -135,14 +110,20 @@ class GameParticipantRepositoryTest {
 		assertThat(found.getGameSession().getId()).isEqualTo(session.getId());
 	}
 
-	private GameParticipant participantWithSlot(GameSession gameSession, Member member, int slot) {
-		GameParticipant participant = GameParticipant.create(gameSession, member);
-		participant.pick(slot);
-		return participant;
+	@Test
+	@DisplayName("게임에서 주어진 결과를 받은 참가자만 조회한다")
+	void findsResultsByOutcome() {
+		gameResultRepository.saveAndFlush(GameResult.create(session, first, GameResult.OUTCOME_PENALTY));
+		gameResultRepository.saveAndFlush(GameResult.create(session, second, GameResult.OUTCOME_SAFE));
+		gameResultRepository.saveAndFlush(GameResult.create(otherSession, second, GameResult.OUTCOME_PENALTY));
+
+		assertThat(gameResultRepository.findAllByGameSessionIdAndOutcome(session.getId(), GameResult.OUTCOME_PENALTY))
+				.extracting(result -> result.getMember().getId())
+				.containsExactly(first.getId());
 	}
 
 	private GameSession saveGame(Round round) {
 		return gameSessionRepository.saveAndFlush(
-				GameSession.create(round, GameType.DRAW, 1L, PenaltyKind.NONE, null, null));
+				GameSession.create(round, GameType.DRAW, 1L, PenaltyKind.NONE, null, 1));
 	}
 }

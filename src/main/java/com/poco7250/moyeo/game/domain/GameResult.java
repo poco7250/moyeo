@@ -24,6 +24,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class GameResult extends BaseTimeEntity {
 
+	/** 벌칙자로 뽑힌 참가자의 결과 */
+	public static final String OUTCOME_PENALTY = "PENALTY";
+
+	/** 벌칙을 피한 참가자의 결과 */
+	public static final String OUTCOME_SAFE = "SAFE";
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
