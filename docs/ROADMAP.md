@@ -5,7 +5,7 @@
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 5 진행 중(Task 024 완료, 2026-11-09) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). 다음은 Task 025. 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 벌칙 제외 정산 계산·송금 최소화 순수 도메인(`settlement/calc/`), 정산 조회·최초 확정 API와 리비전 스냅샷(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 공통 코드(`global/`)가 있다. 게임 도메인은 아직 코드가 없다.
+- **현재 단계:** Phase 5 완료(Task 025 완료, 2026-11-10) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). 다음은 Task 026(Phase 6 게임). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 벌칙 제외 정산 계산·송금 최소화 순수 도메인(`settlement/calc/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 공통 코드(`global/`)가 있다. 게임 도메인은 아직 코드가 없다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -15,7 +15,7 @@
 | 2 | 그룹·초대 | 2 | 3 | 3 | ✅ 완료 |
 | 3 | 실시간 기반·모임·차수·참석 | 3 | 4 | 4 | ✅ 완료 |
 | 4 | 장소 결정 | 4 | 6 | 6 | ✅ 완료 |
-| 5 | 정산 기본·최초 확정 | 5-a | 6 | 5 | 🔄 진행 중 |
+| 5 | 정산 기본·최초 확정 | 5-a | 6 | 6 | ✅ 완료 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 0 | ⬜ 대기 |
 | 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 0 | ⬜ 대기 |
 | 8 | 벌칙 정산 연동·확정 게이트 | 8 | 4 | 0 | ⬜ 대기 |
@@ -395,7 +395,7 @@ Phase 10 040 → 041, 042 → 043
   - [x] 현황판 `AttendanceBoardService` — 차수·응답·그룹 멤버를 한 번씩 읽어 차수별 참석/불참/미정/미응답(그룹 멤버 − 응답자) 목록(그룹 닉네임·이모지, 가입 순) + `responseDeadline`·`closed`
   - [x] 응답 저장 시 `AttendanceChangedEvent`(`ATTENDANCE_CHANGED`, 본문 = 그 멤버의 차수별 응답 `MemberAttendanceResponse`)를 `/topic/meetings/{id}`로 커밋 후 브로드캐스트
   - [x] `AttendanceRepository.findAllByMeetingId`, `findAllByMeetingIdAndMemberId`
-  - [ ] 지출 있는 차수의 정산 직렬화·`REOPENED`·재시도 facade 연결은 Task 025에서(5-a 범위) — `AttendanceService`에 붙인다
+  - [x] 지출 있는 차수의 정산 직렬화·`REOPENED`·재시도 facade 연결은 Task 025에서 완료(5-a 범위)
 - **테스트**
   - [x] 단위(`AttendanceShortcutTest` 3건): 차수 2개 늦참 = (불참, 참석)·1차만 = (참석, 불참), 차수 3개, 차수 1개 예외
   - [x] 단위(`MeetingTest` +2건): 마감 없음, 마감 정각 열림·1초 후 닫힘
@@ -726,26 +726,34 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew test` 통과(전체 884건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
 - **참고:** 리비전 INSERT의 FK 검사가 정산 행에 공유 잠금을 잡아서, 커밋 때 정산을 UPDATE하면 동시 확정끼리 MySQL 데드락(500)이 난다(통합 테스트로 재현). 그래서 `confirmFirst` 뒤 `settlementRepository.flush()`로 정산 UPDATE를 리비전 INSERT보다 먼저 내보내 늦은 쪽이 409 `CONCURRENT_MODIFICATION`으로 끝나게 했다. Task 039의 재확정도 같은 순서를 지켜야 한다
 
-### Task 025: 확정 후 금액 영향 변경의 `REOPENED` 연결(참석 포함)   ⬜ 대기
+### Task 025: 확정 후 금액 영향 변경의 `REOPENED` 연결(참석 포함)   ✅ 완료
 
+- **완료일:** 2026-11-10 · 브랜치 `feature/settlement-reopen`
 - **관련 기능:** S-11, M-3, 6장 정산 직렬화·재시도
 - **선행 Task:** Task 013, Task 024
 - **선행 조건:** PRD 오픈 이슈 17(현재 안 유지 확인)
 - **구현 사항**
-  - [ ] `AttendanceService.respond`: 지출 1건 이상인 차수의 참석 변경이면 `lockForAmountChange` + `markAmountChanged`, 지출 없는 차수는 직렬화 제외
-  - [ ] 참석 변경 `ChangeLog`는 정산이 한 번이라도 확정된 뒤(`currentRevisionNo ≥ 1`)부터만 기록
-  - [ ] 참석 응답 Controller → `OptimisticRetryExecutor` facade → Service(재시도 시 같은 응답이 이미 저장됐으면 쓰기 없이 성공, 멱등)
-  - [ ] `ExpenseShare`·지출 변경 경로가 모두 `markAmountChanged`를 거치는지 점검
-  - [ ] "재확정 필요" 이벤트 페이로드: `ChangeLog` 요약(무엇이 바뀌었는지)
+  - [x] `settlement/service/AttendanceSettlementHandler`(`MANDATORY`) — `AttendanceWriter`가 실제로 바뀐 응답을 넘기면, 지출 1건 이상인 차수만 추려 `lockForAmountChange` + `markAmountChanged`, 지출 없는 차수는 직렬화 제외(`ExpenseRepository.findRoundIdsWithExpense`)
+  - [x] 참석 변경 `ChangeLog`는 정산이 한 번이라도 확정된 뒤(`Settlement.hasBeenConfirmed`, `currentRevisionNo ≥ 1`)부터만 기록. 행위자는 본인 응답이면 본인, 대리 수정이면 호스트
+  - [x] 참석 응답 Controller → `AttendanceService`(`OptimisticRetryExecutor` facade, 기존 유니크 위반 1회 재시도를 안에 유지) → `AttendanceWriter`(재시도 시 같은 응답이 이미 저장됐으면 쓰기 없이 성공, 멱등)
+  - [x] `ExpenseShare`·지출 변경 경로 점검: `ExpenseService.create/update/delete`, `ExpenseShareService.adjust`뿐이고 모두 `markAmountChanged`를 거침
+  - [x] "재확정 필요" 이벤트 페이로드: `SettlementReopenedResponse(actorId, changes)`, `SettlementChangeSummary(entityType, entityId, changeType)` — `markAmountChanged`에 요약 인자 추가
+  - [x] ⚠️ 결정(2026-11-10, PRD·ROADMAP 미정 항목)
+    - "참석 변경"은 값이 실제로 달라진 차수만. 첫 응답과 `ABSENT ↔ UNDECIDED`도 포함(PRD 4.5·오픈 이슈 17의 변경 종류 기준)
+    - 같은 값 재응답은 쓰기 없이 성공: `respondedAt` 갱신도 `ATTENDANCE_CHANGED` 이벤트도 없음(Task 013의 동작을 바꿈)
+    - 참석 `ChangeLog`는 바뀐 차수(지출 있는 차수)당 1건, `entityId` = 참석 행 id, 첫 응답 `CREATE`·그 외 `UPDATE`
+    - 이벤트 요약에 전/후 값은 넣지 않음(상세는 변경 로그 조회)
 - **테스트**
-  - [ ] 단위: 지출 있는 차수 참석 변경 + `CONFIRMED` → `REOPENED` + `ChangeLog` 1건
-  - [ ] 단위: 지출 없는 차수 참석 변경 → 정산 상태·버전 변화 없음
-  - [ ] 단위: 확정 전 참석 변경 → `ChangeLog` 없음
-  - [ ] 통합(DB): 리비전 1 확정 → 지출 금액 수정 → `REOPENED`, `ChangeLog`(행위자, 시각, `Expense`, `UPDATE`, 전/후 JSON), 커밋 후 "정산 재확정 필요" 이벤트 1회
+  - [x] 단위(`AttendanceSettlementHandlerTest` 5건): 지출 있는 차수 참석 변경 → 잠금·`markAmountChanged`·`ChangeLog` 1건 순서, 지출 없는 차수 → `SettlementGuard` 호출 없음, 확정 전 → `ChangeLog` 없음, 혼합 시 지출 있는 차수만, 첫 응답 `CREATE`
+  - [x] 단위(`AttendanceWriterTest` +3건·`AttendanceServiceTest` +2건): 같은 값 재응답 멱등, 바뀐 차수만 전달, 대리 수정 행위자 = 호스트, 낙관적 락 1회 충돌 후 성공, 3회 연속 `CONCURRENT_MODIFICATION`
+  - [x] 단위: `SettlementTest` +1건, `@DataJpaTest`: `ExpenseRepositoryTest` +1건
+  - [x] 통합(`AttendanceServiceIntegrationTest` 5건, DB): 확정 후 참석 변경 → `REOPENED`·`ChangeLog`·커밋 후 이벤트 1회, 지출 없는 차수·같은 값 재응답 → 상태·버전 불변, 다른 멤버 응답이 먼저 커밋돼 충돌해도 재시도로 둘 다 저장
+  - [x] 통합(`SettlementConfirmIntegrationTest` +1건, DB): 리비전 1 확정 → 지출 금액 수정 → `REOPENED`, `ChangeLog`(행위자, 시각, `Expense`, `UPDATE`, 전/후 JSON), 커밋 후 "정산 재확정 필요" 이벤트 1회
 - **수락 기준**
-  - Given 리비전 1로 확정된 정산 / When 멤버가 지출 금액을 수정하면 / Then 수정은 성공하고 같은 트랜잭션에서 `Settlement`가 `REOPENED`, `ChangeLog`에 (행위자, 시각, `Expense`, `UPDATE`, 전/후 JSON)이 저장되며, 커밋 후 모임 구독자에게 "정산 재확정 필요" 이벤트가 브로드캐스트된다. (PRD S-11 앞부분)
+  - [x] Given 리비전 1로 확정된 정산 / When 멤버가 지출 금액을 수정하면 / Then 수정은 성공하고 같은 트랜잭션에서 `Settlement`가 `REOPENED`, `ChangeLog`에 (행위자, 시각, `Expense`, `UPDATE`, 전/후 JSON)이 저장되며, 커밋 후 모임 구독자에게 "정산 재확정 필요" 이벤트가 브로드캐스트된다. (PRD S-11 앞부분)
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 901건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
+- **참고:** `OptimisticRetryExecutor`는 활성 트랜잭션 안에서 호출을 거부하므로 `AttendanceService`를 부르는 통합 테스트에는 `@Transactional`을 붙일 수 없다. 지출 없는 차수의 참석 변경은 PRD대로 직렬화에서 빠지므로, 그 차수의 첫 지출 등록과 재확정이 동시에 겹치는 극히 좁은 경합은 막지 않는다
 
 ---
 

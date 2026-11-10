@@ -14,6 +14,7 @@ import com.poco7250.moyeo.settlement.domain.Expense;
 import com.poco7250.moyeo.settlement.dto.ExpenseRequest;
 import com.poco7250.moyeo.settlement.dto.ExpenseResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseSnapshot;
+import com.poco7250.moyeo.settlement.dto.SettlementChangeSummary;
 import com.poco7250.moyeo.settlement.repository.ExpenseRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -107,7 +108,8 @@ public class ExpenseService {
 
 	private void recordChange(Meeting meeting, Long actorId, Expense expense, ChangeType changeType,
 			ExpenseSnapshot before, ExpenseSnapshot after) {
-		settlementGuard.markAmountChanged(meeting.getId(), actorId);
+		settlementGuard.markAmountChanged(meeting.getId(), actorId,
+				List.of(new SettlementChangeSummary(ChangeLogEntityType.EXPENSE, expense.getId(), changeType)));
 		changeLogRecorder.record(meeting.getId(), actorId, ChangeLogEntityType.EXPENSE, expense.getId(), changeType,
 				before, after);
 	}

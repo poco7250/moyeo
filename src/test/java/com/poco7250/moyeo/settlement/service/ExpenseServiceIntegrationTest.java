@@ -31,6 +31,7 @@ import com.poco7250.moyeo.settlement.dto.ExpenseResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseShareAdjustRequest;
 import com.poco7250.moyeo.settlement.dto.ExpenseShareItem;
 import com.poco7250.moyeo.settlement.dto.ExpenseShareResponse;
+import com.poco7250.moyeo.settlement.dto.SettlementChangeSummary;
 import com.poco7250.moyeo.settlement.dto.SettlementReopenedResponse;
 import com.poco7250.moyeo.settlement.repository.ChangeLogRepository;
 import com.poco7250.moyeo.settlement.repository.ExpenseRepository;
@@ -140,7 +141,7 @@ class ExpenseServiceIntegrationTest {
 				new ExpenseRequest(100_000L, payer.getId(), "볼링"));
 
 		assertThat(expenseRepository.findById(response.id())).isPresent();
-		assertReopenedOnceBy(other.getId());
+		assertReopenedOnceBy(other.getId(), ChangeLogEntityType.EXPENSE, response.id(), ChangeType.CREATE);
 		ChangeLog log = singleLog();
 		assertThat(log.getEntityType()).isEqualTo(ChangeLogEntityType.EXPENSE);
 		assertThat(log.getEntityId()).isEqualTo(response.id());
@@ -162,7 +163,7 @@ class ExpenseServiceIntegrationTest {
 
 		assertThat(response.amount()).isEqualTo(70_000L);
 		assertThat(response.payerId()).isEqualTo(other.getId());
-		assertReopenedOnceBy(other.getId());
+		assertReopenedOnceBy(other.getId(), ChangeLogEntityType.EXPENSE, expense.getId(), ChangeType.UPDATE);
 		ChangeLog log = singleLog();
 		assertThat(log.getChangeType()).isEqualTo(ChangeType.UPDATE);
 		assertThat(log.getBeforeJson()).contains("\"amount\":100000");
@@ -181,7 +182,7 @@ class ExpenseServiceIntegrationTest {
 
 		assertThat(expenseRepository.findById(expense.getId())).isEmpty();
 		assertThat(shareCount(expense.getId())).isZero();
-		assertReopenedOnceBy(other.getId());
+		assertReopenedOnceBy(other.getId(), ChangeLogEntityType.EXPENSE, expense.getId(), ChangeType.DELETE);
 		List<ChangeLog> logs = logs();
 		assertThat(logs).hasSize(2);
 		ChangeLog deleted = logs.getLast();
@@ -226,7 +227,7 @@ class ExpenseServiceIntegrationTest {
 		expenseShareService.adjust(expense.getId(), other.getId(), new ExpenseShareAdjustRequest(List.of(
 				new ExpenseShareItem(third.getId(), null, null, true))));
 
-		assertReopenedOnceBy(other.getId());
+		assertReopenedOnceBy(other.getId(), ChangeLogEntityType.EXPENSE_SHARE, expense.getId(), ChangeType.UPDATE);
 		assertThat(singleLog().getSettlementStatusAfter()).isEqualTo(SettlementStatus.REOPENED);
 	}
 
@@ -274,10 +275,12 @@ class ExpenseServiceIntegrationTest {
 		return settlementRepository.findById(settlement.getId()).orElseThrow().getStatus();
 	}
 
-	private void assertReopenedOnceBy(Long actorId) {
+	private void assertReopenedOnceBy(Long actorId, ChangeLogEntityType entityType, Long entityId,
+			ChangeType changeType) {
 		assertThat(currentStatus()).isEqualTo(SettlementStatus.REOPENED);
 		verify(messagingTemplate, times(1)).convertAndSend("/topic/meetings/" + meeting.getId(),
-				new RealtimeMessage(SettlementReopenedEvent.TYPE, new SettlementReopenedResponse(actorId)));
+				new RealtimeMessage(SettlementReopenedEvent.TYPE, new SettlementReopenedResponse(actorId,
+						List.of(new SettlementChangeSummary(entityType, entityId, changeType)))));
 	}
 
 	private List<ChangeLog> logs() {

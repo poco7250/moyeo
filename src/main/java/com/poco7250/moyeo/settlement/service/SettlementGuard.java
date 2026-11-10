@@ -3,8 +3,10 @@ package com.poco7250.moyeo.settlement.service;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.settlement.domain.Settlement;
+import com.poco7250.moyeo.settlement.dto.SettlementChangeSummary;
 import com.poco7250.moyeo.settlement.dto.SettlementReopenedResponse;
 import com.poco7250.moyeo.settlement.repository.SettlementRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
@@ -45,11 +47,12 @@ public class SettlementGuard {
 	 * 잠금을 빠뜨린 호출자도 직렬화에서 새지 않도록 여기서 다시 잠금 조회를 거친다.
 	 *
 	 * @param actorId 변경한 회원. 스케줄러가 일으킨 변경이면 null
+	 * @param changes 이벤트에 실을 변경 요약
 	 */
-	public void markAmountChanged(Long meetingId, Long actorId) {
+	public void markAmountChanged(Long meetingId, Long actorId, List<SettlementChangeSummary> changes) {
 		if (lockForAmountChange(meetingId).reopen()) {
 			eventPublisher.publishEvent(
-					new SettlementReopenedEvent(meetingId, new SettlementReopenedResponse(actorId)));
+					new SettlementReopenedEvent(meetingId, new SettlementReopenedResponse(actorId, changes)));
 		}
 	}
 }

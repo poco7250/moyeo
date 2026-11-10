@@ -27,6 +27,7 @@ import com.poco7250.moyeo.settlement.dto.ExpenseShareItem;
 import com.poco7250.moyeo.settlement.dto.ExpenseShareResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseShareSnapshot;
 import com.poco7250.moyeo.settlement.dto.ExpenseSharesSnapshot;
+import com.poco7250.moyeo.settlement.dto.SettlementChangeSummary;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -95,7 +96,8 @@ class ExpenseShareServiceTest {
 				new ExpenseShareResponse(3L, null, null, true));
 		InOrder order = inOrder(settlementGuard, changeLogRecorder);
 		order.verify(settlementGuard).lockForAmountChange(MEETING_ID);
-		order.verify(settlementGuard).markAmountChanged(MEETING_ID, ACTOR_ID);
+		order.verify(settlementGuard).markAmountChanged(MEETING_ID, ACTOR_ID,
+				List.of(new SettlementChangeSummary(ChangeLogEntityType.EXPENSE_SHARE, EXPENSE_ID, ChangeType.UPDATE)));
 		order.verify(changeLogRecorder).record(MEETING_ID, ACTOR_ID, ChangeLogEntityType.EXPENSE_SHARE, EXPENSE_ID,
 				ChangeType.UPDATE,
 				new ExpenseSharesSnapshot(EXPENSE_ID, List.of(
@@ -135,7 +137,7 @@ class ExpenseShareServiceTest {
 				new ExpenseShareItem(3L, null, null, true)))), ErrorCode.INVALID_INPUT);
 
 		assertThat(expense.getShares()).singleElement().satisfies(share -> assertThat(share.isExcluded()).isTrue());
-		verify(settlementGuard, never()).markAmountChanged(any(), any());
+		verify(settlementGuard, never()).markAmountChanged(any(), any(), any());
 		verifyNoInteractions(changeLogRecorder);
 	}
 

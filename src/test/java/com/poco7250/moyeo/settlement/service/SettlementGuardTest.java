@@ -9,10 +9,14 @@ import static org.mockito.Mockito.verify;
 
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
+import com.poco7250.moyeo.settlement.domain.ChangeLogEntityType;
+import com.poco7250.moyeo.settlement.domain.ChangeType;
 import com.poco7250.moyeo.settlement.domain.Settlement;
 import com.poco7250.moyeo.settlement.domain.SettlementStatus;
+import com.poco7250.moyeo.settlement.dto.SettlementChangeSummary;
 import com.poco7250.moyeo.settlement.dto.SettlementReopenedResponse;
 import com.poco7250.moyeo.settlement.repository.SettlementRepository;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,6 +32,8 @@ class SettlementGuardTest {
 
 	private static final Long MEETING_ID = 1L;
 	private static final Long ACTOR_ID = 2L;
+	private static final List<SettlementChangeSummary> CHANGES =
+			List.of(new SettlementChangeSummary(ChangeLogEntityType.EXPENSE, 3L, ChangeType.UPDATE));
 
 	@Mock
 	SettlementRepository settlementRepository;
@@ -43,11 +49,11 @@ class SettlementGuardTest {
 	void markConfirmed() {
 		Settlement settlement = givenSettlement(SettlementStatus.CONFIRMED);
 
-		settlementGuard.markAmountChanged(MEETING_ID, ACTOR_ID);
+		settlementGuard.markAmountChanged(MEETING_ID, ACTOR_ID, CHANGES);
 
 		assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.REOPENED);
 		verify(eventPublisher).publishEvent(
-				new SettlementReopenedEvent(MEETING_ID, new SettlementReopenedResponse(ACTOR_ID)));
+				new SettlementReopenedEvent(MEETING_ID, new SettlementReopenedResponse(ACTOR_ID, CHANGES)));
 	}
 
 	@Test
@@ -55,7 +61,7 @@ class SettlementGuardTest {
 	void markDraft() {
 		Settlement settlement = givenSettlement(SettlementStatus.DRAFT);
 
-		settlementGuard.markAmountChanged(MEETING_ID, ACTOR_ID);
+		settlementGuard.markAmountChanged(MEETING_ID, ACTOR_ID, CHANGES);
 
 		assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.DRAFT);
 		verify(settlementRepository).findByMeetingIdForUpdate(MEETING_ID);
@@ -67,7 +73,7 @@ class SettlementGuardTest {
 	void markReopened() {
 		givenSettlement(SettlementStatus.REOPENED);
 
-		settlementGuard.markAmountChanged(MEETING_ID, ACTOR_ID);
+		settlementGuard.markAmountChanged(MEETING_ID, ACTOR_ID, CHANGES);
 
 		verify(eventPublisher, never()).publishEvent(any(Object.class));
 	}

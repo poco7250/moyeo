@@ -14,11 +14,15 @@ import com.poco7250.moyeo.meeting.dto.RoundAttendanceItem;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.member.repository.MemberRepository;
+import com.poco7250.moyeo.settlement.dto.AttendanceChange;
+import com.poco7250.moyeo.settlement.service.AttendanceSettlementHandler;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +42,7 @@ public class AttendanceWriter {
 	private final RoundRepository roundRepository;
 	private final AttendanceRepository attendanceRepository;
 	private final MemberRepository memberRepository;
+	private final AttendanceSettlementHandler attendanceSettlementHandler;
 	private final ApplicationEventPublisher eventPublisher;
 	private final Clock clock;
 
@@ -53,7 +58,7 @@ public class AttendanceWriter {
 		if (meeting.isResponseClosed(now) && !meeting.isHost(memberId)) {
 			throw new BusinessException(ErrorCode.ATTENDANCE_DEADLINE_PASSED);
 		}
-		return save(meeting, memberId, request, now);
+		return save(meeting, memberId, memberId, request, now);
 	}
 
 	/**
@@ -68,24 +73,29 @@ public class AttendanceWriter {
 		if (!groupMemberRepository.existsByGroupIdAndMemberId(meeting.getGroup().getId(), targetMemberId)) {
 			throw new BusinessException(ErrorCode.ATTENDANCE_TARGET_NOT_MEMBER);
 		}
-		return save(meeting, targetMemberId, request, LocalDateTime.now(clock));
+		return save(meeting, hostId, targetMemberId, request, LocalDateTime.now(clock));
 	}
 
 	/**
-	 * 요청을 차수별 상태로 풀어 기존 행은 고치고 없는 행은 만든 뒤, 변경 이벤트를 발행한다.
+	 * 요청을 차수별 상태로 풀어 기존 행은 고치고 없는 행은 만든다. 실제로 바뀐 응답이 있을 때만 정산에 반영하고 변경 이벤트를 발행한다.
 	 */
-	private MemberAttendanceResponse save(Meeting meeting, Long memberId, AttendanceRespondRequest request,
-			LocalDateTime now) {
+	private MemberAttendanceResponse save(Meeting meeting, Long actorId, Long memberId,
+			AttendanceRespondRequest request, LocalDateTime now) {
 		List<Round> rounds = roundRepository.findAllByMeetingIdOrderBySeq(meeting.getId());
 		Map<Round, AttendanceStatus> answers = resolveAnswers(rounds, request);
 		Map<Long, Attendance> existing = attendanceRepository
 				.findAllByMeetingIdAndMemberId(meeting.getId(), memberId).stream()
 				.collect(Collectors.toMap(a -> a.getRound().getId(), Function.identity()));
 
-		answers.forEach((round, status) -> upsert(existing.get(round.getId()), round, memberId, status, now));
+		List<AttendanceChange> changes = new ArrayList<>();
+		answers.forEach((round, status) -> upsert(existing.get(round.getId()), round, memberId, status, now)
+				.ifPresent(changes::add));
 
 		MemberAttendanceResponse response = toResponse(memberId, rounds, answers, existing);
-		eventPublisher.publishEvent(new AttendanceChangedEvent(meeting.getId(), response));
+		if (!changes.isEmpty()) {
+			attendanceSettlementHandler.onChanged(meeting.getId(), actorId, changes);
+			eventPublisher.publishEvent(new AttendanceChangedEvent(meeting.getId(), response));
+		}
 		return response;
 	}
 
@@ -113,13 +123,24 @@ public class AttendanceWriter {
 		return answers;
 	}
 
-	private void upsert(Attendance current, Round round, Long memberId, AttendanceStatus status, LocalDateTime now) {
-		if (current != null) {
-			current.changeStatus(status, now);
-			return;
+	/**
+	 * 응답 한 건을 반영한다. 기존 값과 같으면 쓰지 않는다(재시도·중복 요청 멱등).
+	 *
+	 * @return 실제로 바뀐 내용. 같은 값이면 비어 있다
+	 */
+	private Optional<AttendanceChange> upsert(Attendance current, Round round, Long memberId, AttendanceStatus status,
+			LocalDateTime now) {
+		if (current == null) {
+			Attendance created = attendanceRepository.save(
+					Attendance.respond(round, memberRepository.getReferenceById(memberId), status, now));
+			return Optional.of(new AttendanceChange(created.getId(), round.getId(), memberId, null, status));
 		}
-		attendanceRepository.save(
-				Attendance.respond(round, memberRepository.getReferenceById(memberId), status, now));
+		AttendanceStatus before = current.getStatus();
+		if (before == status) {
+			return Optional.empty();
+		}
+		current.changeStatus(status, now);
+		return Optional.of(new AttendanceChange(current.getId(), round.getId(), memberId, before, status));
 	}
 
 	/**
