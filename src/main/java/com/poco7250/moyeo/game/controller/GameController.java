@@ -4,10 +4,13 @@ import com.poco7250.moyeo.auth.security.LoginMember;
 import com.poco7250.moyeo.game.dto.GameCreateRequest;
 import com.poco7250.moyeo.game.dto.GameStateResponse;
 import com.poco7250.moyeo.game.service.GameLobbyService;
+import com.poco7250.moyeo.game.service.GameQueryService;
 import com.poco7250.moyeo.global.common.ApiResponse;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,6 +27,23 @@ import org.springframework.web.bind.annotation.RestController;
 public class GameController {
 
 	private final GameLobbyService gameLobbyService;
+	private final GameQueryService gameQueryService;
+
+	/**
+	 * 차수의 게임 목록을 최근에 만든 순으로 조회한다. 실시간 알림을 놓친 멤버가 결과를 찾는 경로다.
+	 */
+	@GetMapping("/rounds/{roundId}/games")
+	public ApiResponse<List<GameStateResponse>> getRoundGames(@LoginMember Long memberId, @PathVariable Long roundId) {
+		return ApiResponse.ok(gameQueryService.getRoundGames(roundId, memberId));
+	}
+
+	/**
+	 * 게임의 현재 상태를 조회한다. 재접속한 화면이 이걸로 상태를 복구한다.
+	 */
+	@GetMapping("/games/{gameId}/state")
+	public ApiResponse<GameStateResponse> getState(@LoginMember Long memberId, @PathVariable Long gameId) {
+		return ApiResponse.ok(gameQueryService.getState(gameId, memberId));
+	}
 
 	/**
 	 * 차수 참석자 중 고른 회원으로 게임 방을 만든다.

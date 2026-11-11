@@ -1,9 +1,11 @@
 package com.poco7250.moyeo.game.controller;
 
+import static org.hamcrest.Matchers.hasItem;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -17,6 +19,7 @@ import com.poco7250.moyeo.game.dto.GameParticipantResponse;
 import com.poco7250.moyeo.game.dto.GameResultResponse;
 import com.poco7250.moyeo.game.dto.GameStateResponse;
 import com.poco7250.moyeo.game.service.GameLobbyService;
+import com.poco7250.moyeo.game.service.GameQueryService;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.support.SecurityTestConfig;
@@ -57,6 +60,77 @@ class GameControllerTest {
 
 	@MockitoBean
 	GameLobbyService gameLobbyService;
+
+	@MockitoBean
+	GameQueryService gameQueryService;
+
+	@Test
+	@DisplayName("공개 전 상태 조회 응답에는 결과와 seed가 없다")
+	void stateBeforeReveal() throws Exception {
+		given(gameQueryService.getState(300L, MEMBER_ID)).willReturn(WAITING);
+
+		query("/api/games/300/state")
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.status").value("WAITING"))
+				.andExpect(jsonPath("$.data.participants[1].nickname").value("영희"))
+				.andExpect(jsonPath("$.data.result").doesNotExist())
+				.andExpect(jsonPath("$.data.seed").doesNotExist())
+				.andExpect(jsonPath("$.data.resultData").doesNotExist());
+	}
+
+	@Test
+	@DisplayName("공개 후 상태 조회 응답에는 seed와 벌칙자가 있다")
+	void stateAfterReveal() throws Exception {
+		given(gameQueryService.getState(300L, MEMBER_ID)).willReturn(REVEALED);
+
+		query("/api/games/300/state")
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.status").value("REVEALED"))
+				.andExpect(jsonPath("$.data.result.seed").value(42))
+				.andExpect(jsonPath("$.data.result.penaltyMemberIds[0]").value(9));
+	}
+
+	@Test
+	@DisplayName("그룹 멤버가 아니면 상태 조회는 403 NOT_GROUP_MEMBER다")
+	void stateForbidden() throws Exception {
+		given(gameQueryService.getState(300L, MEMBER_ID)).willThrow(new BusinessException(ErrorCode.NOT_GROUP_MEMBER));
+
+		query("/api/games/300/state")
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error.code").value("NOT_GROUP_MEMBER"));
+	}
+
+	@Test
+	@DisplayName("차수 게임 목록은 공개된 게임만 결과를 담는다")
+	void roundGames() throws Exception {
+		given(gameQueryService.getRoundGames(100L, MEMBER_ID)).willReturn(List.of(WAITING, REVEALED));
+
+		query(CREATE_URL)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.length()").value(2))
+				.andExpect(jsonPath("$.data[0].result").doesNotExist())
+				.andExpect(jsonPath("$.data[1].result.penaltyMemberIds[0]").value(9));
+	}
+
+	@Test
+	@DisplayName("그룹 멤버가 아니면 차수 게임 목록은 403 NOT_GROUP_MEMBER다")
+	void roundGamesForbidden() throws Exception {
+		given(gameQueryService.getRoundGames(100L, MEMBER_ID))
+				.willThrow(new BusinessException(ErrorCode.NOT_GROUP_MEMBER));
+
+		query(CREATE_URL)
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error.code").value("NOT_GROUP_MEMBER"));
+	}
+
+	@Test
+	@DisplayName("로그인하지 않으면 조회도 401이다")
+	void queryUnauthenticated() throws Exception {
+		mockMvc.perform(get("/api/games/300/state")).andExpect(status().isUnauthorized());
+		mockMvc.perform(get(CREATE_URL)).andExpect(status().isUnauthorized());
+		verifyNoInteractions(gameQueryService);
+	}
 
 	@Test
 	@DisplayName("게임을 만들면 201과 안내 문구를 주고 공개 전 결과는 없다")
@@ -150,13 +224,18 @@ class GameControllerTest {
 		create(body)
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.error.code").value("INVALID_INPUT"))
-				.andExpect(jsonPath("$.error.fieldErrors[0].field").value(field));
+				// 한 요청이 여러 검증에 걸리면 필드 에러 순서가 정해져 있지 않다
+				.andExpect(jsonPath("$.error.fieldErrors[*].field").value(hasItem(field)));
 		verifyNoInteractions(gameLobbyService);
 	}
 
 	private ResultActions create(String body) throws Exception {
 		return mockMvc.perform(post(CREATE_URL).cookie(loginCookie())
 				.contentType(MediaType.APPLICATION_JSON).content(body));
+	}
+
+	private ResultActions query(String url) throws Exception {
+		return mockMvc.perform(get(url).cookie(loginCookie()));
 	}
 
 	private ResultActions action(String name) throws Exception {

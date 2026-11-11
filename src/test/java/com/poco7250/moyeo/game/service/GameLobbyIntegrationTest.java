@@ -1,6 +1,7 @@
 package com.poco7250.moyeo.game.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
@@ -16,6 +17,7 @@ import com.poco7250.moyeo.game.dto.GameStateResponse;
 import com.poco7250.moyeo.game.repository.GameResultRepository;
 import com.poco7250.moyeo.game.repository.GameSessionRepository;
 import com.poco7250.moyeo.global.error.BusinessException;
+import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.global.event.RealtimeMessage;
 import com.poco7250.moyeo.group.domain.Group;
 import com.poco7250.moyeo.group.domain.GroupMember;
@@ -66,6 +68,9 @@ class GameLobbyIntegrationTest {
 
 	@Autowired
 	GameLobbyService gameLobbyService;
+
+	@Autowired
+	GameQueryService gameQueryService;
 
 	@Autowired
 	GameSessionRepository gameSessionRepository;
@@ -203,6 +208,56 @@ class GameLobbyIntegrationTest {
 				.hasSize(1);
 		assertThat(gameResultRepository.findAllByGameSessionIdAndOutcome(created.gameId(), GameResult.OUTCOME_SAFE))
 				.hasSize(2);
+	}
+
+	@Test
+	@DisplayName("재접속한 멤버는 상태 조회로 공개 전엔 결과 없이, 공개 후엔 벌칙자와 seed를 받는다")
+	void recoverStateAfterReconnect() {
+		GameStateResponse created = createGame(PenaltyKind.NONE, List.of(second.getId(), third.getId()));
+
+		GameStateResponse before = gameQueryService.getState(created.gameId(), absent.getId());
+		assertThat(before.status()).isEqualTo(GameStatus.WAITING);
+		assertThat(before.result()).isNull();
+
+		GameStateResponse started = gameLobbyService.start(created.gameId(), host.getId());
+
+		assertThat(gameQueryService.getState(created.gameId(), absent.getId())).isEqualTo(started);
+		assertThat(started.result().seed()).isNotNull();
+	}
+
+	@Test
+	@DisplayName("차수 게임 목록은 최근 순이고 공개된 게임만 결과를 담으며 취소된 게임도 보인다")
+	void roundGamesList() {
+		GameStateResponse revealed = createGame(PenaltyKind.NONE, List.of(second.getId(), third.getId()));
+		gameLobbyService.start(revealed.gameId(), host.getId());
+		GameStateResponse canceled = createGame(PenaltyKind.NONE, List.of(host.getId(), second.getId()));
+		gameLobbyService.cancel(canceled.gameId(), host.getId());
+		GameStateResponse waiting = createGame(PenaltyKind.NONE, List.of(host.getId(), third.getId()));
+
+		List<GameStateResponse> games = gameQueryService.getRoundGames(round.getId(), third.getId());
+
+		assertThat(games).extracting(GameStateResponse::gameId)
+				.containsExactly(waiting.gameId(), canceled.gameId(), revealed.gameId());
+		assertThat(games).extracting(GameStateResponse::status)
+				.containsExactly(GameStatus.WAITING, GameStatus.CANCELED, GameStatus.REVEALED);
+		assertThat(games.get(0).result()).isNull();
+		assertThat(games.get(1).result()).isNull();
+		assertThat(games.get(2).result().penaltyMemberIds()).hasSize(1);
+	}
+
+	@Test
+	@DisplayName("그룹 멤버가 아니면 게임 상태와 차수 게임 목록을 볼 수 없다")
+	void queryRejectsNonMember() {
+		GameStateResponse created = createGame(PenaltyKind.NONE, List.of(second.getId(), third.getId()));
+		Member outsider = memberRepository.save(Member.ofKakao(nextKakaoId++, "외부인", null, null));
+
+		assertThatThrownBy(() -> gameQueryService.getState(created.gameId(), outsider.getId()))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.NOT_GROUP_MEMBER);
+		assertThatThrownBy(() -> gameQueryService.getRoundGames(round.getId(), outsider.getId()))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.NOT_GROUP_MEMBER);
+		memberRepository.deleteById(outsider.getId());
 	}
 
 	@Test
