@@ -74,6 +74,10 @@ public enum ErrorCode {
 	GAME_PARTICIPANT_NOT_ATTENDING(HttpStatus.BAD_REQUEST, "차수 참석자만 게임 참가자로 고를 수 있습니다."),
 	GAME_TYPE_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "아직 지원하지 않는 게임 종류입니다."),
 
+	// 벌칙
+	// 벌칙 상태 전이 표에 없는 전이(예: 무효가 된 벌칙에 조건 설정)
+	PENALTY_NOT_CONFIGURABLE(HttpStatus.CONFLICT, "지금 상태에서는 벌칙 조건을 바꿀 수 없습니다."),
+
 	// 초대
 	INVITE_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "초대 링크를 찾을 수 없습니다."),
 	// 만료·폐기된 링크. 예전엔 있었지만 이제 못 쓴다는 의미라 410으로 404와 구분한다
