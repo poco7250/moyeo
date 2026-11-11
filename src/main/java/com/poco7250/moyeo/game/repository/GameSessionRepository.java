@@ -1,6 +1,7 @@
 package com.poco7250.moyeo.game.repository;
 
 import com.poco7250.moyeo.game.domain.GameSession;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,4 +17,9 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
 	 */
 	@Query("select g.round.meeting.group.id from GameSession g where g.id = :gameId")
 	Optional<Long> findGroupIdById(@Param("gameId") Long gameId);
+
+	/**
+	 * 차수의 게임을 최근에 만든 순으로 조회한다(취소·종료된 게임 포함).
+	 */
+	List<GameSession> findAllByRoundIdOrderByIdDesc(Long roundId);
 }

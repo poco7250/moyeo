@@ -116,6 +116,19 @@ class GameSessionRepositoryTest {
 		assertThat(gameSessionRepository.findGroupIdById(Long.MAX_VALUE)).isEmpty();
 	}
 
+	@Test
+	@DisplayName("차수의 게임을 최근에 만든 순으로 조회하고 다른 차수 게임은 제외한다")
+	void findAllByRoundIdOrderByIdDesc() {
+		GameSession first = save(newGame());
+		GameSession second = save(newGame());
+		Round otherRound = roundRepository.saveAndFlush(Round.create(round.getMeeting(), 2, "노래방"));
+		save(GameSession.create(otherRound, GameType.DRAW, 1L, PenaltyKind.NONE, null, 1));
+
+		assertThat(gameSessionRepository.findAllByRoundIdOrderByIdDesc(round.getId()))
+				.extracting(GameSession::getId)
+				.containsExactly(second.getId(), first.getId());
+	}
+
 	private GameSession newGame() {
 		return GameSession.create(round, GameType.LADDER, 1L, PenaltyKind.MONEY, null, 1);
 	}
