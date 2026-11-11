@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-11 (`feature/game-state-recovery` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-11 (`feature/penalty-domain` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 6 완료(Task 030 완료, 2026-11-11) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. 다음은 Task 031(벌칙·벌칙 규칙 도메인 골격). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 벌칙 제외 정산 계산·송금 최소화 순수 도메인(`settlement/calc/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API와 게임 상태 조회·차수별 게임 목록 API(`game/`), 게임 인가 `GameAccessChecker`(`global/auth/`), 공통 코드(`global/`)가 있다.
+- **현재 단계:** Phase 7 진행 중(Task 031 완료, 2026-11-11) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격)을 완료했다(2026-11-11). 다음은 Task 032(결과 공개 시 벌칙자 확정). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 벌칙 제외 정산 계산·송금 최소화 순수 도메인(`settlement/calc/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API와 게임 상태 조회·차수별 게임 목록 API(`game/`), 게임 인가 `GameAccessChecker`(`global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이(`penalty/`), 공통 코드(`global/`)가 있다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -17,14 +17,14 @@
 | 4 | 장소 결정 | 4 | 6 | 6 | ✅ 완료 |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 6 | ✅ 완료 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 5 | ✅ 완료 |
-| 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 0 | ⬜ 대기 |
+| 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 1 | 🔄 진행 중 |
 | 8 | 벌칙 정산 연동·확정 게이트 | 8 | 4 | 0 | ⬜ 대기 |
 | 9 | 재확정·리비전 비교·알림 | 5-b | 2 | 0 | ⬜ 대기 |
 | 10 | MVP 통합 검증 | 9 | 3 | 0 | ⬜ 대기 |
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **30** | |
+| **합계** | | | **66** (MVP 43) | **31** | |
 
 ## 상태 범례
 
@@ -870,23 +870,33 @@ Phase 10 040 → 041, 042 → 043
 - **목표:** 결과 공개 시 `Penalty`(`ASSIGNED`) 생성, 다시 돌리기(권한·복제·`rerunOf` 유니크), 새 회차 공개 시 `VOIDED`·규칙 이관·조건 상태 상속, 새 회차 취소
 - **포함 기능 ID:** R-4, R-5, R-10
 
-### Task 031: 벌칙·벌칙 규칙 도메인 골격   ⬜ 대기
+### Task 031: 벌칙·벌칙 규칙 도메인 골격   ✅ 완료
 
+- **완료일:** 2026-11-11 · 브랜치 `feature/penalty-domain`
 - **관련 기능:** R-5, R-9, 4.5 벌칙 상태 전이 표
 - **선행 Task:** Task 026
 - **구현 사항**
-  - [ ] `penalty/domain/Penalty`(gameSession, member, status `ASSIGNED/APPLIED/WAIVED/VOIDED`, waivedBy?, waivedAt?, `@Version`) — `(gameSession, member)` 유니크, `chargedAmount` 필드 없음
-  - [ ] `penalty/domain/PenaltyRule`(gameSession 유니크, moneyType `FIXED_AMOUNT/RATIO/FULL`, amount?, ratioPct?, targetExpense 필수 FK, setBy, updatedAt, `@Version`) + `moveTo(newGameSession)`(setBy·updatedAt 유지)
-  - [ ] `Penalty` 전이 메서드(4.5 표 전체): apply, waive, unwaive, unapply, void(종단), 허용 안 된 전이는 409 `PENALTY_NOT_CONFIGURABLE`
-  - [ ] Repository: `findAllByGameSessionIdAndStatusNot(VOIDED)`, `PenaltyRuleRepository.findByGameSessionId`, `findAllByTargetExpenseId`
+  - [x] `penalty/domain/Penalty`(gameSession, member, status `ASSIGNED/APPLIED/WAIVED/VOIDED`, waivedBy?, waivedAt?, `@Version`) — `(gameSession, member)` 유니크, `chargedAmount` 필드 없음. 팩토리 `Penalty.assign`(`ASSIGNED`)
+  - [x] `penalty/domain/PenaltyRule`(gameSession 유니크, moneyType `FIXED_AMOUNT/RATIO/FULL`, amount?, ratioPct?, targetExpense 필수 FK, setBy, updatedAt, `@Version`) + `moveTo(newGameSession)`(setBy·updatedAt 유지). `create`가 종류별 값 조합을 검증한다(고정 금액 1~1억·비율 1~100·전액은 값 없음, 위반 시 400 `INVALID_INPUT`)
+  - [x] `Penalty` 전이 메서드(4.5 표 전체): `apply`(ASSIGNED·WAIVED →), `waive(waivedBy, waivedAt)`(ASSIGNED·APPLIED →), `unwaive`, `unapply`, `voidOut`(종단), 허용 안 된 전이는 409 `PENALTY_NOT_CONFIGURABLE`
+  - [x] Repository: `PenaltyRepository.findAllByGameSessionIdAndStatusNot(VOIDED)`, `PenaltyRuleRepository.findByGameSessionId`, `findAllByTargetExpenseId`
+  - [x] 에러 코드: `PENALTY_NOT_CONFIGURABLE`(409)
+  - [x] ⚠️ 결정(2026-11-11, ROADMAP 미정 항목)
+    - `void`는 Java 예약어라 무효 전이 메서드 이름은 `voidOut()`
+    - `PenaltyRule`은 `BaseTimeEntity`를 상속하지 않는다. 자동 감사(`@LastModifiedDate`)는 `moveTo`로 게임만 바꿔도 `updatedAt`을 갱신하므로, `updatedAt`을 도메인이 직접 넣는 일반 컬럼으로 뒀다(`createdAt`은 없음)
+    - `waivedBy`·`setBy`는 `GameSession.createdBy`처럼 FK가 아닌 회원 id 값
+    - `WAIVED → APPLIED`·`WAIVED → ASSIGNED`는 면제 정보를 비우고, `VOIDED`가 될 때는 이력용으로 남긴다
+    - 다시 돌린 회차의 `(생성) → APPLIED/WAIVED`는 전용 팩토리 없이 `assign` 후 `apply()`·`waive(원 회차 값)`로 만든다(Task 034)
+    - 조건 값 변경 메서드(`PenaltyRule.update`)는 Task 036에서 추가
 - **테스트**
-  - [ ] 단위(전이 표 전체): `ASSIGNED→APPLIED/WAIVED`, `APPLIED→ASSIGNED/WAIVED`, `WAIVED→ASSIGNED/APPLIED`, 모든 비종단 → `VOIDED`, `VOIDED`에서 어떤 전이도 불가
-  - [ ] 단위: `PenaltyRule.moveTo` 후 setBy·updatedAt 불변
-  - [ ] `@DataJpaTest`: `(gameSession, member)` 유니크, `PenaltyRule.gameSession` 유니크
+  - [x] 단위(`PenaltyTest` 21건, 전이 표 전체): `ASSIGNED→APPLIED/WAIVED`, `APPLIED→ASSIGNED/WAIVED`, `WAIVED→ASSIGNED/APPLIED`, 모든 비종단 → `VOIDED`, `VOIDED`에서 어떤 전이도 불가, 면제 정보 기록·비움
+  - [x] 단위(`PenaltyRuleTest` 17건): `PenaltyRule.moveTo` 후 setBy·updatedAt 불변, 종류별 경계값·잘못된 값 조합
+  - [x] `@DataJpaTest`(`PenaltyRepositoryTest` 4건, `PenaltyRuleRepositoryTest` 4건): `(gameSession, member)` 유니크, `PenaltyRule.gameSession` 유니크, 비무효 벌칙 조회, 대상 지출로 조회, 이관 후 DB의 `updatedAt` 불변
 - **수락 기준**
-  - Given `VOIDED` 벌칙 / When 어떤 전이를 시도하면 / Then 409로 거부된다.
+  - [x] Given `VOIDED` 벌칙 / When 어떤 전이를 시도하면 / Then 409로 거부된다. — `PenaltyTest.voidedIsTerminal`
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 1045건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
+- **참고:** 새 테이블 `penalty`·`penalty_rule`은 로컬 `ddl-auto=update`로 자동 생성된다. `penalty_rule.target_expense_id` FK 때문에 규칙이 걸린 지출은 삭제가 막히는데, 규칙을 만드는 API(Task 036)가 아직 없어 지금은 영향이 없고 삭제 연동은 Task 037에서 한다
 
 ### Task 032: 결과 공개 시 벌칙자 확정   ⬜ 대기
 
