@@ -118,6 +118,19 @@ public class GameSession extends BaseTimeEntity {
 	}
 
 	/**
+	 * 공개된 회차를 다시 돌릴 새 회차(WAITING)를 만든다. 종류·벌칙 설정·벌칙자 수는 원 회차를 복제하고,
+	 * 적용 순서 시각과 원 회차 id를 이어받아 벌칙 적용 순번이 원래 자리를 지키게 한다. 요청자가 진행자가 된다.
+	 */
+	public static GameSession rerunOf(GameSession original, Long requesterId) {
+		GameSession rerun = new GameSession(original.round, original.type, requesterId, original.penaltyKind,
+				original.penaltyNote, original.penaltyCount);
+		rerun.rerunOf = original;
+		rerun.applyOrderAt = original.applyOrderAt;
+		rerun.rootSessionId = original.rootSessionId;
+		return rerun;
+	}
+
+	/**
 	 * 저장으로 id가 생긴 첫 회차를 자기 자신의 원 회차로 표시한다.
 	 *
 	 * @throws IllegalStateException 아직 저장되지 않아 id가 없으면
@@ -167,6 +180,7 @@ public class GameSession extends BaseTimeEntity {
 
 	/**
 	 * 공개 전 게임을 취소한다(WAITING·PLAYING → CANCELED).
+	 * 다시 돌린 회차면 원 회차를 다시 돌릴 수 있게 rerunOf를 비우고, 이력용으로 canceledRerunOf에 남긴다.
 	 *
 	 * @throws BusinessException WAITING·PLAYING이 아니면 GAME_NOT_CANCELABLE
 	 */
@@ -175,6 +189,10 @@ public class GameSession extends BaseTimeEntity {
 			throw new BusinessException(ErrorCode.GAME_NOT_CANCELABLE);
 		}
 		this.status = GameStatus.CANCELED;
+		if (rerunOf != null) {
+			this.canceledRerunOf = rerunOf;
+			this.rerunOf = null;
+		}
 	}
 
 	/**
@@ -189,6 +207,13 @@ public class GameSession extends BaseTimeEntity {
 	 */
 	public boolean isRevealed() {
 		return status == GameStatus.REVEALED || status == GameStatus.CLOSED;
+	}
+
+	/**
+	 * 다시 돌릴 수 있는 상태(공개됨)인지 확인한다. 이미 후속 회차가 있는지는 저장소 조회로 따로 본다.
+	 */
+	public boolean isRerunnable() {
+		return isRevealed();
 	}
 
 	/**

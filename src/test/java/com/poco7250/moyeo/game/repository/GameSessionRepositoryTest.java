@@ -129,6 +129,23 @@ class GameSessionRepositoryTest {
 				.containsExactly(second.getId(), first.getId());
 	}
 
+	@Test
+	@DisplayName("후속 회차 유무는 rerunOf로 확인하고, 취소로 rerunOf를 비운 회차는 세지 않는다")
+	void existsByRerunOfId() {
+		GameSession original = save(newGame());
+		assertThat(gameSessionRepository.existsByRerunOfId(original.getId())).isFalse();
+
+		GameSession rerun = save(GameSession.rerunOf(original, 2L));
+		assertThat(gameSessionRepository.existsByRerunOfId(original.getId())).isTrue();
+
+		rerun.cancel();
+		save(rerun);
+		entityManager.clear();
+		assertThat(gameSessionRepository.existsByRerunOfId(original.getId())).isFalse();
+		assertThat(gameSessionRepository.findById(rerun.getId()).orElseThrow().getCanceledRerunOf().getId())
+				.isEqualTo(original.getId());
+	}
+
 	private GameSession newGame() {
 		return GameSession.create(round, GameType.LADDER, 1L, PenaltyKind.MONEY, null, 1);
 	}

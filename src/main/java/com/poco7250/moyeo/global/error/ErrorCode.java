@@ -71,6 +71,8 @@ public enum ErrorCode {
 	NOT_GAME_OPERATOR(HttpStatus.FORBIDDEN, "게임 진행자나 모임 호스트만 할 수 있습니다."),
 	GAME_INVALID_TRANSITION(HttpStatus.CONFLICT, "지금 게임 상태에서는 할 수 없는 요청입니다."),
 	GAME_NOT_CANCELABLE(HttpStatus.CONFLICT, "지금 상태에서는 취소할 수 없는 게임입니다."),
+	GAME_NOT_RERUNNABLE(HttpStatus.CONFLICT, "다시 돌릴 수 없는 게임입니다."),
+	RERUN_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 다시 돌리기가 요청된 게임입니다."),
 	GAME_PARTICIPANT_NOT_ATTENDING(HttpStatus.BAD_REQUEST, "차수 참석자만 게임 참가자로 고를 수 있습니다."),
 	GAME_TYPE_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "아직 지원하지 않는 게임 종류입니다."),
 

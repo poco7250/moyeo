@@ -97,6 +97,6 @@ class GameQueryServiceTest {
 
 	private GameStateResponse state(Long gameId, GameStatus status, GameResultResponse result) {
 		return new GameStateResponse(gameId, ROUND_ID, GameType.LADDER, status, MEMBER_ID, PenaltyKind.NONE, null, 1,
-				List.of(), result);
+				gameId, null, null, List.of(), result);
 	}
 }
