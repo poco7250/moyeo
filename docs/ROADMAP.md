@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-12 (`feature/penalty-assign` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-12 (`feature/game-rerun` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 7 진행 중(Task 032 완료, 2026-11-12) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격, 2026-11-11)과 Task 032(결과 공개 시 벌칙자 확정, 2026-11-12)를 완료했다. 다음은 Task 033(다시 돌리기 요청과 다시 돌린 회차 취소). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 벌칙 제외 정산 계산·송금 최소화 순수 도메인(`settlement/calc/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API와 게임 상태 조회·차수별 게임 목록 API(`game/`), 게임 인가 `GameAccessChecker`(`global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이, 결과 공개 시 벌칙자 확정 `PenaltyAssigner`(`penalty/`), 공통 코드(`global/`)가 있다.
+- **현재 단계:** Phase 7 진행 중(Task 033 완료, 2026-11-12) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격, 2026-11-11)과 Task 032(결과 공개 시 벌칙자 확정, 2026-11-12), Task 033(다시 돌리기 요청과 다시 돌린 회차 취소, 2026-11-12)을 완료했다. 다음은 Task 034(다시 돌린 회차 결과 공개). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 벌칙 제외 정산 계산·송금 최소화 순수 도메인(`settlement/calc/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API와 게임 상태 조회·차수별 게임 목록 API, 다시 돌리기 요청 API(`game/`), 게임 인가 `GameAccessChecker`(`global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이, 결과 공개 시 벌칙자 확정 `PenaltyAssigner`(`penalty/`), 공통 코드(`global/`)가 있다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -17,14 +17,14 @@
 | 4 | 장소 결정 | 4 | 6 | 6 | ✅ 완료 |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 6 | ✅ 완료 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 5 | ✅ 완료 |
-| 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 2 | 🔄 진행 중 |
+| 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 3 | 🔄 진행 중 |
 | 8 | 벌칙 정산 연동·확정 게이트 | 8 | 4 | 0 | ⬜ 대기 |
 | 9 | 재확정·리비전 비교·알림 | 5-b | 2 | 0 | ⬜ 대기 |
 | 10 | MVP 통합 검증 | 9 | 3 | 0 | ⬜ 대기 |
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **32** | |
+| **합계** | | | **66** (MVP 43) | **33** | |
 
 ## 상태 범례
 
@@ -924,29 +924,37 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew test` 통과(전체 1058건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
 - **참고:** 이제 `MONEY`·`ACTION` 게임을 시작하면 `penalty` 행이 생기므로, 게임을 시작하는 통합 테스트는 정리할 때 `game_session`보다 먼저 `penalty`를 지워야 한다. Task 034는 `onRevealed` 안에 `rerunOf` 분기를 더한다
 
-### Task 033: 다시 돌리기 요청과 다시 돌린 회차 취소   ⬜ 대기
+### Task 033: 다시 돌리기 요청과 다시 돌린 회차 취소   ✅ 완료
 
+- **완료일:** 2026-11-12 · 브랜치 `feature/game-rerun`
 - **관련 기능:** R-5, R-10, E3
 - **선행 Task:** Task 032
 - **구현 사항**
-  - [ ] `GameRerunService.request(originalId, requesterId)` — 권한(원 회차 진행자 또는 호스트, 그 외 403 `NOT_GAME_OPERATOR`, 비멤버 403 `NOT_GROUP_MEMBER`) → 사전 검사(`REVEALED`/`CLOSED`이면서 후속 회차 없음, 아니면 409 `GAME_NOT_RERUNNABLE`) → 새 `GameSession`(`WAITING`, rerunOf, createdBy = 요청자, applyOrderAt·rootSessionId 상속, type·penaltyKind·penaltyNote·참가자 복제) `saveAndFlush`, 유니크 위반 → 409 `RERUN_ALREADY_EXISTS`
-  - [ ] 요청 DTO에 type·penaltyKind·penaltyNote·참가자 필드 없음
-  - [ ] 원 회차 행은 수정하지 않음(락 없음), 원 `Penalty`·`PenaltyRule` 그대로
-  - [ ] 금액형이면 `lockForAmountChange` + `markAmountChanged` + `ChangeLog`
-  - [ ] 취소 확장: 다시 돌린 회차 취소 시 `rerunOf` 비우고 `canceledRerunOf` = 원 회차
-  - [ ] 게임 이력 조회에 재실행·취소 이력 공개
-  - [ ] 에러 코드: `GAME_NOT_RERUNNABLE`, `RERUN_ALREADY_EXISTS`(409)
+  - [x] `game/service/GameRerunService.request(originalId, requesterId)` — 권한(`GameAccessChecker.requireOperator`: 원 회차 진행자 또는 호스트, 그 외 403 `NOT_GAME_OPERATOR`, 비멤버 403 `NOT_GROUP_MEMBER`) → 사전 검사(`REVEALED`/`CLOSED`이면서 후속 회차 없음, 아니면 409 `GAME_NOT_RERUNNABLE`) → `GameSession.rerunOf(original, requesterId)`(`WAITING`, rerunOf, createdBy = 요청자, applyOrderAt·rootSessionId 상속, type·penaltyKind·penaltyNote·penaltyCount 복제) `saveAndFlush`, 유니크 위반 → 409 `RERUN_ALREADY_EXISTS` → 참가자 복제
+  - [x] 요청 DTO 자체가 없다(`POST /api/games/{gameId}/rerun`, 본문 없음, 201) — type·penaltyKind·penaltyNote·참가자를 바꿀 길이 없음
+  - [x] 원 회차 행은 수정하지 않음(락 없음), 원 `Penalty`·`PenaltyRule` 그대로
+  - [x] 금액형이면 `lockForAmountChange` + `markAmountChanged` + `ChangeLog`
+  - [x] 취소 확장: `GameSession.cancel()`이 다시 돌린 회차면 `rerunOf`를 비우고 `canceledRerunOf` = 원 회차로 남긴다(서비스가 아니라 전이 메서드에 둬서 빠뜨릴 수 없게)
+  - [x] 게임 이력 조회에 재실행·취소 이력 공개: `GameStateResponse`에 `rootSessionId`·`rerunOfId`·`canceledRerunOfId` 추가 — 상태 조회·차수 게임 목록·실시간 메시지에 같이 실린다
+  - [x] `GameSessionRepository.existsByRerunOfId`, `game/dto/GameRerunSnapshot`(status, type, penaltyKind, rerunOfId)
+  - [x] 에러 코드: `GAME_NOT_RERUNNABLE`, `RERUN_ALREADY_EXISTS`(409)
+  - [x] ⚠️ 결정(2026-11-12, ROADMAP 미정 항목)
+    - 다시 돌리기 `ChangeLog`는 새 enum 값 없이 `GAME_SESSION` + `CREATE`, entityId = **새 회차** id, before 없음, after = `GameRerunSnapshot`. 일반 게임 생성은 로그를 남기지 않으므로 `GAME_SESSION` `CREATE`가 곧 다시 돌리기 요청이다
+    - 이력 공개는 별도 API 없이 기존 응답에 필드 3개를 더하는 방식. 같은 `rootSessionId`끼리 묶으면 한 게임의 회차 이력이다
+    - 벌칙자 수(`penaltyCount`)도 원 회차 값을 복제한다. 참가자는 그대로 복제하고 참석 여부를 다시 검사하지 않는다(Task 027 결정과 같음)
+    - 새 회차 생성 알림은 일반 생성처럼 **모임 토픽**으로만 보낸다(원 회차 게임 토픽에는 다른 게임의 상태를 보내지 않는다)
 - **테스트**
-  - [ ] 단위: 진행자·호스트 요청 성공, 필드 복제·상속 확인, 원 `Penalty` 불변
-  - [ ] 단위: 그 외 멤버 403 `NOT_GAME_OPERATOR`, `WAITING`/`PLAYING`/`CANCELED`·후속 회차 있음 → 409 `GAME_NOT_RERUNNABLE`, 아무것도 생성 안 됨
-  - [ ] 통합(DB, 동시성): 같은 회차 동시 2건 → 1건 성공, 늦은 쪽 409 `RERUN_ALREADY_EXISTS` 또는 `GAME_NOT_RERUNNABLE`
-  - [ ] 통합(DB): `CONFIRMED` 정산 금액형 다시 돌리기 → 같은 트랜잭션 `REOPENED` + `ChangeLog`
-  - [ ] 단위: 다시 돌린 회차(`WAITING`) 취소 → 원 회차 `Penalty`·`PenaltyRule` 불변, 원 회차 재요청 가능
+  - [x] 단위(`GameRerunServiceTest` 11건): 호스트·진행자 요청 성공, 필드 복제·상속, 참가자 복제, 원 회차 불변 / 403 `NOT_GAME_OPERATOR` / `WAITING`·`PLAYING`·`CANCELED`·후속 회차 있음 → 409 `GAME_NOT_RERUNNABLE`, 아무것도 생성 안 됨 / 유니크 위반 → `RERUN_ALREADY_EXISTS` / 금액형만 정산 반영·`ChangeLog`
+  - [x] 단위(`GameSessionTest` 8건 추가): `rerunOf` 팩토리, 다시 돌린 회차 취소 시 `rerunOf` 비움·`canceledRerunOf` 기록, `isRerunnable`
+  - [x] `@WebMvcTest`(`GameControllerTest` 3건 추가): 201·`rerunOfId`, 403, 409 두 종류, 비로그인 401
+  - [x] `@DataJpaTest`(`GameSessionRepositoryTest` 1건 추가): `existsByRerunOfId`(취소 후 false)
+  - [x] 통합(DB, `GameRerunIntegrationTest` 6종): 복제·상속과 원 `Penalty` 불변, 비진행자 403, 사전 검사 409, 동시 2건(5회 반복) → 1건 성공·늦은 쪽 409 `RERUN_ALREADY_EXISTS` 또는 `GAME_NOT_RERUNNABLE`, `CONFIRMED` 정산 금액형 다시 돌리기 → `REOPENED` + `ChangeLog`, 다시 돌린 회차 취소 → 원 `Penalty` 불변·원 회차 재요청 가능·목록에 취소 이력
 - **수락 기준**
-  - When 원 회차 진행자 또는 호스트가 "다시 돌리기"를 요청하면 / Then `rerunOf`가 원 회차를 가리키고 `applyOrderAt`을 이어받은 새 `GameSession`(`WAITING`, `createdBy` = 요청자, `type`·`penaltyKind`·`penaltyNote`·참가자 목록은 원 회차 복제)이 생기고, 원 회차 `Penalty`는 아직 바뀌지 않는다. 진행자·호스트가 아닌 그룹 멤버가 요청하면 403(`NOT_GAME_OPERATOR`), 원 회차가 `REVEALED`/`CLOSED`가 아니거나 이미 후속 회차가 있으면 409(`GAME_NOT_RERUNNABLE`)를 받고 아무것도 생성되지 않는다. 같은 회차에 다시 돌리기 요청 2건이 동시에 오면 1건만 성공하고, 늦은 쪽은 409 `RERUN_ALREADY_EXISTS` 또는 409 `GAME_NOT_RERUNNABLE` 중 하나를 받는다. Given 정산이 `CONFIRMED`인 모임의 금액형 게임 / When 다시 돌리기를 요청하면 / Then 새 회차가 생성되고 같은 트랜잭션에서 `Settlement`가 `REOPENED`가 되며 `ChangeLog`에 다시 돌리기가 기록된다. (PRD R-5)
-  - Given 다시 돌린 회차(`WAITING`) / When 취소하면 / Then 원 회차 `Penalty`·`PenaltyRule`은 바뀌지 않고, 원 회차에 다시 돌리기를 새로 요청할 수 있다. (PRD R-10)
+  - [x] When 원 회차 진행자 또는 호스트가 "다시 돌리기"를 요청하면 / Then `rerunOf`가 원 회차를 가리키고 `applyOrderAt`을 이어받은 새 `GameSession`(`WAITING`, `createdBy` = 요청자, `type`·`penaltyKind`·`penaltyNote`·참가자 목록은 원 회차 복제)이 생기고, 원 회차 `Penalty`는 아직 바뀌지 않는다. 진행자·호스트가 아닌 그룹 멤버가 요청하면 403(`NOT_GAME_OPERATOR`), 원 회차가 `REVEALED`/`CLOSED`가 아니거나 이미 후속 회차가 있으면 409(`GAME_NOT_RERUNNABLE`)를 받고 아무것도 생성되지 않는다. 같은 회차에 다시 돌리기 요청 2건이 동시에 오면 1건만 성공하고, 늦은 쪽은 409 `RERUN_ALREADY_EXISTS` 또는 409 `GAME_NOT_RERUNNABLE` 중 하나를 받는다. Given 정산이 `CONFIRMED`인 모임의 금액형 게임 / When 다시 돌리기를 요청하면 / Then 새 회차가 생성되고 같은 트랜잭션에서 `Settlement`가 `REOPENED`가 되며 `ChangeLog`에 다시 돌리기가 기록된다. (PRD R-5) — `GameRerunIntegrationTest.rerunCopiesOriginal`·`rerunRejectsNonOperator`·`rerunRejectsNotRerunnable`·`concurrentRerun`·`moneyRerunReopensSettlement`
+  - [x] Given 다시 돌린 회차(`WAITING`) / When 취소하면 / Then 원 회차 `Penalty`·`PenaltyRule`은 바뀌지 않고, 원 회차에 다시 돌리기를 새로 요청할 수 있다. (PRD R-10) — `GameRerunIntegrationTest.cancelRerunKeepsOriginal`
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 1091건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
+- **참고:** 다시 돌린 회차를 **시작**하면 지금은 새 벌칙자가 `ASSIGNED`로만 생기고 원 회차 벌칙이 그대로 남아 벌칙이 겹친다. `VOIDED`·규칙 이관·조건 상속은 Task 034에서 넣으므로 그 전에는 다시 돌린 회차를 시작하는 흐름을 배포하지 않는다. `game_session`은 자기 참조 FK(`rerun_of_id`·`canceled_rerun_of_id`)가 있어 통합 테스트 정리 때 두 컬럼을 먼저 비우고 지운다
 
 ### Task 034: 다시 돌린 회차 결과 공개 (`VOIDED`·규칙 이관·조건 상태 상속)   ⬜ 대기
 

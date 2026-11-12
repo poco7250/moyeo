@@ -20,6 +20,7 @@ import com.poco7250.moyeo.game.dto.GameResultResponse;
 import com.poco7250.moyeo.game.dto.GameStateResponse;
 import com.poco7250.moyeo.game.service.GameLobbyService;
 import com.poco7250.moyeo.game.service.GameQueryService;
+import com.poco7250.moyeo.game.service.GameRerunService;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.support.SecurityTestConfig;
@@ -47,9 +48,11 @@ class GameControllerTest {
 	private static final List<GameParticipantResponse> PARTICIPANTS = List.of(
 			new GameParticipantResponse(8L, "민수", "🍖"), new GameParticipantResponse(9L, "영희", null));
 	private static final GameStateResponse WAITING = new GameStateResponse(300L, 100L, GameType.LADDER,
-			GameStatus.WAITING, MEMBER_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, PARTICIPANTS, null);
+			GameStatus.WAITING, MEMBER_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, 300L, null, null, PARTICIPANTS, null);
+	private static final GameStateResponse RERUN = new GameStateResponse(301L, 100L, GameType.LADDER,
+			GameStatus.WAITING, MEMBER_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, 300L, 300L, null, PARTICIPANTS, null);
 	private static final GameStateResponse REVEALED = new GameStateResponse(300L, 100L, GameType.LADDER,
-			GameStatus.REVEALED, MEMBER_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, PARTICIPANTS,
+			GameStatus.REVEALED, MEMBER_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, 300L, null, null, PARTICIPANTS,
 			new GameResultResponse(42L, List.of(9L)));
 
 	@Autowired
@@ -63,6 +66,9 @@ class GameControllerTest {
 
 	@MockitoBean
 	GameQueryService gameQueryService;
+
+	@MockitoBean
+	GameRerunService gameRerunService;
 
 	@Test
 	@DisplayName("공개 전 상태 조회 응답에는 결과와 seed가 없다")
@@ -217,7 +223,49 @@ class GameControllerTest {
 	void unauthenticated() throws Exception {
 		mockMvc.perform(post("/api/games/300/start"))
 				.andExpect(status().isUnauthorized());
-		verifyNoInteractions(gameLobbyService);
+		mockMvc.perform(post("/api/games/300/rerun"))
+				.andExpect(status().isUnauthorized());
+		verifyNoInteractions(gameLobbyService, gameRerunService);
+	}
+
+	@Test
+	@DisplayName("다시 돌리기는 201과 원 회차를 가리키는 새 회차를 돌려준다")
+	void rerunResponse() throws Exception {
+		given(gameRerunService.request(300L, MEMBER_ID)).willReturn(RERUN);
+
+		action("rerun")
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.data.gameId").value(301))
+				.andExpect(jsonPath("$.data.status").value("WAITING"))
+				.andExpect(jsonPath("$.data.rerunOfId").value(300))
+				.andExpect(jsonPath("$.data.rootSessionId").value(300))
+				.andExpect(jsonPath("$.data.canceledRerunOfId").doesNotExist())
+				.andExpect(jsonPath("$.data.result").doesNotExist());
+	}
+
+	@Test
+	@DisplayName("진행자·호스트가 아닌 멤버의 다시 돌리기는 403 NOT_GAME_OPERATOR다")
+	void rerunForbidden() throws Exception {
+		given(gameRerunService.request(300L, MEMBER_ID)).willThrow(new BusinessException(ErrorCode.NOT_GAME_OPERATOR));
+
+		action("rerun")
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error.code").value("NOT_GAME_OPERATOR"));
+	}
+
+	@Test
+	@DisplayName("다시 돌릴 수 없는 게임이면 409 GAME_NOT_RERUNNABLE, 동시 요청에 밀리면 409 RERUN_ALREADY_EXISTS다")
+	void rerunConflict() throws Exception {
+		given(gameRerunService.request(300L, MEMBER_ID))
+				.willThrow(new BusinessException(ErrorCode.GAME_NOT_RERUNNABLE))
+				.willThrow(new BusinessException(ErrorCode.RERUN_ALREADY_EXISTS));
+
+		action("rerun")
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.error.code").value("GAME_NOT_RERUNNABLE"));
+		action("rerun")
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.error.code").value("RERUN_ALREADY_EXISTS"));
 	}
 
 	private void assertInvalid(String body, String field) throws Exception {

@@ -5,6 +5,7 @@ import com.poco7250.moyeo.game.dto.GameCreateRequest;
 import com.poco7250.moyeo.game.dto.GameStateResponse;
 import com.poco7250.moyeo.game.service.GameLobbyService;
 import com.poco7250.moyeo.game.service.GameQueryService;
+import com.poco7250.moyeo.game.service.GameRerunService;
 import com.poco7250.moyeo.global.common.ApiResponse;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -28,6 +29,7 @@ public class GameController {
 
 	private final GameLobbyService gameLobbyService;
 	private final GameQueryService gameQueryService;
+	private final GameRerunService gameRerunService;
 
 	/**
 	 * 차수의 게임 목록을 최근에 만든 순으로 조회한다. 실시간 알림을 놓친 멤버가 결과를 찾는 경로다.
@@ -77,5 +79,14 @@ public class GameController {
 	@PostMapping("/games/{gameId}/cancel")
 	public ApiResponse<GameStateResponse> cancel(@LoginMember Long memberId, @PathVariable Long gameId) {
 		return ApiResponse.ok(gameLobbyService.cancel(gameId, memberId));
+	}
+
+	/**
+	 * 공개된 게임을 다시 돌릴 새 회차를 만든다. 설정과 참가자는 원 회차를 복제하므로 요청 본문이 없다.
+	 */
+	@PostMapping("/games/{gameId}/rerun")
+	@ResponseStatus(HttpStatus.CREATED)
+	public ApiResponse<GameStateResponse> rerun(@LoginMember Long memberId, @PathVariable Long gameId) {
+		return ApiResponse.ok(gameRerunService.request(gameId, memberId));
 	}
 }

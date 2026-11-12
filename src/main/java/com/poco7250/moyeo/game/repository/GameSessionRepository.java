@@ -22,4 +22,9 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
 	 * 차수의 게임을 최근에 만든 순으로 조회한다(취소·종료된 게임 포함).
 	 */
 	List<GameSession> findAllByRoundIdOrderByIdDesc(Long roundId);
+
+	/**
+	 * 주어진 회차를 다시 돌린 후속 회차가 있는지 확인한다(취소된 후속 회차는 rerunOf를 비우므로 제외된다).
+	 */
+	boolean existsByRerunOfId(Long rerunOfId);
 }

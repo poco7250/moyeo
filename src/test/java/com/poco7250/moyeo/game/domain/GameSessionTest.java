@@ -172,6 +172,64 @@ class GameSessionTest {
 		assertThatThrownBy(session::markAsRoot).isInstanceOf(IllegalStateException.class);
 	}
 
+	@Test
+	@DisplayName("다시 돌린 회차는 WAITING으로 생기고 설정을 복제하며 적용 순서와 원 회차 id를 이어받는다")
+	void rerunOfCopiesAndInherits() {
+		GameSession original = GameSession.create(null, GameType.DRAW, CREATOR_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 2);
+		ReflectionTestUtils.setField(original, "id", 10L);
+		original.markAsRoot();
+		original.start();
+		original.recordDraw(42L);
+		original.reveal(NOW);
+
+		GameSession rerun = GameSession.rerunOf(original, HOST_ID);
+
+		assertThat(rerun.getStatus()).isEqualTo(GameStatus.WAITING);
+		assertThat(rerun.getRerunOf()).isSameAs(original);
+		assertThat(rerun.getCreatedBy()).isEqualTo(HOST_ID);
+		assertThat(rerun.getType()).isEqualTo(GameType.DRAW);
+		assertThat(rerun.getPenaltyKind()).isEqualTo(PenaltyKind.MONEY);
+		assertThat(rerun.getPenaltyNote()).isEqualTo("꼴찌가 2차 30%");
+		assertThat(rerun.getPenaltyCount()).isEqualTo(2);
+		assertThat(rerun.getApplyOrderAt()).isEqualTo(original.getApplyOrderAt());
+		assertThat(rerun.getRootSessionId()).isEqualTo(10L);
+		assertThat(rerun.getSeed()).isNull();
+		assertThat(rerun.getRevealedAt()).isNull();
+	}
+
+	@Test
+	@DisplayName("다시 돌린 회차를 취소하면 rerunOf를 비우고 canceledRerunOf에 원 회차를 남긴다")
+	void cancelRerunReleasesOriginal() {
+		GameSession original = sessionWith(GameStatus.REVEALED);
+		GameSession rerun = GameSession.rerunOf(original, CREATOR_ID);
+
+		rerun.cancel();
+
+		assertThat(rerun.getStatus()).isEqualTo(GameStatus.CANCELED);
+		assertThat(rerun.getRerunOf()).isNull();
+		assertThat(rerun.getCanceledRerunOf()).isSameAs(original);
+	}
+
+	@Test
+	@DisplayName("처음 만든 회차를 취소하면 다시 돌리기 이력은 비어 있다")
+	void cancelRootLeavesRerunFieldsEmpty() {
+		GameSession session = sessionWith(GameStatus.WAITING);
+
+		session.cancel();
+
+		assertThat(session.getRerunOf()).isNull();
+		assertThat(session.getCanceledRerunOf()).isNull();
+	}
+
+	@ParameterizedTest
+	@EnumSource(GameStatus.class)
+	@DisplayName("공개된(REVEALED·CLOSED) 회차만 다시 돌릴 수 있는 상태다")
+	void isRerunnable(GameStatus status) {
+		boolean expected = status == GameStatus.REVEALED || status == GameStatus.CLOSED;
+
+		assertThat(sessionWith(status).isRerunnable()).isEqualTo(expected);
+	}
+
 	private void assertRejected(ThrowingCallable transition, ErrorCode expected) {
 		assertThatThrownBy(transition)
 				.isInstanceOf(BusinessException.class)

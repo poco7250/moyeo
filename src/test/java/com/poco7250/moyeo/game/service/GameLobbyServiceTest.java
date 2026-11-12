@@ -62,7 +62,7 @@ class GameLobbyServiceTest {
 	private static final Long ACTOR_ID = 1L;
 	private static final LocalDateTime NOW = LocalDateTime.of(2026, 12, 20, 21, 0);
 	private static final GameStateResponse STATE = new GameStateResponse(GAME_ID, ROUND_ID, GameType.LADDER,
-			GameStatus.WAITING, ACTOR_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, List.of(), null);
+			GameStatus.WAITING, ACTOR_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, GAME_ID, null, null, List.of(), null);
 
 	@Mock
 	MeetingAccessChecker meetingAccessChecker;
