@@ -31,6 +31,7 @@ import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
 import com.poco7250.moyeo.member.domain.Member;
+import com.poco7250.moyeo.penalty.service.PenaltyAssigner;
 import com.poco7250.moyeo.settlement.domain.ChangeLogEntityType;
 import com.poco7250.moyeo.settlement.domain.ChangeType;
 import com.poco7250.moyeo.settlement.service.ChangeLogRecorder;
@@ -88,6 +89,9 @@ class GameLobbyServiceTest {
 	GameSeedGenerator gameSeedGenerator;
 
 	@Mock
+	PenaltyAssigner penaltyAssigner;
+
+	@Mock
 	SettlementGuard settlementGuard;
 
 	@Mock
@@ -99,6 +103,9 @@ class GameLobbyServiceTest {
 	@Captor
 	ArgumentCaptor<Iterable<GameResult>> resultsCaptor;
 
+	@Captor
+	ArgumentCaptor<List<Member>> penalizedCaptor;
+
 	GameLobbyService service;
 	Round round;
 
@@ -106,7 +113,7 @@ class GameLobbyServiceTest {
 	void setUp() {
 		service = new GameLobbyService(meetingAccessChecker, gameAccessChecker, gameSessionRepository,
 				gameParticipantRepository, gameResultRepository, attendanceRepository, gameStateAssembler,
-				gameSeedGenerator, settlementGuard, changeLogRecorder, eventPublisher, TestClocks.fixed(NOW));
+				gameSeedGenerator, penaltyAssigner, settlementGuard, changeLogRecorder, eventPublisher, TestClocks.fixed(NOW));
 		Meeting meeting = mock(Meeting.class);
 		given(meeting.getId()).willReturn(MEETING_ID);
 		round = mock(Round.class);
@@ -163,7 +170,7 @@ class GameLobbyServiceTest {
 	}
 
 	@Test
-	@DisplayName("시작하면 벌칙자를 뽑아 전원의 결과를 저장하고 공개한다")
+	@DisplayName("시작하면 벌칙자를 뽑아 전원의 결과를 저장하고 공개하며 뽑힌 회원으로 벌칙자를 확정한다")
 	void startDrawsAndReveals() {
 		GameSession game = gameWith(GameStatus.WAITING, PenaltyKind.MONEY);
 		givenOperator(game);
@@ -180,6 +187,8 @@ class GameLobbyServiceTest {
 		verify(gameResultRepository).saveAll(resultsCaptor.capture());
 		assertThat(resultsCaptor.getValue()).hasSize(3)
 				.filteredOn(result -> GameResult.OUTCOME_PENALTY.equals(result.getOutcome())).hasSize(1);
+		verify(penaltyAssigner).onRevealed(eq(game), eq(ACTOR_ID), penalizedCaptor.capture());
+		assertThat(penalizedCaptor.getValue()).extracting(Member::getId).containsExactly(penaltyMemberId());
 		verifyPublishedToBothTopics();
 		verifyNoInteractions(settlementGuard, changeLogRecorder);
 	}
@@ -203,7 +212,7 @@ class GameLobbyServiceTest {
 		givenOperator(game);
 
 		assertRejected(() -> service.start(GAME_ID, ACTOR_ID), ErrorCode.GAME_INVALID_TRANSITION);
-		verifyNoInteractions(gameResultRepository, gameSeedGenerator, eventPublisher);
+		verifyNoInteractions(gameResultRepository, gameSeedGenerator, penaltyAssigner, eventPublisher);
 	}
 
 	@Test
@@ -260,6 +269,15 @@ class GameLobbyServiceTest {
 
 		assertRejected(() -> service.cancel(GAME_ID, ACTOR_ID), ErrorCode.GAME_NOT_CANCELABLE);
 		verifyNoInteractions(settlementGuard, eventPublisher);
+	}
+
+	private Long penaltyMemberId() {
+		for (GameResult result : resultsCaptor.getValue()) {
+			if (GameResult.OUTCOME_PENALTY.equals(result.getOutcome())) {
+				return result.getMember().getId();
+			}
+		}
+		throw new AssertionError("벌칙자 결과가 없습니다.");
 	}
 
 	private void givenRoundAccess() {
