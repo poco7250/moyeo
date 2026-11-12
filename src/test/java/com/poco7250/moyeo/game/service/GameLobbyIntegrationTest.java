@@ -33,10 +33,13 @@ import com.poco7250.moyeo.meeting.repository.MeetingRepository;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.member.domain.Member;
 import com.poco7250.moyeo.member.repository.MemberRepository;
+import com.poco7250.moyeo.penalty.service.PenaltyAssigner;
+import com.poco7250.moyeo.settlement.domain.ChangeLog;
 import com.poco7250.moyeo.settlement.domain.Settlement;
 import com.poco7250.moyeo.settlement.domain.SettlementStatus;
 import com.poco7250.moyeo.settlement.repository.ChangeLogRepository;
 import com.poco7250.moyeo.settlement.repository.SettlementRepository;
+import com.poco7250.moyeo.settlement.service.SettlementReopenedEvent;
 import com.poco7250.moyeo.support.TestcontainersConfiguration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -51,6 +54,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -71,6 +75,9 @@ class GameLobbyIntegrationTest {
 
 	@Autowired
 	GameQueryService gameQueryService;
+
+	@Autowired
+	PenaltyAssigner penaltyAssigner;
 
 	@Autowired
 	GameSessionRepository gameSessionRepository;
@@ -143,6 +150,7 @@ class GameLobbyIntegrationTest {
 		Long meetingId = meeting.getId();
 		jdbcTemplate.update("delete from change_log where meeting_id = ?", meetingId);
 		String gameIds = "select id from game_session where round_id = " + round.getId();
+		jdbcTemplate.update("delete from penalty where game_session_id in (" + gameIds + ")");
 		jdbcTemplate.update("delete from game_result where game_session_id in (" + gameIds + ")");
 		jdbcTemplate.update("delete from game_participant where game_session_id in (" + gameIds + ")");
 		jdbcTemplate.update("delete from game_session where round_id = ?", round.getId());
@@ -208,6 +216,86 @@ class GameLobbyIntegrationTest {
 				.hasSize(1);
 		assertThat(gameResultRepository.findAllByGameSessionIdAndOutcome(created.gameId(), GameResult.OUTCOME_SAFE))
 				.hasSize(2);
+	}
+
+	@Test
+	@DisplayName("확정된 정산에서 금액형 게임이 공개되면 벌칙자가 ASSIGNED로 생기고 정산이 REOPENED가 되며 변경 로그가 1건 남는다")
+	void moneyRevealAssignsPenaltyAndReopens() {
+		confirmSettlement();
+		GameStateResponse created = createGame(PenaltyKind.MONEY, 2,
+				List.of(host.getId(), second.getId(), third.getId()));
+
+		GameStateResponse started = gameLobbyService.start(created.gameId(), host.getId());
+
+		// 벌칙 insert 순서(id 순)가 회원 id 오름차순이어야 초과분 차감 순서가 결정적이다
+		assertThat(penaltyMemberIdsInInsertOrder(created.gameId()))
+				.hasSize(2)
+				.isSorted()
+				.containsExactlyElementsOf(started.result().penaltyMemberIds());
+		assertThat(penaltyStatuses(created.gameId())).containsOnly("ASSIGNED");
+		assertThat(currentSettlement().getStatus()).isEqualTo(SettlementStatus.REOPENED);
+		List<ChangeLog> logs = changeLogRepository.findAllByMeetingIdOrderByChangedAtAscIdAsc(meeting.getId());
+		assertThat(logs).hasSize(1);
+		assertThat(logs.getFirst().getSettlementStatusAfter()).isEqualTo(SettlementStatus.REOPENED);
+		assertThat(logs.getFirst().getAfterJson()).contains("REVEALED", "penaltyMemberIds");
+		verify(messagingTemplate).convertAndSend(eq("/topic/meetings/" + meeting.getId()),
+				(Object) argThat(payload -> payload instanceof RealtimeMessage message
+						&& SettlementReopenedEvent.TYPE.equals(message.type())));
+	}
+
+	@Test
+	@DisplayName("행동형 게임이 공개되면 벌칙자만 생기고 정산 상태·version과 변경 로그는 그대로다")
+	void actionRevealLeavesSettlement() {
+		confirmSettlement();
+		Long versionBefore = currentSettlement().getVersion();
+		GameStateResponse created = createGame(PenaltyKind.ACTION, List.of(second.getId(), third.getId()));
+
+		gameLobbyService.start(created.gameId(), host.getId());
+
+		assertThat(penaltyStatuses(created.gameId())).containsExactly("ASSIGNED");
+		Settlement after = currentSettlement();
+		assertThat(after.getStatus()).isEqualTo(SettlementStatus.CONFIRMED);
+		assertThat(after.getVersion()).isEqualTo(versionBefore);
+		assertThat(changeLogRepository.findAllByMeetingIdOrderByChangedAtAscIdAsc(meeting.getId())).isEmpty();
+	}
+
+	@Test
+	@DisplayName("벌칙 종류가 없음인 게임은 공개돼도 벌칙이 생기지 않는다")
+	void noneRevealCreatesNoPenalty() {
+		GameStateResponse created = createGame(PenaltyKind.NONE, List.of(second.getId(), third.getId()));
+
+		gameLobbyService.start(created.gameId(), host.getId());
+
+		assertThat(penaltyStatuses(created.gameId())).isEmpty();
+	}
+
+	@RepeatedTest(5)
+	@DisplayName("금액형 게임 시작이 동시에 와도 벌칙은 1인 1건, 변경 로그는 1건이다")
+	void concurrentMoneyStart() {
+		GameStateResponse created = createGame(PenaltyKind.MONEY, List.of(host.getId(), second.getId(), third.getId()));
+		CountDownLatch ready = new CountDownLatch(2);
+
+		List<CompletableFuture<Throwable>> starts = List.of(startAsync(created.gameId(), ready),
+				startAsync(created.gameId(), ready));
+
+		assertThat(starts.stream().map(CompletableFuture::join).filter(Objects::nonNull)).hasSize(1);
+		assertThat(penaltyStatuses(created.gameId())).containsExactly("ASSIGNED");
+		assertThat(changeLogRepository.findAllByMeetingIdOrderByChangedAtAscIdAsc(meeting.getId())).hasSize(1);
+	}
+
+	@Test
+	@DisplayName("공개 처리가 한 번 더 실행돼도 유니크 제약에 막혀 벌칙은 1인 1건으로 남는다")
+	void duplicateRevealHandlingRejected() {
+		GameStateResponse created = createGame(PenaltyKind.ACTION, List.of(second.getId(), third.getId()));
+		GameStateResponse started = gameLobbyService.start(created.gameId(), host.getId());
+		Long penalizedId = started.result().penaltyMemberIds().getFirst();
+
+		assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status -> penaltyAssigner.onRevealed(
+				gameSessionRepository.findById(created.gameId()).orElseThrow(), host.getId(),
+				List.of(memberRepository.findById(penalizedId).orElseThrow()))))
+				.isInstanceOf(DataIntegrityViolationException.class);
+
+		assertThat(penaltyMemberIdsInInsertOrder(created.gameId())).containsExactly(penalizedId);
 	}
 
 	@Test
@@ -291,8 +379,22 @@ class GameLobbyIntegrationTest {
 	}
 
 	private GameStateResponse createGame(PenaltyKind penaltyKind, List<Long> memberIds) {
+		return createGame(penaltyKind, null, memberIds);
+	}
+
+	private GameStateResponse createGame(PenaltyKind penaltyKind, Integer penaltyCount, List<Long> memberIds) {
 		return gameLobbyService.create(round.getId(), host.getId(),
-				new GameCreateRequest(GameType.LADDER, penaltyKind, null, memberIds, null));
+				new GameCreateRequest(GameType.LADDER, penaltyKind, null, memberIds, penaltyCount));
+	}
+
+	private List<Long> penaltyMemberIdsInInsertOrder(Long gameId) {
+		return jdbcTemplate.queryForList(
+				"select member_id from penalty where game_session_id = ? order by id", Long.class, gameId);
+	}
+
+	private List<String> penaltyStatuses(Long gameId) {
+		return jdbcTemplate.queryForList(
+				"select status from penalty where game_session_id = ? order by id", String.class, gameId);
 	}
 
 	private Member saveMember(String nickname) {

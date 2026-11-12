@@ -19,6 +19,7 @@ import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
 import com.poco7250.moyeo.member.domain.Member;
+import com.poco7250.moyeo.penalty.service.PenaltyAssigner;
 import com.poco7250.moyeo.settlement.domain.ChangeLogEntityType;
 import com.poco7250.moyeo.settlement.domain.ChangeType;
 import com.poco7250.moyeo.settlement.service.ChangeLogRecorder;
@@ -48,6 +49,7 @@ public class GameLobbyService {
 	private final AttendanceRepository attendanceRepository;
 	private final GameStateAssembler gameStateAssembler;
 	private final GameSeedGenerator gameSeedGenerator;
+	private final PenaltyAssigner penaltyAssigner;
 	private final SettlementGuard settlementGuard;
 	private final ChangeLogRecorder changeLogRecorder;
 	private final ApplicationEventPublisher eventPublisher;
@@ -72,7 +74,7 @@ public class GameLobbyService {
 	}
 
 	/**
-	 * 게임을 시작해 벌칙자를 뽑고 바로 공개한다.
+	 * 게임을 시작해 벌칙자를 뽑고 바로 공개한다. 공개와 같은 트랜잭션에서 벌칙자를 확정한다.
 	 *
 	 * @throws BusinessException 진행자·호스트가 아니면 NOT_GAME_OPERATOR, WAITING이 아니면 GAME_INVALID_TRANSITION
 	 */
@@ -84,7 +86,7 @@ public class GameLobbyService {
 		game.reveal(LocalDateTime.now(clock));
 		// 결과 insert의 FK 공유 잠금을 먼저 잡으면 동시 시작끼리 데드락이 나므로 version 갱신을 먼저 보낸다
 		gameSessionRepository.flush();
-		saveResults(game, seed);
+		penaltyAssigner.onRevealed(game, memberId, saveResults(game, seed));
 		return publishStateChanged(game);
 	}
 
@@ -128,7 +130,10 @@ public class GameLobbyService {
 		return members;
 	}
 
-	private void saveResults(GameSession game, long seed) {
+	/**
+	 * 추첨 결과를 참가자 전원에 대해 저장하고 벌칙자로 뽑힌 회원을 돌려준다.
+	 */
+	private List<Member> saveResults(GameSession game, long seed) {
 		List<GameParticipant> participants = gameParticipantRepository.findAllByGameSessionIdOrderByIdAsc(game.getId());
 		List<Long> memberIds = participants.stream().map(participant -> participant.getMember().getId()).toList();
 		Set<Long> penalized = GameDrawer.draw(memberIds, game.getPenaltyCount(), seed);
@@ -137,6 +142,10 @@ public class GameLobbyService {
 						penalized.contains(participant.getMember().getId())
 								? GameResult.OUTCOME_PENALTY : GameResult.OUTCOME_SAFE))
 				.toList());
+		return participants.stream()
+				.map(GameParticipant::getMember)
+				.filter(member -> penalized.contains(member.getId()))
+				.toList();
 	}
 
 	private void recordMoneyGameCancel(GameSession game, Long memberId, GameStatus before) {

@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-11 (`feature/penalty-domain` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-12 (`feature/penalty-assign` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 7 진행 중(Task 031 완료, 2026-11-11) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격)을 완료했다(2026-11-11). 다음은 Task 032(결과 공개 시 벌칙자 확정). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 벌칙 제외 정산 계산·송금 최소화 순수 도메인(`settlement/calc/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API와 게임 상태 조회·차수별 게임 목록 API(`game/`), 게임 인가 `GameAccessChecker`(`global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이(`penalty/`), 공통 코드(`global/`)가 있다.
+- **현재 단계:** Phase 7 진행 중(Task 032 완료, 2026-11-12) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격, 2026-11-11)과 Task 032(결과 공개 시 벌칙자 확정, 2026-11-12)를 완료했다. 다음은 Task 033(다시 돌리기 요청과 다시 돌린 회차 취소). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 벌칙 제외 정산 계산·송금 최소화 순수 도메인(`settlement/calc/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API와 게임 상태 조회·차수별 게임 목록 API(`game/`), 게임 인가 `GameAccessChecker`(`global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이, 결과 공개 시 벌칙자 확정 `PenaltyAssigner`(`penalty/`), 공통 코드(`global/`)가 있다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -17,14 +17,14 @@
 | 4 | 장소 결정 | 4 | 6 | 6 | ✅ 완료 |
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 6 | ✅ 완료 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 5 | ✅ 완료 |
-| 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 1 | 🔄 진행 중 |
+| 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 2 | 🔄 진행 중 |
 | 8 | 벌칙 정산 연동·확정 게이트 | 8 | 4 | 0 | ⬜ 대기 |
 | 9 | 재확정·리비전 비교·알림 | 5-b | 2 | 0 | ⬜ 대기 |
 | 10 | MVP 통합 검증 | 9 | 3 | 0 | ⬜ 대기 |
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **66** (MVP 43) | **31** | |
+| **합계** | | | **66** (MVP 43) | **32** | |
 
 ## 상태 범례
 
@@ -898,26 +898,31 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew test` 통과(전체 1045건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
 - **참고:** 새 테이블 `penalty`·`penalty_rule`은 로컬 `ddl-auto=update`로 자동 생성된다. `penalty_rule.target_expense_id` FK 때문에 규칙이 걸린 지출은 삭제가 막히는데, 규칙을 만드는 API(Task 036)가 아직 없어 지금은 영향이 없고 삭제 연동은 Task 037에서 한다
 
-### Task 032: 결과 공개 시 벌칙자 확정   ⬜ 대기
+### Task 032: 결과 공개 시 벌칙자 확정   ✅ 완료
 
+- **완료일:** 2026-11-12 · 브랜치 `feature/penalty-assign`
 - **관련 기능:** R-5, R-4
 - **선행 Task:** Task 027, Task 031
 - **구현 사항**
-  - [ ] `PenaltyAssigner.onRevealed(gameSession)` — 공개 전이와 같은 트랜잭션. `penaltyKind = NONE`이면 생성 없음, `MONEY`·`ACTION`이면 벌칙자별 `ASSIGNED`를 **memberId 오름차순** insert
-  - [ ] 금액형이면 `SettlementGuard.lockForAmountChange` + `markAmountChanged` + 최초 공개 `ChangeLog`
-  - [ ] 공개 중복 실행 방어: `(gameSession, member)` 유니크 + `GameSession.version`
-  - [ ] `GameResult.outcome = PENALTY`인 참가자가 벌칙자다(Task 027 결정). 공개 전이는 `GameLobbyService.start`에서 일어난다
+  - [x] `penalty/service/PenaltyAssigner.onRevealed(gameSession, actorId, penalizedMembers)` — 공개 전이와 같은 트랜잭션(`MANDATORY`). `penaltyKind = NONE`이면 생성 없음, `MONEY`·`ACTION`이면 벌칙자별 `ASSIGNED`를 **memberId 오름차순** insert
+  - [x] 금액형이면 `SettlementGuard.lockForAmountChange` + `markAmountChanged` + 최초 공개 `ChangeLog`(게임당 1건)
+  - [x] 공개 중복 실행 방어: `(gameSession, member)` 유니크 + `GameSession.version`(늦은 시작은 version flush에서 떨어져 벌칙 insert까지 오지 않는다)
+  - [x] `GameResult.outcome = PENALTY`인 참가자가 벌칙자다(Task 027 결정). 공개 전이는 `GameLobbyService.start`에서 일어나고, `start`가 결과 저장 직후 `onRevealed`를 부른다
+  - [x] `game/dto/GameRevealSnapshot`(status, type, penaltyKind, penaltyMemberIds) — 변경 로그 after 값
+  - [x] ⚠️ 결정(2026-11-12, ROADMAP 미정 항목)
+    - `onRevealed`는 게임만 받지 않고 **행위자와 뽑힌 벌칙자**도 받는다. 변경 로그에 행위자가 필요하고, 벌칙자는 `start`가 이미 알고 있어 결과를 다시 읽지 않는다
+    - 최초 공개 `ChangeLog`는 새 enum 값을 만들지 않고 금액형 취소와 같은 `GAME_SESSION` + `UPDATE`로 남긴다. before는 `GameChangeSnapshot`(`WAITING`), after는 `GameRevealSnapshot`(`REVEALED` + 벌칙자 id)이라 after로 구분한다. 벌칙자별이 아니라 게임당 1건
+    - "재확정 필요" 이벤트의 변경 요약도 `(GAME_SESSION, gameId, UPDATE)` 1건
 - **테스트**
-  - [ ] 단위: 금액형 사다리 "꽝" 2명(민수·영희) → `Penalty` 2건 `ASSIGNED`, 금액 필드 없음, `revealedAt`·`applyOrderAt` 기록, `ChangeLog` 1건
-  - [ ] 단위: `NONE` → `Penalty` 0건, `ACTION` → `ASSIGNED`지만 정산 상태·버전 변화 없음
-  - [ ] 단위: insert 순서가 memberId 오름차순(입력 순서를 섞어도)
-  - [ ] 통합(DB): `CONFIRMED` 정산에서 금액형 공개 → `REOPENED`
-  - [ ] 통합(DB): 공개 처리 중복 실행 → 1인 1건
+  - [x] 단위(`PenaltyAssignerTest` 4건): 금액형 벌칙자 2명(민수·영희) → `Penalty` 2건 `ASSIGNED`, `revealedAt`·`applyOrderAt` 기록, 정산 반영 뒤 `ChangeLog` 1건 / `NONE` → 아무 상호작용 없음 / `ACTION` → `ASSIGNED`지만 정산·변경 로그 무관 / 입력 순서를 섞어도 memberId 오름차순 저장
+  - [x] 단위(`GameLobbyServiceTest`): 시작 시 뽑힌 벌칙자로 `onRevealed` 호출, 재시작 거부 시 미호출
+  - [x] 통합(DB, `GameLobbyIntegrationTest` 5종 추가): `CONFIRMED` 정산에서 금액형 공개 → `REOPENED`·`ChangeLog` 1건·`SETTLEMENT_REOPENED` 전송·벌칙 insert 순서, 행동형 공개 → 정산 상태·version 그대로, `NONE` → 벌칙 0건, 금액형 동시 시작(5회 반복) → 1인 1건·`ChangeLog` 1건, 공개 처리 재실행 → 유니크 위반으로 1인 1건 유지
 - **수락 기준**
-  - Given `penaltyKind = MONEY` 사다리, 결과 "꽝" 2명(민수·영희) / When 결과가 공개되면 / Then 민수·영희 각각 `Penalty(gameSession, member)`가 `ASSIGNED`로 생성되고 금액은 계산·저장되지 않으며, `revealedAt`·`applyOrderAt`이 기록된다. 공개 처리가 중복 실행돼도 `(gameSession, member)` 유니크로 1인 1건이며, `Penalty`는 `memberId` 오름차순으로 생성된다. 금액형 게임의 최초 결과 공개는 `ChangeLog`에 기록된다. (PRD R-5 앞부분)
-  - 벌칙 종류 "없음"으로 만든 게임은 결과가 공개돼도 `Penalty`가 생성되지 않는다. (PRD R-4)
+  - [x] Given `penaltyKind = MONEY` 사다리, 결과 "꽝" 2명(민수·영희) / When 결과가 공개되면 / Then 민수·영희 각각 `Penalty(gameSession, member)`가 `ASSIGNED`로 생성되고 금액은 계산·저장되지 않으며, `revealedAt`·`applyOrderAt`이 기록된다. 공개 처리가 중복 실행돼도 `(gameSession, member)` 유니크로 1인 1건이며, `Penalty`는 `memberId` 오름차순으로 생성된다. 금액형 게임의 최초 결과 공개는 `ChangeLog`에 기록된다. (PRD R-5 앞부분) — `PenaltyAssignerTest.moneyGameAssignsAndReflectsToSettlement`, `GameLobbyIntegrationTest.moneyRevealAssignsPenaltyAndReopens`·`duplicateRevealHandlingRejected`
+  - [x] 벌칙 종류 "없음"으로 만든 게임은 결과가 공개돼도 `Penalty`가 생성되지 않는다. (PRD R-4) — `GameLobbyIntegrationTest.noneRevealCreatesNoPenalty`
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 1058건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
+- **참고:** 이제 `MONEY`·`ACTION` 게임을 시작하면 `penalty` 행이 생기므로, 게임을 시작하는 통합 테스트는 정리할 때 `game_session`보다 먼저 `penalty`를 지워야 한다. Task 034는 `onRevealed` 안에 `rerunOf` 분기를 더한다
 
 ### Task 033: 다시 돌리기 요청과 다시 돌린 회차 취소   ⬜ 대기
 
