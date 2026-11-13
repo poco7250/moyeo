@@ -1,6 +1,7 @@
 package com.poco7250.moyeo.settlement.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -10,6 +11,8 @@ import com.poco7250.moyeo.game.domain.PenaltyKind;
 import com.poco7250.moyeo.game.dto.GameCreateRequest;
 import com.poco7250.moyeo.game.service.GameLobbyService;
 import com.poco7250.moyeo.game.service.GameRerunService;
+import com.poco7250.moyeo.global.error.BusinessException;
+import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.global.event.RealtimeMessage;
 import com.poco7250.moyeo.group.domain.Group;
 import com.poco7250.moyeo.group.domain.GroupMember;
@@ -37,9 +40,12 @@ import com.poco7250.moyeo.settlement.domain.Settlement;
 import com.poco7250.moyeo.settlement.domain.SettlementStatus;
 import com.poco7250.moyeo.settlement.dto.ExpenseDeleteResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseRequest;
+import com.poco7250.moyeo.settlement.dto.NetBalanceChangeResponse;
+import com.poco7250.moyeo.settlement.dto.RevisionChangeResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementMemberResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementPenaltyResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementResponse;
+import com.poco7250.moyeo.settlement.dto.SettlementTransferResponse;
 import com.poco7250.moyeo.settlement.repository.ChangeLogRepository;
 import com.poco7250.moyeo.settlement.repository.ExpenseRepository;
 import com.poco7250.moyeo.settlement.repository.SettlementRepository;
@@ -60,7 +66,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 /**
- * 벌칙 조건이 정산 계산·조회에 실리고, 대상 지출 삭제가 조건을 정리하는지 실제 DB로 확인한다(PRD S-1, S-4).
+ * 벌칙 조건이 정산 계산·조회에 실리고, 대상 지출 삭제가 조건을 정리하며, 조건 변경 후 재확정이 리비전 +1과
+ * 변동액을 만드는지 실제 DB로 확인한다(PRD S-1, S-4, S-10, S-11 예 6).
  * 예 1 구성: 2차 "볼링" 100,000원(결제 호스트), 참석 4명, 사다리 참가자 민수·영희 중 1명이 벌칙자.
  * 커밋 후 브로드캐스트와 FK를 봐야 해서 테스트 트랜잭션을 쓰지 않고 직접 데이터를 지운다.
  */
@@ -301,6 +308,76 @@ class PenaltyLedgerIntegrationTest {
 		assertThat(penaltyStatuses(gameId)).containsOnly("APPLIED");
 	}
 
+	@Test
+	@DisplayName("예 6: 리비전 1 확정 → RATIO 50%로 변경(REOPENED) → 재확정하면 리비전 2 전체 송금 안내·변동액이 나오고 리비전 1은 그대로다")
+	void example6Reconfirm() {
+		penaltyConditionService.setRule(gameId, host.getId(), ratio30());
+		Long penalizedId = penalizedMemberId(gameId);
+		Long otherId = penalizedId.equals(minsu.getId()) ? yeonghee.getId() : minsu.getId();
+		SettlementResponse revision1 = settlementConfirmService.confirm(meeting.getId(), host.getId(), false);
+		List<String> revision1Transfers = transfersOf(1);
+
+		penaltyConditionService.setRule(gameId, host.getId(), new PenaltyRuleRequest(PenaltyMoneyType.RATIO,
+				bowling.getId(), null, 50));
+		assertThat(settlementStatus()).isEqualTo(SettlementStatus.REOPENED);
+
+		SettlementResponse revision2 = settlementConfirmService.confirm(meeting.getId(), host.getId(), false);
+
+		assertThat(revision2.status()).isEqualTo(SettlementStatus.CONFIRMED);
+		assertThat(revision2.basisRevisionNo()).isEqualTo(2);
+		assertThat(revision2.transfers()).containsExactlyInAnyOrder(
+				new SettlementTransferResponse(penalizedId, host.getId(), 50_000L),
+				new SettlementTransferResponse(otherId, host.getId(), 16_700L),
+				new SettlementTransferResponse(jisu.getId(), host.getId(), 16_700L));
+		assertThat(revision2.revisionChange().previousRevisionNo()).isEqualTo(1);
+		assertThat(revision2.revisionChange().notice()).isEqualTo(RevisionChangeResponse.NOTICE);
+		assertThat(revision2.revisionChange().changes()).containsExactlyInAnyOrder(
+				new NetBalanceChangeResponse(host.getId(), 76_800L, 83_400L, 6_600L),
+				new NetBalanceChangeResponse(penalizedId, -30_000L, -50_000L, -20_000L),
+				new NetBalanceChangeResponse(otherId, -23_400L, -16_700L, 6_700L),
+				new NetBalanceChangeResponse(jisu.getId(), -23_400L, -16_700L, 6_700L));
+		assertThat(transfersOf(1)).isEqualTo(revision1Transfers).hasSize(3);
+		assertThat(netBalancesOf(1)).containsEntry(penalizedId, -30_000L).containsEntry(host.getId(), 76_800L);
+		assertThat(chargeAmountsOf(1)).containsExactly(30_000L);
+		assertThat(chargeAmountsOf(2)).containsExactly(50_000L);
+		assertThat(revision1.revisionChange()).isNull();
+		SettlementResponse queried = settlementQueryService.get(meeting.getId(), jisu.getId());
+		assertThat(queried.basisRevisionNo()).isEqualTo(2);
+		assertThat(queried.transfers()).isEqualTo(revision2.transfers());
+	}
+
+	@Test
+	@DisplayName("재확정한 정산을 다시 확정하면 409 SETTLEMENT_ALREADY_CONFIRMED이고 리비전은 2개 그대로다")
+	void reconfirmTwiceRejected() {
+		penaltyConditionService.setRule(gameId, host.getId(), ratio30());
+		settlementConfirmService.confirm(meeting.getId(), host.getId(), false);
+		penaltyConditionService.setRule(gameId, host.getId(), new PenaltyRuleRequest(PenaltyMoneyType.RATIO,
+				bowling.getId(), null, 50));
+		settlementConfirmService.confirm(meeting.getId(), host.getId(), false);
+
+		assertThatThrownBy(() -> settlementConfirmService.confirm(meeting.getId(), host.getId(), false))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.SETTLEMENT_ALREADY_CONFIRMED);
+		assertThat(jdbcTemplate.queryForObject("select count(*) from settlement_revision where settlement_id = ?",
+				Integer.class, settlement.getId())).isEqualTo(2);
+	}
+
+	@Test
+	@DisplayName("REOPENED 재확정도 조건 미설정 금액형 벌칙이 남아 있으면 409 PENALTY_CONDITION_UNSET이고 리비전 1만 있다")
+	void reconfirmBlockedByUnsetCondition() {
+		penaltyConditionService.setRule(gameId, host.getId(), ratio30());
+		settlementConfirmService.confirm(meeting.getId(), host.getId(), false);
+		penaltyConditionService.clearRule(gameId, host.getId());
+		assertThat(settlementStatus()).isEqualTo(SettlementStatus.REOPENED);
+
+		assertThatThrownBy(() -> settlementConfirmService.confirm(meeting.getId(), host.getId(), false))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.PENALTY_CONDITION_UNSET);
+		assertThat(settlementStatus()).isEqualTo(SettlementStatus.REOPENED);
+		assertThat(jdbcTemplate.queryForObject("select count(*) from settlement_revision where settlement_id = ?",
+				Integer.class, settlement.getId())).isEqualTo(1);
+	}
+
 	private Long revealedGame() {
 		Long id = gameLobbyService.create(round.getId(), minsu.getId(), new GameCreateRequest(GameType.LADDER,
 				PenaltyKind.MONEY, "꼴찌가 볼링 30%", List.of(minsu.getId(), yeonghee.getId()), null)).gameId();
@@ -348,6 +425,28 @@ class PenaltyLedgerIntegrationTest {
 
 	private List<ChangeLog> logs() {
 		return changeLogRepository.findAllByMeetingIdOrderByChangedAtAscIdAsc(meeting.getId());
+	}
+
+	private String revisionIdOf(int revisionNo) {
+		return "(select id from settlement_revision where settlement_id = " + settlement.getId()
+				+ " and revision_no = " + revisionNo + ")";
+	}
+
+	private List<String> transfersOf(int revisionNo) {
+		return jdbcTemplate.queryForList("select concat(from_member_id, '>', to_member_id, ':', amount) from transfer"
+				+ " where revision_id = " + revisionIdOf(revisionNo) + " order by id", String.class);
+	}
+
+	private Map<Long, Long> netBalancesOf(int revisionNo) {
+		return jdbcTemplate.queryForList("select member_id, net_balance from revision_member_share where revision_id = "
+				+ revisionIdOf(revisionNo)).stream()
+				.collect(Collectors.toMap(row -> ((Number) row.get("member_id")).longValue(),
+						row -> ((Number) row.get("net_balance")).longValue()));
+	}
+
+	private List<Long> chargeAmountsOf(int revisionNo) {
+		return jdbcTemplate.queryForList("select amount from penalty_charge where revision_id = "
+				+ revisionIdOf(revisionNo), Long.class);
 	}
 
 	private Member saveMember(String nickname) {

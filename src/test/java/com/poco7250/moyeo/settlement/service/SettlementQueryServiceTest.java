@@ -110,7 +110,7 @@ class SettlementQueryServiceTest {
 				List.of(new SettlementMemberResponse(1L, 10_000L, 10_000L),
 						new SettlementMemberResponse(2L, 10_000L, -10_000L)),
 				List.of(new SettlementTransferResponse(2L, 1L, 10_000L)),
-				List.of(), List.of()));
+				List.of(), List.of(), null));
 		verifyNoInteractions(revisionRepository, memberShareRepository, transferRepository);
 	}
 
@@ -148,7 +148,7 @@ class SettlementQueryServiceTest {
 				List.of(new SettlementMemberResponse(1L, 10_000L, 10_000L),
 						new SettlementMemberResponse(2L, 10_000L, -10_000L)),
 				List.of(new SettlementTransferResponse(2L, 1L, 10_000L)),
-				List.of(), List.of()));
+				List.of(), List.of(), null));
 	}
 
 	@Test

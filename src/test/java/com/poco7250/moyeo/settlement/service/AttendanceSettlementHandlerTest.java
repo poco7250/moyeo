@@ -129,7 +129,7 @@ class AttendanceSettlementHandlerTest {
 
 	private Settlement confirmedSettlement() {
 		Settlement settlement = Settlement.createDraft(null);
-		settlement.confirmFirst(LocalDateTime.of(2026, 12, 20, 22, 0));
+		settlement.confirm(LocalDateTime.of(2026, 12, 20, 22, 0));
 		return settlement;
 	}
 }

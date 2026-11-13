@@ -8,8 +8,6 @@ import com.poco7250.moyeo.global.error.ErrorCode;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class SettlementTest {
@@ -47,24 +45,43 @@ class SettlementTest {
 		Settlement settlement = settlementWith(SettlementStatus.DRAFT);
 		LocalDateTime now = LocalDateTime.of(2026, 12, 20, 22, 0);
 
-		settlement.confirmFirst(now);
+		assertThat(settlement.confirm(now)).isEqualTo(1);
 
 		assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.CONFIRMED);
 		assertThat(settlement.getCurrentRevisionNo()).isEqualTo(1);
 		assertThat(settlement.getFirstConfirmedAt()).isEqualTo(now);
 	}
 
-	@ParameterizedTest
-	@EnumSource(value = SettlementStatus.class, names = {"CONFIRMED", "REOPENED"})
-	@DisplayName("DRAFT가 아니면 확정할 수 없고 상태도 바뀌지 않는다")
-	void confirmRejected(SettlementStatus status) {
-		Settlement settlement = settlementWith(status);
+	@Test
+	@DisplayName("REOPENED 정산을 재확정하면 CONFIRMED·리비전 +1이고 최초 확정 시각은 그대로다")
+	void reconfirm() {
+		Settlement settlement = settlementWith(SettlementStatus.DRAFT);
+		LocalDateTime first = LocalDateTime.of(2026, 12, 20, 22, 0);
+		settlement.confirm(first);
+		settlement.reopen();
 
-		assertThatThrownBy(() -> settlement.confirmFirst(LocalDateTime.of(2026, 12, 20, 22, 0)))
+		assertThat(settlement.confirm(LocalDateTime.of(2026, 12, 21, 10, 0))).isEqualTo(2);
+
+		assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.CONFIRMED);
+		assertThat(settlement.getCurrentRevisionNo()).isEqualTo(2);
+		assertThat(settlement.getFirstConfirmedAt()).isEqualTo(first);
+		settlement.reopen();
+		assertThat(settlement.confirm(LocalDateTime.of(2026, 12, 22, 10, 0))).isEqualTo(3);
+	}
+
+	@Test
+	@DisplayName("CONFIRMED면 확정할 수 없고 상태·리비전 번호도 바뀌지 않는다")
+	void confirmRejected() {
+		Settlement settlement = settlementWith(SettlementStatus.DRAFT);
+		LocalDateTime first = LocalDateTime.of(2026, 12, 20, 22, 0);
+		settlement.confirm(first);
+
+		assertThatThrownBy(() -> settlement.confirm(LocalDateTime.of(2026, 12, 21, 10, 0)))
 				.isInstanceOf(BusinessException.class)
 				.extracting("errorCode").isEqualTo(ErrorCode.SETTLEMENT_ALREADY_CONFIRMED);
-		assertThat(settlement.getStatus()).isEqualTo(status);
-		assertThat(settlement.getFirstConfirmedAt()).isNull();
+		assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.CONFIRMED);
+		assertThat(settlement.getCurrentRevisionNo()).isEqualTo(1);
+		assertThat(settlement.getFirstConfirmedAt()).isEqualTo(first);
 	}
 
 	@Test
@@ -73,7 +90,7 @@ class SettlementTest {
 		Settlement settlement = settlementWith(SettlementStatus.DRAFT);
 		assertThat(settlement.hasBeenConfirmed()).isFalse();
 
-		settlement.confirmFirst(LocalDateTime.of(2026, 12, 20, 22, 0));
+		settlement.confirm(LocalDateTime.of(2026, 12, 20, 22, 0));
 		settlement.reopen();
 
 		assertThat(settlement.hasBeenConfirmed()).isTrue();
