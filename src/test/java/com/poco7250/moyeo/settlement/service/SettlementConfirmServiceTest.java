@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -51,6 +52,7 @@ class SettlementConfirmServiceTest {
 	private static final Long MEETING_ID = 2L;
 	private static final Long HOST_ID = 1L;
 	private static final LocalDateTime NOW = LocalDateTime.of(2026, 12, 20, 22, 0);
+	private static final MeetingPenalties NO_PENALTIES = MeetingPenalties.empty();
 	// 3명이 30,000원을 나누고 1번 회원이 결제했다
 	private static final SettlementInput NORMAL_INPUT = new SettlementInput(List.of(
 			new ExpenseInput(31L, 30_000L, HOST_ID, Set.of(1L, 2L, 3L), List.of())));
@@ -66,6 +68,9 @@ class SettlementConfirmServiceTest {
 
 	@Mock
 	SettlementInputAssembler inputAssembler;
+
+	@Mock
+	MeetingPenaltyLoader meetingPenaltyLoader;
 
 	@Mock
 	SettlementRepository settlementRepository;
@@ -97,16 +102,18 @@ class SettlementConfirmServiceTest {
 	@BeforeEach
 	void setUp() {
 		service = new SettlementConfirmService(meetingAccessChecker, settlementGuard, inputAssembler,
-				settlementRepository, revisionRepository, memberShareRepository, transferRepository, memberRepository,
-				TestClocks.fixed(NOW));
+				meetingPenaltyLoader, settlementRepository, revisionRepository, memberShareRepository,
+				transferRepository, memberRepository, TestClocks.fixed(NOW));
 		settlement = Settlement.createDraft(null);
+		// 검사에서 먼저 실패하는 경우엔 벌칙을 읽지 않으므로 lenient
+		lenient().when(meetingPenaltyLoader.load(MEETING_ID)).thenReturn(NO_PENALTIES);
 	}
 
 	@Test
 	@DisplayName("확정하면 리비전 1과 멤버 스냅샷·송금 안내를 계산값대로 저장하고 CONFIRMED가 된다")
 	void confirm() {
 		givenLocked();
-		given(inputAssembler.assemble(MEETING_ID)).willReturn(NORMAL_INPUT);
+		given(inputAssembler.assemble(MEETING_ID, NO_PENALTIES)).willReturn(NORMAL_INPUT);
 		givenSaves();
 
 		SettlementResponse response = service.confirm(MEETING_ID, HOST_ID, false);
@@ -145,14 +152,14 @@ class SettlementConfirmServiceTest {
 						new SettlementMemberResponse(3L, 10_000L, -10_000L)),
 				List.of(new SettlementTransferResponse(2L, 1L, 10_000L),
 						new SettlementTransferResponse(3L, 1L, 10_000L)),
-				List.of()));
+				List.of(), List.of()));
 	}
 
 	@Test
 	@DisplayName("동시 확정 데드락을 막기 위해 정산 상태를 먼저 flush한 뒤 리비전을 저장한다")
 	void flushesSettlementBeforeRevision() {
 		givenLocked();
-		given(inputAssembler.assemble(MEETING_ID)).willReturn(NORMAL_INPUT);
+		given(inputAssembler.assemble(MEETING_ID, NO_PENALTIES)).willReturn(NORMAL_INPUT);
 		givenSaves();
 
 		service.confirm(MEETING_ID, HOST_ID, false);
@@ -167,7 +174,7 @@ class SettlementConfirmServiceTest {
 	@DisplayName("지출이 없어도 스냅샷 없는 리비전 1로 확정된다")
 	void confirmWithoutExpenses() {
 		givenLocked();
-		given(inputAssembler.assemble(MEETING_ID)).willReturn(new SettlementInput(List.of()));
+		given(inputAssembler.assemble(MEETING_ID, NO_PENALTIES)).willReturn(new SettlementInput(List.of()));
 		givenSaves();
 
 		SettlementResponse response = service.confirm(MEETING_ID, HOST_ID, false);
@@ -215,7 +222,7 @@ class SettlementConfirmServiceTest {
 	@DisplayName("경고를 확인하지 않으면 409 WARNING_UNCONFIRMED이고 DRAFT 그대로다")
 	void warningUnconfirmed() {
 		givenLocked();
-		given(inputAssembler.assemble(MEETING_ID)).willReturn(WARNING_INPUT);
+		given(inputAssembler.assemble(MEETING_ID, NO_PENALTIES)).willReturn(WARNING_INPUT);
 
 		assertRejected(false, ErrorCode.WARNING_UNCONFIRMED);
 
@@ -228,7 +235,7 @@ class SettlementConfirmServiceTest {
 	@DisplayName("경고를 확인하고 확정하면 warningsAcknowledged가 true다")
 	void warningAcknowledged() {
 		givenLocked();
-		given(inputAssembler.assemble(MEETING_ID)).willReturn(WARNING_INPUT);
+		given(inputAssembler.assemble(MEETING_ID, NO_PENALTIES)).willReturn(WARNING_INPUT);
 		givenSaves();
 
 		service.confirm(MEETING_ID, HOST_ID, true);
@@ -242,7 +249,7 @@ class SettlementConfirmServiceTest {
 	@DisplayName("경고가 없으면 요청에서 확인했다고 해도 warningsAcknowledged는 false다")
 	void noWarningNotAcknowledged() {
 		givenLocked();
-		given(inputAssembler.assemble(MEETING_ID)).willReturn(NORMAL_INPUT);
+		given(inputAssembler.assemble(MEETING_ID, NO_PENALTIES)).willReturn(NORMAL_INPUT);
 		givenSaves();
 
 		service.confirm(MEETING_ID, HOST_ID, true);

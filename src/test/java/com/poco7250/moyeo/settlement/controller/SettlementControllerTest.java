@@ -7,6 +7,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.poco7250.moyeo.game.domain.GameType;
+import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
+import com.poco7250.moyeo.penalty.domain.PenaltyStatus;
+import com.poco7250.moyeo.settlement.dto.SettlementPenaltyResponse;
 import com.poco7250.moyeo.auth.token.JwtTokenProvider;
 import com.poco7250.moyeo.auth.token.TokenCookieFactory;
 import com.poco7250.moyeo.global.error.BusinessException;
@@ -21,6 +25,7 @@ import com.poco7250.moyeo.settlement.service.SettlementConfirmService;
 import com.poco7250.moyeo.settlement.service.SettlementQueryService;
 import com.poco7250.moyeo.support.SecurityTestConfig;
 import jakarta.servlet.http.Cookie;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,15 +46,25 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(SecurityTestConfig.class)
 class SettlementControllerTest {
 
+	private static final SettlementPenaltyResponse PENALTY_APPLIED = new SettlementPenaltyResponse(80L, 9L,
+			PenaltyStatus.APPLIED, new SettlementPenaltyResponse.Game(70L, GameType.LADDER, 2, "볼링장"),
+			new SettlementPenaltyResponse.Rule(PenaltyMoneyType.RATIO, null, 30,
+					new SettlementPenaltyResponse.TargetExpense(31L, 2, "볼링장", "볼링", 100_000L), 8L,
+					LocalDateTime.of(2026, 12, 20, 21, 30)),
+			30_000L, null, null);
+	private static final SettlementPenaltyResponse PENALTY_ASSIGNED = new SettlementPenaltyResponse(81L, 8L,
+			PenaltyStatus.ASSIGNED, new SettlementPenaltyResponse.Game(71L, GameType.DRAW, 2, "볼링장"),
+			null, null, null, null);
 	private static final SettlementResponse PREVIEW = new SettlementResponse(SettlementStatus.DRAFT, null, true,
 			List.of(new SettlementMemberResponse(8L, 10_000L, 10_000L),
 					new SettlementMemberResponse(9L, 10_000L, -10_000L)),
 			List.of(new SettlementTransferResponse(9L, 8L, 10_000L)),
-			List.of(new SettlementWarningResponse(SettlementWarningType.NO_SHARE_TARGET, 31L)));
+			List.of(new SettlementWarningResponse(SettlementWarningType.NO_SHARE_TARGET, 31L)),
+			List.of(PENALTY_APPLIED, PENALTY_ASSIGNED));
 	private static final SettlementResponse CONFIRMED = new SettlementResponse(SettlementStatus.CONFIRMED, 1, false,
 			List.of(new SettlementMemberResponse(8L, 10_000L, 10_000L)),
 			List.of(new SettlementTransferResponse(9L, 8L, 10_000L)),
-			List.of());
+			List.of(), List.of());
 
 	@Autowired
 	MockMvc mockMvc;
@@ -81,7 +96,23 @@ class SettlementControllerTest {
 				.andExpect(jsonPath("$.data.transfers[0].toMemberId").value(8))
 				.andExpect(jsonPath("$.data.transfers[0].amount").value(10_000))
 				.andExpect(jsonPath("$.data.warnings[0].type").value("NO_SHARE_TARGET"))
-				.andExpect(jsonPath("$.data.warnings[0].expenseId").value(31));
+				.andExpect(jsonPath("$.data.warnings[0].expenseId").value(31))
+				.andExpect(jsonPath("$.data.penalties[0].penaltyId").value(80))
+				.andExpect(jsonPath("$.data.penalties[0].memberId").value(9))
+				.andExpect(jsonPath("$.data.penalties[0].status").value("APPLIED"))
+				.andExpect(jsonPath("$.data.penalties[0].game.gameId").value(70))
+				.andExpect(jsonPath("$.data.penalties[0].game.type").value("LADDER"))
+				.andExpect(jsonPath("$.data.penalties[0].game.roundSeq").value(2))
+				.andExpect(jsonPath("$.data.penalties[0].rule.moneyType").value("RATIO"))
+				.andExpect(jsonPath("$.data.penalties[0].rule.ratioPct").value(30))
+				.andExpect(jsonPath("$.data.penalties[0].rule.targetExpense.expenseId").value(31))
+				.andExpect(jsonPath("$.data.penalties[0].rule.targetExpense.memo").value("볼링"))
+				.andExpect(jsonPath("$.data.penalties[0].rule.setBy").value(8))
+				.andExpect(jsonPath("$.data.penalties[0].rule.setAt").value("2026-12-20T21:30:00"))
+				.andExpect(jsonPath("$.data.penalties[0].chargeAmount").value(30_000))
+				.andExpect(jsonPath("$.data.penalties[1].status").value("ASSIGNED"))
+				.andExpect(jsonPath("$.data.penalties[1].rule").isEmpty())
+				.andExpect(jsonPath("$.data.penalties[1].chargeAmount").isEmpty());
 	}
 
 	@Test

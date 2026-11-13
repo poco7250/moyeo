@@ -2,6 +2,7 @@ package com.poco7250.moyeo.settlement.controller;
 
 import com.poco7250.moyeo.auth.security.LoginMember;
 import com.poco7250.moyeo.global.common.ApiResponse;
+import com.poco7250.moyeo.settlement.dto.ExpenseDeleteResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseRequest;
 import com.poco7250.moyeo.settlement.dto.ExpenseResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseShareAdjustRequest;
@@ -55,9 +56,8 @@ public class ExpenseController {
 	 * 지출을 삭제한다.
 	 */
 	@DeleteMapping("/expenses/{expenseId}")
-	public ApiResponse<Void> delete(@LoginMember Long memberId, @PathVariable Long expenseId) {
-		expenseService.delete(expenseId, memberId);
-		return ApiResponse.ok();
+	public ApiResponse<ExpenseDeleteResponse> delete(@LoginMember Long memberId, @PathVariable Long expenseId) {
+		return ApiResponse.ok(expenseService.delete(expenseId, memberId));
 	}
 
 	/**

@@ -2,7 +2,10 @@ package com.poco7250.moyeo.settlement.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 
+import com.poco7250.moyeo.game.domain.GameSession;
 import com.poco7250.moyeo.group.domain.Group;
 import com.poco7250.moyeo.meeting.domain.Attendance;
 import com.poco7250.moyeo.meeting.domain.AttendanceStatus;
@@ -10,13 +13,19 @@ import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
 import com.poco7250.moyeo.member.domain.Member;
+import com.poco7250.moyeo.penalty.domain.Penalty;
+import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
+import com.poco7250.moyeo.penalty.domain.PenaltyRule;
 import com.poco7250.moyeo.settlement.calc.ExpenseInput;
+import com.poco7250.moyeo.settlement.calc.PenalizedMember;
+import com.poco7250.moyeo.settlement.calc.PenaltyRuleInput;
 import com.poco7250.moyeo.settlement.calc.SettlementInput;
 import com.poco7250.moyeo.settlement.calc.ShareAdjustment;
 import com.poco7250.moyeo.settlement.domain.Expense;
 import com.poco7250.moyeo.settlement.repository.ExpenseRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +48,9 @@ class SettlementInputAssemblerTest {
 	@Mock
 	AttendanceRepository attendanceRepository;
 
+	@Mock
+	MeetingPenaltyLoader meetingPenaltyLoader;
+
 	@InjectMocks
 	SettlementInputAssembler assembler;
 
@@ -56,6 +68,7 @@ class SettlementInputAssemblerTest {
 		chulsoo = member(1L);
 		jisoo = member(2L);
 		minsoo = member(3L);
+		lenient().when(meetingPenaltyLoader.load(MEETING_ID)).thenReturn(MeetingPenalties.empty());
 	}
 
 	@Test
@@ -103,6 +116,44 @@ class SettlementInputAssemblerTest {
 				new ShareAdjustment(1L, false, null, 2),
 				new ShareAdjustment(2L, true, null, null),
 				new ShareAdjustment(3L, false, 5_000L, null));
+	}
+
+	@Test
+	@DisplayName("벌칙은 APPLIED만 규칙 입력이 되고 ASSIGNED·WAIVED 게임은 빠진다. 정렬 키는 게임 값을 그대로 쓴다")
+	void onlyAppliedPenalties() {
+		Expense bowling = expense(31L, secondRound, chulsoo, 87_650L);
+		given(expenseRepository.findAllWithSharesByMeetingId(MEETING_ID)).willReturn(List.of(bowling));
+		given(attendanceRepository.findAllByMeetingId(MEETING_ID)).willReturn(List.of());
+		LocalDateTime revealedAt = LocalDateTime.of(2026, 12, 20, 21, 0);
+		GameSession appliedGame = PenaltyFixtures.revealedMoneyGame(70L, secondRound, revealedAt);
+		GameSession assignedGame = PenaltyFixtures.revealedMoneyGame(71L, secondRound, revealedAt.plusMinutes(5));
+		GameSession waivedGame = PenaltyFixtures.revealedMoneyGame(72L, secondRound, revealedAt.plusMinutes(10));
+		Penalty minsooPenalty = PenaltyFixtures.penalty(80L, appliedGame, 3L);
+		Penalty jisooPenalty = PenaltyFixtures.penalty(81L, appliedGame, 2L);
+		Penalty assigned = PenaltyFixtures.penalty(82L, assignedGame, 1L);
+		Penalty waived = PenaltyFixtures.penalty(83L, waivedGame, 1L);
+		minsooPenalty.apply();
+		jisooPenalty.apply();
+		waived.waive(1L, revealedAt);
+		PenaltyRule rule = PenaltyFixtures.ratioRule(90L, appliedGame, 30, bowling, 1L, revealedAt);
+		MeetingPenalties penalties = new MeetingPenalties(List.of(minsooPenalty, jisooPenalty, assigned, waived),
+				Map.of(70L, rule));
+
+		SettlementInput input = assembler.assemble(MEETING_ID, penalties);
+
+		assertThat(input.penaltyRules()).containsExactly(new PenaltyRuleInput(31L, PenaltyMoneyType.RATIO, null, 30,
+				appliedGame.getApplyOrderAt(), 70L,
+				List.of(new PenalizedMember(80L, 3L), new PenalizedMember(81L, 2L))));
+	}
+
+	@Test
+	@DisplayName("벌칙 묶음 없이 부르면 로더로 읽은 벌칙을 쓴다")
+	void loadsPenaltiesWhenNotGiven() {
+		given(expenseRepository.findAllWithSharesByMeetingId(MEETING_ID)).willReturn(List.of());
+		given(attendanceRepository.findAllByMeetingId(MEETING_ID)).willReturn(List.of());
+
+		assertThat(assembler.assemble(MEETING_ID).penaltyRules()).isEmpty();
+		verify(meetingPenaltyLoader).load(MEETING_ID);
 	}
 
 	private Round round(Meeting meeting, int seq, Long id) {
