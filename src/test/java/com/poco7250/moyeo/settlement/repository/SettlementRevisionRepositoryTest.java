@@ -16,6 +16,7 @@ import com.poco7250.moyeo.settlement.domain.SettlementRevision;
 import com.poco7250.moyeo.settlement.domain.Transfer;
 import com.poco7250.moyeo.support.TestcontainersConfiguration;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -124,6 +125,39 @@ class SettlementRevisionRepositoryTest {
 		assertThat(transferRepository.findAllByRevisionIdOrderByIdAsc(revision.getId()))
 				.extracting(Transfer::getAmount)
 				.containsExactly(30_000L, 10_000L);
+	}
+
+	@Test
+	@DisplayName("정산의 모든 리비전을 번호 순으로 조회한다")
+	void findAllOrdered() {
+		saveRevision(2);
+		saveRevision(1);
+
+		assertThat(revisionRepository.findAllBySettlementIdOrderByRevisionNoAsc(settlement.getId()))
+				.extracting(SettlementRevision::getRevisionNo)
+				.containsExactly(1, 2);
+	}
+
+	@Test
+	@DisplayName("여러 리비전의 회원 스냅샷·송금 안내를 한 번에 조회하고 목록에 없는 리비전은 뺀다")
+	void findManyRevisions() {
+		SettlementRevision revision1 = saveRevision(1);
+		SettlementRevision revision2 = saveRevision(2);
+		SettlementRevision excluded = saveRevision(3);
+		memberShareRepository.saveAndFlush(RevisionMemberShare.create(revision2, second, 1L, -1L));
+		memberShareRepository.saveAndFlush(RevisionMemberShare.create(revision1, first, 2L, 2L));
+		memberShareRepository.saveAndFlush(RevisionMemberShare.create(excluded, first, 3L, 3L));
+		transferRepository.saveAndFlush(Transfer.create(revision2, second, first, 20_000L));
+		transferRepository.saveAndFlush(Transfer.create(revision1, second, first, 10_000L));
+		transferRepository.saveAndFlush(Transfer.create(excluded, second, first, 1L));
+		List<Long> revisionIds = List.of(revision1.getId(), revision2.getId());
+
+		assertThat(memberShareRepository.findAllByRevisionIdInOrderByMemberIdAsc(revisionIds))
+				.extracting(RevisionMemberShare::getShareAmount)
+				.containsExactly(2L, 1L);
+		assertThat(transferRepository.findAllByRevisionIdInOrderByIdAsc(revisionIds))
+				.extracting(Transfer::getAmount)
+				.containsExactly(20_000L, 10_000L);
 	}
 
 	private SettlementRevision saveRevision(int revisionNo) {

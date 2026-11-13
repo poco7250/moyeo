@@ -20,6 +20,11 @@ import com.poco7250.moyeo.game.repository.GameSessionRepository;
 import com.poco7250.moyeo.global.auth.MeetingAccessChecker;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
+import com.poco7250.moyeo.group.domain.Group;
+import com.poco7250.moyeo.group.domain.GroupMember;
+import com.poco7250.moyeo.group.domain.GroupRole;
+import com.poco7250.moyeo.group.repository.GroupMemberRepository;
+import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.member.domain.Member;
 import com.poco7250.moyeo.member.repository.MemberRepository;
@@ -40,6 +45,7 @@ import com.poco7250.moyeo.settlement.domain.Transfer;
 import com.poco7250.moyeo.settlement.dto.NetBalanceChangeResponse;
 import com.poco7250.moyeo.settlement.dto.RevisionChangeResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementMemberResponse;
+import com.poco7250.moyeo.settlement.dto.SettlementReconfirmedResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementTransferResponse;
 import com.poco7250.moyeo.settlement.repository.PenaltyChargeRepository;
@@ -62,6 +68,7 @@ import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -69,6 +76,7 @@ class SettlementConfirmServiceTest {
 
 	private static final Long MEETING_ID = 2L;
 	private static final Long HOST_ID = 1L;
+	private static final Long GROUP_ID = 7L;
 	private static final LocalDateTime NOW = LocalDateTime.of(2026, 12, 20, 22, 0);
 	private static final MeetingPenalties NO_PENALTIES = MeetingPenalties.empty();
 	// 3명이 30,000원을 나누고 1번 회원이 결제했다
@@ -111,6 +119,12 @@ class SettlementConfirmServiceTest {
 	@Mock
 	PenaltyChargeRepository penaltyChargeRepository;
 
+	@Mock
+	GroupMemberRepository groupMemberRepository;
+
+	@Mock
+	ApplicationEventPublisher eventPublisher;
+
 	@Captor
 	ArgumentCaptor<SettlementRevision> revisionCaptor;
 
@@ -130,9 +144,15 @@ class SettlementConfirmServiceTest {
 	void setUp() {
 		service = new SettlementConfirmService(meetingAccessChecker, settlementGuard, inputAssembler,
 				meetingPenaltyLoader, new SettlementConfirmGate(gameSessionRepository),
-				new PenaltyChargeRecorder(penaltyChargeRepository), settlementRepository, revisionRepository, memberShareRepository,
-				transferRepository, memberRepository, TestClocks.fixed(NOW));
+				new PenaltyChargeRecorder(penaltyChargeRepository),
+				new RevisionChangeAssembler(revisionRepository, memberShareRepository, groupMemberRepository),
+				settlementRepository, revisionRepository, memberShareRepository, transferRepository, memberRepository,
+				eventPublisher, TestClocks.fixed(NOW));
 		settlement = Settlement.createDraft(null);
+		Group group = Group.create("대학 동기");
+		ReflectionTestUtils.setField(group, "id", GROUP_ID);
+		Meeting meeting = Meeting.create(group, "연말 모임", NOW, null, null, HOST_ID);
+		lenient().when(meetingAccessChecker.requireHost(MEETING_ID, HOST_ID)).thenReturn(meeting);
 		// 검사에서 먼저 실패하는 경우엔 벌칙을 읽지 않으므로 lenient
 		lenient().when(meetingPenaltyLoader.load(MEETING_ID)).thenReturn(NO_PENALTIES);
 	}
@@ -224,7 +244,7 @@ class SettlementConfirmServiceTest {
 	}
 
 	@Test
-	@DisplayName("REOPENED면 리비전 2로 재확정하고 직전 리비전 대비 변동액(한쪽에만 있는 멤버는 0 기준)과 안내 문구를 싣는다")
+	@DisplayName("REOPENED면 리비전 2로 재확정하고 변동액(한쪽에만 있는 멤버는 0 기준)·안내·공유 문구를 싣고 재확정 알림을 발행한다")
 	void reconfirm() {
 		givenReopenedAfterRevision1();
 		// 1·2번이 30,000원을 나눠 3번은 새 리비전에 없다
@@ -240,14 +260,21 @@ class SettlementConfirmServiceTest {
 		assertThat(settlement.getCurrentRevisionNo()).isEqualTo(2);
 		assertThat(response.basisRevisionNo()).isEqualTo(2);
 		assertThat(response.transfers()).containsExactly(new SettlementTransferResponse(2L, 1L, 15_000L));
-		assertThat(response.revisionChange()).isEqualTo(new RevisionChangeResponse(1, List.of(
+		String shareText = "정산이 수정됐어요(리비전 2): 철수 \u22125,000원, 영희 \u22125,000원, 알 수 없음 +10,000원. "
+				+ RevisionChangeResponse.NOTICE;
+		List<NetBalanceChangeResponse> changes = List.of(
 				new NetBalanceChangeResponse(1L, 20_000L, 15_000L, -5_000L),
 				new NetBalanceChangeResponse(2L, -10_000L, -15_000L, -5_000L),
-				new NetBalanceChangeResponse(3L, -10_000L, 0L, 10_000L)), RevisionChangeResponse.NOTICE));
+				new NetBalanceChangeResponse(3L, -10_000L, 0L, 10_000L));
+		assertThat(response.revisionChange())
+				.isEqualTo(new RevisionChangeResponse(1, changes, RevisionChangeResponse.NOTICE, shareText));
+		verify(eventPublisher).publishEvent(new SettlementReconfirmedEvent(MEETING_ID,
+				new SettlementReconfirmedResponse(2, HOST_ID, changes, response.transfers(),
+						RevisionChangeResponse.NOTICE, shareText)));
 	}
 
 	@Test
-	@DisplayName("최초 확정 응답에는 변동액 안내가 없고 직전 리비전도 읽지 않는다")
+	@DisplayName("최초 확정 응답에는 변동액 안내가 없고 직전 리비전을 읽지 않으며 재확정 알림도 보내지 않는다")
 	void firstConfirmHasNoRevisionChange() {
 		givenLocked();
 		given(inputAssembler.assemble(MEETING_ID, NO_PENALTIES)).willReturn(NORMAL_INPUT);
@@ -257,6 +284,7 @@ class SettlementConfirmServiceTest {
 
 		assertThat(response.revisionChange()).isNull();
 		verify(revisionRepository, never()).findBySettlementIdAndRevisionNo(any(), anyInt());
+		verifyNoInteractions(eventPublisher, groupMemberRepository);
 	}
 
 	@Test
@@ -300,6 +328,7 @@ class SettlementConfirmServiceTest {
 
 		assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.REOPENED);
 		verify(revisionRepository, never()).save(any());
+		verifyNoInteractions(eventPublisher);
 	}
 
 	@Test
@@ -444,6 +473,10 @@ class SettlementConfirmServiceTest {
 				RevisionMemberShare.create(previous, member(1L), 10_000L, 20_000L),
 				RevisionMemberShare.create(previous, member(2L), 10_000L, -10_000L),
 				RevisionMemberShare.create(previous, member(3L), 10_000L, -10_000L)));
+		// 3번은 그룹을 나가 닉네임이 없다
+		given(groupMemberRepository.findAllByGroupIdAndMemberIdIn(GROUP_ID, List.of(1L, 2L, 3L))).willReturn(List.of(
+				GroupMember.join(null, member(1L), "철수", GroupRole.MEMBER),
+				GroupMember.join(null, member(2L), "영희", GroupRole.MEMBER)));
 	}
 
 	private void givenSaves() {

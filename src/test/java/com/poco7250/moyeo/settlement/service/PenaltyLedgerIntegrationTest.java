@@ -3,6 +3,11 @@ package com.poco7250.moyeo.settlement.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -38,13 +43,18 @@ import com.poco7250.moyeo.settlement.domain.ChangeType;
 import com.poco7250.moyeo.settlement.domain.Expense;
 import com.poco7250.moyeo.settlement.domain.Settlement;
 import com.poco7250.moyeo.settlement.domain.SettlementStatus;
+import com.poco7250.moyeo.settlement.dto.ChangeLogPageResponse;
+import com.poco7250.moyeo.settlement.dto.ChangeLogResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseDeleteResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseRequest;
 import com.poco7250.moyeo.settlement.dto.NetBalanceChangeResponse;
 import com.poco7250.moyeo.settlement.dto.RevisionChangeResponse;
+import com.poco7250.moyeo.settlement.dto.RevisionPenaltyChargeResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementMemberResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementPenaltyResponse;
+import com.poco7250.moyeo.settlement.dto.SettlementReconfirmedResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementResponse;
+import com.poco7250.moyeo.settlement.dto.SettlementRevisionResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementTransferResponse;
 import com.poco7250.moyeo.settlement.repository.ChangeLogRepository;
 import com.poco7250.moyeo.settlement.repository.ExpenseRepository;
@@ -58,6 +68,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -88,6 +99,12 @@ class PenaltyLedgerIntegrationTest {
 
 	@Autowired
 	PenaltyConditionService penaltyConditionService;
+
+	@Autowired
+	SettlementHistoryService settlementHistoryService;
+
+	@Autowired
+	ChangeLogQueryService changeLogQueryService;
 
 	@Autowired
 	GameLobbyService gameLobbyService;
@@ -378,6 +395,104 @@ class PenaltyLedgerIntegrationTest {
 				Integer.class, settlement.getId())).isEqualTo(1);
 	}
 
+	@Test
+	@DisplayName("예 6 재확정이 커밋되면 SETTLEMENT_RECONFIRMED 1회(변동 0 아닌 멤버·새 송금 안내·공유 문구), 최초 확정은 알림 없음")
+	void reconfirmBroadcastsOnce() {
+		penaltyConditionService.setRule(gameId, host.getId(), ratio30());
+		Long penalizedId = penalizedMemberId(gameId);
+		String penalizedName = penalizedId.equals(minsu.getId()) ? "민수" : "영희";
+		String otherName = penalizedId.equals(minsu.getId()) ? "영희" : "민수";
+		settlementConfirmService.confirm(meeting.getId(), host.getId(), false);
+		penaltyConditionService.setRule(gameId, host.getId(), new PenaltyRuleRequest(PenaltyMoneyType.RATIO,
+				bowling.getId(), null, 50));
+		clearInvocations(messagingTemplate);
+
+		SettlementResponse revision2 = settlementConfirmService.confirm(meeting.getId(), host.getId(), false);
+
+		ArgumentCaptor<RealtimeMessage> captor = ArgumentCaptor.forClass(RealtimeMessage.class);
+		verify(messagingTemplate, times(1)).convertAndSend(eq("/topic/meetings/" + meeting.getId()), captor.capture());
+		RealtimeMessage message = captor.getValue();
+		assertThat(message.type()).isEqualTo(SettlementReconfirmedEvent.TYPE);
+		SettlementReconfirmedResponse data = (SettlementReconfirmedResponse) message.data();
+		assertThat(data.revisionNo()).isEqualTo(2);
+		assertThat(data.confirmedBy()).isEqualTo(host.getId());
+		assertThat(data.changes()).extracting(NetBalanceChangeResponse::delta)
+				.containsExactlyInAnyOrder(6_600L, -20_000L, 6_700L, 6_700L);
+		assertThat(data.transfers()).isEqualTo(revision2.transfers());
+		String expectedText = "정산이 수정됐어요(리비전 2): " + penalizedName + " \u221220,000원, 철수 +6,600원, "
+				+ String.join(", ", sortedByMemberId(otherName)) + ". " + RevisionChangeResponse.NOTICE;
+		assertThat(data.shareText()).isEqualTo(expectedText).isEqualTo(revision2.revisionChange().shareText());
+	}
+
+	@Test
+	@DisplayName("재확정이 게이트에서 막혀 롤백되면 재확정 알림을 보내지 않는다")
+	void noBroadcastWhenReconfirmRejected() {
+		penaltyConditionService.setRule(gameId, host.getId(), ratio30());
+		settlementConfirmService.confirm(meeting.getId(), host.getId(), false);
+		penaltyConditionService.clearRule(gameId, host.getId());
+		clearInvocations(messagingTemplate);
+
+		assertThatThrownBy(() -> settlementConfirmService.confirm(meeting.getId(), host.getId(), false))
+				.isInstanceOf(BusinessException.class);
+
+		verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+	}
+
+	@Test
+	@DisplayName("예 6 이력: 리비전 목록은 2건(리비전 2에 예 6 변동액·벌칙 스냅샷)이고 변경 로그는 조건 변경을 시간순으로 보여 준다")
+	void revisionsAndChangeLogs() {
+		penaltyConditionService.setRule(gameId, host.getId(), ratio30());
+		Long penalizedId = penalizedMemberId(gameId);
+		settlementConfirmService.confirm(meeting.getId(), host.getId(), false);
+		penaltyConditionService.setRule(gameId, host.getId(), new PenaltyRuleRequest(PenaltyMoneyType.RATIO,
+				bowling.getId(), null, 50));
+		settlementConfirmService.confirm(meeting.getId(), host.getId(), false);
+
+		List<SettlementRevisionResponse> revisions = settlementHistoryService.revisions(meeting.getId(),
+				jisu.getId());
+
+		assertThat(revisions).extracting(SettlementRevisionResponse::revisionNo).containsExactly(1, 2);
+		assertThat(revisions.get(0).changes()).isNull();
+		assertThat(revisions.get(0).transfers()).hasSize(3);
+		assertThat(revisions.get(0).penaltyCharges()).singleElement()
+				.satisfies(charge -> {
+					assertThat(charge.memberId()).isEqualTo(penalizedId);
+					assertThat(charge.amount()).isEqualTo(30_000L);
+					assertThat(charge.ratioPct()).isEqualTo(30);
+				});
+		assertThat(revisions.get(1).changes()).contains(
+				new NetBalanceChangeResponse(host.getId(), 76_800L, 83_400L, 6_600L),
+				new NetBalanceChangeResponse(penalizedId, -30_000L, -50_000L, -20_000L),
+				new NetBalanceChangeResponse(jisu.getId(), -23_400L, -16_700L, 6_700L));
+		assertThat(revisions.get(1).penaltyCharges()).extracting(RevisionPenaltyChargeResponse::amount)
+				.containsExactly(50_000L);
+
+		ChangeLogPageResponse logs = changeLogQueryService.list(meeting.getId(), jisu.getId(), 0, 50);
+		assertThat(logs.hasNext()).isFalse();
+		assertThat(logs.items()).extracting(ChangeLogResponse::entityType)
+				.containsOnly(ChangeLogEntityType.PENALTY_RULE);
+		assertThat(logs.items()).extracting(ChangeLogResponse::changedAt).isSorted();
+		assertThat(logs.items().getLast().before()).contains("\"ratioPct\":30");
+		assertThat(logs.items().getLast().after()).contains("\"ratioPct\":50");
+		assertThat(logs.items().getLast().settlementStatusAfter()).isEqualTo(SettlementStatus.REOPENED);
+	}
+
+	@Test
+	@DisplayName("그룹 밖 회원은 리비전 목록·변경 로그를 볼 수 없다(403 NOT_GROUP_MEMBER)")
+	void historyRejectsOutsider() {
+		Member outsider = memberRepository.save(Member.ofKakao(nextKakaoId++, "외부인", null, null));
+		try {
+			assertThatThrownBy(() -> settlementHistoryService.revisions(meeting.getId(), outsider.getId()))
+					.isInstanceOf(BusinessException.class)
+					.extracting("errorCode").isEqualTo(ErrorCode.NOT_GROUP_MEMBER);
+			assertThatThrownBy(() -> changeLogQueryService.list(meeting.getId(), outsider.getId(), 0, 50))
+					.isInstanceOf(BusinessException.class)
+					.extracting("errorCode").isEqualTo(ErrorCode.NOT_GROUP_MEMBER);
+		} finally {
+			memberRepository.deleteById(outsider.getId());
+		}
+	}
+
 	private Long revealedGame() {
 		Long id = gameLobbyService.create(round.getId(), minsu.getId(), new GameCreateRequest(GameType.LADDER,
 				PenaltyKind.MONEY, "꼴찌가 볼링 30%", List.of(minsu.getId(), yeonghee.getId()), null)).gameId();
@@ -447,6 +562,13 @@ class PenaltyLedgerIntegrationTest {
 	private List<Long> chargeAmountsOf(int revisionNo) {
 		return jdbcTemplate.queryForList("select amount from penalty_charge where revision_id = "
 				+ revisionIdOf(revisionNo), Long.class);
+	}
+
+	// 변동액이 같은(+6,700원) 두 사람은 회원 id 순으로 나온다
+	private List<String> sortedByMemberId(String otherName) {
+		Member other = otherName.equals("민수") ? minsu : yeonghee;
+		List<Member> sameDelta = other.getId() < jisu.getId() ? List.of(other, jisu) : List.of(jisu, other);
+		return sameDelta.stream().map(member -> (member == jisu ? "지수" : otherName) + " +6,700원").toList();
 	}
 
 	private Member saveMember(String nickname) {

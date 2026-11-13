@@ -2,10 +2,9 @@ package com.poco7250.moyeo.settlement.service;
 
 import com.poco7250.moyeo.global.auth.MeetingAccessChecker;
 import com.poco7250.moyeo.global.error.BusinessException;
+import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.member.domain.Member;
 import com.poco7250.moyeo.member.repository.MemberRepository;
-import com.poco7250.moyeo.settlement.calc.MemberSettlement;
-import com.poco7250.moyeo.settlement.calc.NetBalanceDeltaCalculator;
 import com.poco7250.moyeo.settlement.calc.SettlementCalculator;
 import com.poco7250.moyeo.settlement.calc.SettlementResult;
 import com.poco7250.moyeo.settlement.domain.RevisionMemberShare;
@@ -13,6 +12,7 @@ import com.poco7250.moyeo.settlement.domain.Settlement;
 import com.poco7250.moyeo.settlement.domain.SettlementRevision;
 import com.poco7250.moyeo.settlement.domain.Transfer;
 import com.poco7250.moyeo.settlement.dto.RevisionChangeResponse;
+import com.poco7250.moyeo.settlement.dto.SettlementReconfirmedResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementResponse;
 import com.poco7250.moyeo.settlement.repository.RevisionMemberShareRepository;
 import com.poco7250.moyeo.settlement.repository.SettlementRepository;
@@ -21,16 +21,15 @@ import com.poco7250.moyeo.settlement.repository.TransferRepository;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 정산 확정·재확정(PRD S-10, S-11). 확정 게이트를 통과하면 그 시점 계산값(멤버별 부담액·순잔액·벌칙 부담액·송금 안내)을
  * 새 리비전으로 고정한다. DRAFT면 리비전 1, REOPENED면 리비전 +1이고 이전 리비전은 바꾸지 않는다.
- * 재확정이면 직전 확정 리비전 대비 1인당 순잔액 변동액을 응답에 싣는다(저장하지 않음).
+ * 재확정이면 직전 확정 리비전 대비 1인당 순잔액 변동액·공유 문구를 응답에 싣고, 커밋 후 모임 토픽에 재확정 알림을 보낸다.
  * 정산 직렬화 대상이며 충돌 시 늦은 쪽은 409이고 재시도하지 않는다(PRD 6장 재시도 대상 아님).
  */
 @Service
@@ -43,11 +42,13 @@ public class SettlementConfirmService {
 	private final MeetingPenaltyLoader meetingPenaltyLoader;
 	private final SettlementConfirmGate confirmGate;
 	private final PenaltyChargeRecorder penaltyChargeRecorder;
+	private final RevisionChangeAssembler revisionChangeAssembler;
 	private final SettlementRepository settlementRepository;
 	private final SettlementRevisionRepository revisionRepository;
 	private final RevisionMemberShareRepository memberShareRepository;
 	private final TransferRepository transferRepository;
 	private final MemberRepository memberRepository;
+	private final ApplicationEventPublisher eventPublisher;
 	private final Clock clock;
 
 	/**
@@ -60,7 +61,7 @@ public class SettlementConfirmService {
 	 */
 	@Transactional
 	public SettlementResponse confirm(Long meetingId, Long hostId, boolean acknowledgeWarnings) {
-		meetingAccessChecker.requireHost(meetingId, hostId);
+		Meeting meeting = meetingAccessChecker.requireHost(meetingId, hostId);
 		Settlement settlement = settlementGuard.lockForAmountChange(meetingId);
 		settlement.requireConfirmable();
 		MeetingPenalties penalties = meetingPenaltyLoader.load(meetingId);
@@ -69,7 +70,8 @@ public class SettlementConfirmService {
 
 		LocalDateTime now = LocalDateTime.now(clock);
 		int revisionNo = settlement.confirm(now);
-		RevisionChangeResponse revisionChange = revisionChange(settlement, revisionNo, result);
+		RevisionChangeResponse revisionChange = revisionChangeAssembler.assemble(settlement,
+				meeting.getGroup().getId(), revisionNo, result);
 		// 리비전 INSERT의 FK 검사는 정산 행에 공유 잠금을 잡는다. 동시 확정끼리 커밋 때 UPDATE하면 데드락이 나므로
 		// 정산 UPDATE를 먼저 내보내 늦은 쪽이 version 충돌(409)로 끝나게 한다
 		settlementRepository.flush();
@@ -78,26 +80,13 @@ public class SettlementConfirmService {
 		List<RevisionMemberShare> shares = saveMemberShares(revision, result);
 		List<Transfer> transfers = saveTransfers(revision, result);
 		penaltyChargeRecorder.record(revision, penalties, result.penaltyCharges());
-		return SettlementResponse.confirmed(settlement, shares, transfers,
+		SettlementResponse response = SettlementResponse.confirmed(settlement, shares, transfers,
 				penalties.toResponses(result.penaltyCharges()), revisionChange);
-	}
-
-	// 재확정이면 직전 확정 리비전(revisionNo − 1) 순잔액과 이번 계산 순잔액으로 변동액을 구한다. 최초 확정이면 null
-	private RevisionChangeResponse revisionChange(Settlement settlement, int revisionNo, SettlementResult result) {
-		if (revisionNo == Settlement.FIRST_REVISION_NO) {
-			return null;
+		if (revisionChange != null) {
+			eventPublisher.publishEvent(new SettlementReconfirmedEvent(meetingId,
+					SettlementReconfirmedResponse.of(revisionNo, hostId, revisionChange, response.transfers())));
 		}
-		int previousNo = revisionNo - 1;
-		SettlementRevision previous = revisionRepository.findBySettlementIdAndRevisionNo(settlement.getId(), previousNo)
-				.orElseThrow(() -> new IllegalStateException(
-						"재확정할 정산에 직전 리비전이 없습니다: " + settlement.getId() + "#" + previousNo));
-		Map<Long, Long> previousBalances = memberShareRepository
-				.findAllByRevisionIdOrderByMemberIdAsc(previous.getId()).stream()
-				.collect(Collectors.toMap(share -> share.getMember().getId(), RevisionMemberShare::getNetBalance));
-		Map<Long, Long> currentBalances = result.members().stream()
-				.collect(Collectors.toMap(MemberSettlement::memberId, MemberSettlement::netBalance));
-		return RevisionChangeResponse.of(previousNo,
-				NetBalanceDeltaCalculator.calculate(previousBalances, currentBalances));
+		return response;
 	}
 
 	private List<RevisionMemberShare> saveMemberShares(SettlementRevision revision, SettlementResult result) {
