@@ -16,7 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * DB의 지출·참석 응답을 순수 계산 입력으로 바꾼다. 벌칙 입력은 Task 035에서 여기에 추가한다.
+ * DB의 지출·참석 응답을 순수 계산 입력으로 바꾼다. 벌칙 입력은 Task 037에서 여기에 추가한다.
  */
 @Component
 @RequiredArgsConstructor

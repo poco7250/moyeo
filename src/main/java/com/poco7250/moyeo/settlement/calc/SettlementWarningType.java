@@ -7,5 +7,7 @@ public enum SettlementWarningType {
 	// 고정 금액 합이 지출 금액을 넘어 일부만 부담시켰다
 	FIXED_AMOUNT_OVERFLOW,
 	// 남은 금액을 나눌 사람이 없어 결제자가 부담했다
-	NO_SHARE_TARGET
+	NO_SHARE_TARGET,
+	// 벌칙의 원래 계산값 합이 대상 지출 금액을 넘어 잔액까지만 부담시켰다
+	PENALTY_EXCEEDS_TARGET
 }

@@ -2,6 +2,8 @@ package com.poco7250.moyeo.settlement.calc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -78,7 +80,7 @@ class SettlementCalculatorTest {
 	}
 
 	@RepeatedTest(200)
-	@DisplayName("무작위 입력에서도 부담액 합 = 지출 합, 부담액 ≥ 0, 순잔액 합 0, 송금 후 전원 0이다")
+	@DisplayName("무작위 입력에서도 부담액 합 = 지출 합, 부담액 ≥ 0, 지출별 벌칙 합 ≤ 지출 금액, 순잔액 합 0, 송금 후 전원 0이다")
 	void keepsInvariants(RepetitionInfo info) {
 		Random random = new Random(info.getCurrentRepetition());
 		List<ExpenseInput> expenses = new ArrayList<>();
@@ -87,8 +89,18 @@ class SettlementCalculatorTest {
 			expenses.add(randomExpense(random, expenseId));
 		}
 
-		SettlementResult result = SettlementCalculator.calculate(new SettlementInput(expenses));
+		List<PenaltyRuleInput> rules = randomRules(random, expenses);
 
+		SettlementResult result = SettlementCalculator.calculate(new SettlementInput(expenses, rules));
+
+		for (ExpenseInput expense : expenses) {
+			List<PenaltyChargeResult> charged = result.penaltyCharges().stream()
+					.filter(charge -> charge.expenseId() == expense.expenseId())
+					.toList();
+			assertThat(charged).allSatisfy(charge -> assertThat(charge.amount()).isNotNegative());
+			assertThat(charged.stream().mapToLong(PenaltyChargeResult::amount).sum())
+					.isLessThanOrEqualTo(expense.amount());
+		}
 		long totalAmount = expenses.stream().mapToLong(ExpenseInput::amount).sum();
 		assertThat(result.members().stream().mapToLong(MemberSettlement::shareAmount).sum()).isEqualTo(totalAmount);
 		assertThat(result.members()).allSatisfy(member -> assertThat(member.shareAmount()).isNotNegative());
@@ -111,6 +123,35 @@ class SettlementCalculatorTest {
 			randomAdjustment(random, memberId, amount).ifPresent(adjustments::add);
 		}
 		return new ExpenseInput(expenseId, amount, payerId, attendees, adjustments);
+	}
+
+	private static List<PenaltyRuleInput> randomRules(Random random, List<ExpenseInput> expenses) {
+		List<PenaltyRuleInput> rules = new ArrayList<>();
+		int ruleCount = random.nextInt(0, 4);
+		for (long ruleNo = 1; ruleNo <= ruleCount; ruleNo++) {
+			ExpenseInput target = expenses.get(random.nextInt(expenses.size()));
+			List<PenalizedMember> penalized = new ArrayList<>();
+			for (long memberId = 1; memberId <= MEMBER_COUNT; memberId++) {
+				if (random.nextInt(3) == 0) {
+					penalized.add(new PenalizedMember(ruleNo * 100 + memberId, memberId));
+				}
+			}
+			LocalDateTime order = LocalDateTime.of(2026, 11, 13, 20, random.nextInt(0, 3));
+			rules.add(randomRule(random, target, order, ruleNo, penalized));
+		}
+		return rules;
+	}
+
+	private static PenaltyRuleInput randomRule(
+			Random random, ExpenseInput target, LocalDateTime order, long rootId, List<PenalizedMember> penalized) {
+		return switch (random.nextInt(3)) {
+			case 0 -> new PenaltyRuleInput(target.expenseId(), PenaltyMoneyType.FIXED_AMOUNT,
+					random.nextLong(1L, MAX_AMOUNT + 1), null, order, rootId, penalized);
+			case 1 -> new PenaltyRuleInput(target.expenseId(), PenaltyMoneyType.RATIO, null, random.nextInt(1, 101),
+					order, rootId, penalized);
+			default -> new PenaltyRuleInput(target.expenseId(), PenaltyMoneyType.FULL, null, null, order, rootId,
+					penalized);
+		};
 	}
 
 	private static Optional<ShareAdjustment> randomAdjustment(Random random, long memberId, long amount) {
