@@ -17,6 +17,9 @@ import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -74,6 +77,31 @@ class ChangeLogRepositoryTest {
 	}
 
 	@Test
+	@DisplayName("한 페이지씩 시각·id 오름차순으로 자르고, 다음 페이지 유무를 알려 주며 다른 모임 로그는 뺀다")
+	void findsSlice() {
+		Meeting other = meetingRepository.saveAndFlush(Meeting.create(
+				meeting.getGroup(), "다른 모임", LocalDateTime.of(2026, 12, 21, 18, 0), null, null, 1L));
+		changeLogRepository.save(log(AT.plusMinutes(2), 3L));
+		changeLogRepository.save(log(AT, 1L));
+		changeLogRepository.save(log(AT, 2L));
+		changeLogRepository.save(ChangeLog.record(other, 1L, AT, ChangeLogEntityType.EXPENSE, 9L, ChangeType.UPDATE,
+				null, null, SettlementStatus.DRAFT));
+		flushAndClear();
+		Sort chronological = Sort.by(Sort.Order.asc(ChangeLog::getChangedAt),
+				Sort.Order.asc(ChangeLog::getId));
+
+		Slice<ChangeLog> firstPage = changeLogRepository.findAllByMeetingId(meeting.getId(),
+				PageRequest.of(0, 2, chronological));
+		Slice<ChangeLog> secondPage = changeLogRepository.findAllByMeetingId(meeting.getId(),
+				PageRequest.of(1, 2, chronological));
+
+		assertThat(firstPage.getContent()).extracting(ChangeLog::getEntityId).containsExactly(1L, 2L);
+		assertThat(firstPage.hasNext()).isTrue();
+		assertThat(secondPage.getContent()).extracting(ChangeLog::getEntityId).containsExactly(3L);
+		assertThat(secondPage.hasNext()).isFalse();
+	}
+
+	@Test
 	@DisplayName("행위자와 전/후 JSON은 비워서 저장할 수 있다")
 	void savesNullableFields() {
 		changeLogRepository.save(ChangeLog.record(meeting, null, AT, ChangeLogEntityType.ATTENDANCE, 1L,
@@ -105,7 +133,7 @@ class ChangeLogRepositoryTest {
 	void exposesOnlySaveAndFind() {
 		assertThat(CrudRepository.class.isAssignableFrom(ChangeLogRepository.class)).isFalse();
 		assertThat(Arrays.stream(ChangeLogRepository.class.getMethods()).map(Method::getName))
-				.containsExactlyInAnyOrder("save", "findAllByMeetingIdOrderByChangedAtAscIdAsc");
+				.containsExactlyInAnyOrder("save", "findAllByMeetingIdOrderByChangedAtAscIdAsc", "findAllByMeetingId");
 	}
 
 	private ChangeLog log(LocalDateTime changedAt, Long entityId) {

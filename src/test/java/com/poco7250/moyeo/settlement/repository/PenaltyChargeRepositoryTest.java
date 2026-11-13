@@ -28,6 +28,8 @@ import com.poco7250.moyeo.settlement.domain.SettlementRevision;
 import com.poco7250.moyeo.support.TestcontainersConfiguration;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
+import java.util.List;
+import org.hibernate.Hibernate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -153,5 +155,27 @@ class PenaltyChargeRepositoryTest {
 					assertThat(charge.getTargetExpenseId()).isEqualTo(bowling.getId());
 					assertThat(charge.getTargetExpenseMemo()).isEqualTo("볼링");
 				});
+	}
+
+	@Test
+	@DisplayName("여러 리비전의 스냅샷을 벌칙과 함께 한 번에 조회하고, 목록에 없는 리비전은 뺀다")
+	void findWithPenaltyByRevisionIds() {
+		SettlementRevision second = revisionRepository.saveAndFlush(
+				SettlementRevision.create(revision.getSettlement(), 2, revision.getConfirmedBy(), AT, false));
+		SettlementRevision excluded = revisionRepository.saveAndFlush(
+				SettlementRevision.create(revision.getSettlement(), 3, revision.getConfirmedBy(), AT, false));
+		penaltyChargeRepository.saveAndFlush(PenaltyCharge.create(revision, penalty, 30_000L, rule));
+		penaltyChargeRepository.saveAndFlush(PenaltyCharge.create(second, penalty, 50_000L, rule));
+		penaltyChargeRepository.saveAndFlush(PenaltyCharge.create(excluded, penalty, 1L, rule));
+		entityManager.clear();
+
+		List<PenaltyCharge> charges = penaltyChargeRepository.findAllWithPenaltyByRevisionIdIn(
+				List.of(revision.getId(), second.getId()));
+
+		assertThat(charges).extracting(PenaltyCharge::getAmount).containsExactly(30_000L, 50_000L);
+		assertThat(charges).allSatisfy(charge -> {
+			assertThat(Hibernate.isInitialized(charge.getPenalty())).isTrue();
+			assertThat(charge.getPenalty().getMember().getId()).isEqualTo(penalty.getMember().getId());
+		});
 	}
 }

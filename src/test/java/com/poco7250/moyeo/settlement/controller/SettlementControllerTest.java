@@ -22,11 +22,14 @@ import com.poco7250.moyeo.settlement.calc.SettlementWarningType;
 import com.poco7250.moyeo.settlement.domain.SettlementStatus;
 import com.poco7250.moyeo.settlement.dto.NetBalanceChangeResponse;
 import com.poco7250.moyeo.settlement.dto.RevisionChangeResponse;
+import com.poco7250.moyeo.settlement.dto.RevisionPenaltyChargeResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementMemberResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementResponse;
+import com.poco7250.moyeo.settlement.dto.SettlementRevisionResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementTransferResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementWarningResponse;
 import com.poco7250.moyeo.settlement.service.SettlementConfirmService;
+import com.poco7250.moyeo.settlement.service.SettlementHistoryService;
 import com.poco7250.moyeo.settlement.service.SettlementQueryService;
 import com.poco7250.moyeo.support.SecurityTestConfig;
 import jakarta.servlet.http.Cookie;
@@ -82,6 +85,9 @@ class SettlementControllerTest {
 
 	@MockitoBean
 	SettlementConfirmService settlementConfirmService;
+
+	@MockitoBean
+	SettlementHistoryService settlementHistoryService;
 
 	@Test
 	@DisplayName("DRAFT 조회는 기준 리비전 null·미리보기 표시와 계산값·경고를 준다")
@@ -155,7 +161,7 @@ class SettlementControllerTest {
 				new RevisionChangeResponse(1, List.of(
 						new NetBalanceChangeResponse(8L, 10_000L, 15_000L, 5_000L),
 						new NetBalanceChangeResponse(9L, -10_000L, -15_000L, -5_000L)),
-						RevisionChangeResponse.NOTICE));
+						RevisionChangeResponse.NOTICE, "정산이 수정됐어요(리비전 2): …"));
 		given(settlementConfirmService.confirm(10L, 8L, false)).willReturn(reconfirmed);
 
 		mockMvc.perform(post("/api/meetings/10/settlement/confirm").cookie(accessCookie()))
@@ -166,7 +172,8 @@ class SettlementControllerTest {
 				.andExpect(jsonPath("$.data.revisionChange.changes[1].previousNetBalance").value(-10_000))
 				.andExpect(jsonPath("$.data.revisionChange.changes[1].currentNetBalance").value(-15_000))
 				.andExpect(jsonPath("$.data.revisionChange.changes[1].delta").value(-5_000))
-				.andExpect(jsonPath("$.data.revisionChange.notice").value(RevisionChangeResponse.NOTICE));
+				.andExpect(jsonPath("$.data.revisionChange.notice").value(RevisionChangeResponse.NOTICE))
+				.andExpect(jsonPath("$.data.revisionChange.shareText").value("정산이 수정됐어요(리비전 2): …"));
 	}
 
 	@ParameterizedTest
@@ -247,6 +254,47 @@ class SettlementControllerTest {
 		mockMvc.perform(get("/api/meetings/10/settlement")).andExpect(status().isUnauthorized());
 		mockMvc.perform(post("/api/meetings/10/settlement/confirm")).andExpect(status().isUnauthorized());
 		verifyNoInteractions(settlementQueryService, settlementConfirmService);
+	}
+
+	@Test
+	@DisplayName("리비전 목록은 번호 순으로 확정자·시각·부담액·순잔액·변동액(리비전 1은 null)·송금 안내·벌칙 스냅샷을 준다")
+	void revisions() throws Exception {
+		LocalDateTime at = LocalDateTime.of(2026, 12, 20, 22, 0);
+		given(settlementHistoryService.revisions(10L, 8L)).willReturn(List.of(
+				new SettlementRevisionResponse(1, 8L, at, false,
+						List.of(new SettlementMemberResponse(8L, 10_000L, 10_000L)),
+						null,
+						List.of(new SettlementTransferResponse(9L, 8L, 10_000L)),
+						List.of(new RevisionPenaltyChargeResponse(80L, 9L, 30_000L, PenaltyMoneyType.RATIO, null, 30,
+								31L, 100_000L, "볼링"))),
+				new SettlementRevisionResponse(2, 8L, at.plusHours(1), true,
+						List.of(new SettlementMemberResponse(8L, 5_000L, 15_000L)),
+						List.of(new NetBalanceChangeResponse(8L, 10_000L, 15_000L, 5_000L)),
+						List.of(), List.of())));
+
+		mockMvc.perform(get("/api/meetings/10/settlement/revisions").cookie(accessCookie()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data[0].revisionNo").value(1))
+				.andExpect(jsonPath("$.data[0].confirmedBy").value(8))
+				.andExpect(jsonPath("$.data[0].confirmedAt").value("2026-12-20T22:00:00"))
+				.andExpect(jsonPath("$.data[0].changes").isEmpty())
+				.andExpect(jsonPath("$.data[0].transfers[0].fromMemberId").value(9))
+				.andExpect(jsonPath("$.data[0].penaltyCharges[0].memberId").value(9))
+				.andExpect(jsonPath("$.data[0].penaltyCharges[0].ratioPct").value(30))
+				.andExpect(jsonPath("$.data[0].penaltyCharges[0].targetExpenseMemo").value("볼링"))
+				.andExpect(jsonPath("$.data[1].warningsAcknowledged").value(true))
+				.andExpect(jsonPath("$.data[1].changes[0].delta").value(5_000));
+	}
+
+	@Test
+	@DisplayName("리비전 목록을 그룹 멤버가 아닌 회원이 조회하면 403 NOT_GROUP_MEMBER")
+	void revisionsRejectsNonMember() throws Exception {
+		given(settlementHistoryService.revisions(10L, 8L))
+				.willThrow(new BusinessException(ErrorCode.NOT_GROUP_MEMBER));
+
+		mockMvc.perform(get("/api/meetings/10/settlement/revisions").cookie(accessCookie()))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error.code").value("NOT_GROUP_MEMBER"));
 	}
 
 	private Cookie accessCookie() {
