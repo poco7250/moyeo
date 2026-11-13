@@ -67,6 +67,10 @@ public enum ErrorCode {
 	EXPENSE_NOT_IN_MEETING(HttpStatus.BAD_REQUEST, "이 모임에 등록된 지출만 고를 수 있습니다."),
 	SETTLEMENT_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "이미 확정된 정산입니다."),
 	WARNING_UNCONFIRMED(HttpStatus.CONFLICT, "정산 경고를 확인한 뒤 다시 확정해 주세요."),
+	// 조건 미설정(ASSIGNED) 금액형 벌칙이 남아 확정할 수 없음
+	PENALTY_CONDITION_UNSET(HttpStatus.CONFLICT, "금액 조건을 정하지 않은 벌칙이 있습니다. 조건을 입력하거나 금액 벌칙 없음을 골라 주세요."),
+	// 대기·진행 중인 금액형 게임(다시 돌린 회차 포함)이 있어 확정할 수 없음
+	MONEY_GAME_IN_PROGRESS(HttpStatus.CONFLICT, "진행 중인 금액 벌칙 게임이 있습니다. 결과를 공개하거나 취소한 뒤 확정해 주세요."),
 
 	// 게임
 	GAME_NOT_FOUND(HttpStatus.NOT_FOUND, "게임을 찾을 수 없습니다."),
