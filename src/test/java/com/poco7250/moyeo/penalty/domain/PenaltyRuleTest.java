@@ -91,6 +91,33 @@ class PenaltyRuleTest {
 		assertThat(rule.getRatioPct()).isEqualTo(30);
 	}
 
+	@Test
+	@DisplayName("조건을 다시 정하면 값과 대상 지출, 설정자, 설정 시각이 모두 바뀐다")
+	void changeReplacesValueAndSetter() {
+		PenaltyRule rule = create(PenaltyMoneyType.RATIO, null, 30);
+		LocalDateTime changedAt = SET_AT.plusHours(1);
+
+		rule.change(PenaltyMoneyType.FIXED_AMOUNT, 20_000L, null, null, 9L, changedAt);
+
+		assertThat(rule.getMoneyType()).isEqualTo(PenaltyMoneyType.FIXED_AMOUNT);
+		assertThat(rule.getAmount()).isEqualTo(20_000L);
+		assertThat(rule.getRatioPct()).isNull();
+		assertThat(rule.getSetBy()).isEqualTo(9L);
+		assertThat(rule.getUpdatedAt()).isEqualTo(changedAt);
+	}
+
+	@Test
+	@DisplayName("종류와 값이 맞지 않게 바꾸면 INVALID_INPUT이고 기존 값이 유지된다")
+	void changeRejected() {
+		PenaltyRule rule = create(PenaltyMoneyType.RATIO, null, 30);
+
+		assertThatThrownBy(() -> rule.change(PenaltyMoneyType.FULL, null, 100, null, 9L, SET_AT.plusHours(1)))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.INVALID_INPUT);
+		assertThat(rule.getMoneyType()).isEqualTo(PenaltyMoneyType.RATIO);
+		assertThat(rule.getSetBy()).isEqualTo(HOST_ID);
+	}
+
 	private PenaltyRule create(PenaltyMoneyType moneyType, Long amount, Integer ratioPct) {
 		return PenaltyRule.create(game(), moneyType, amount, ratioPct, null, HOST_ID, SET_AT);
 	}

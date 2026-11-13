@@ -63,6 +63,8 @@ public enum ErrorCode {
 
 	// 정산
 	EXPENSE_NOT_FOUND(HttpStatus.NOT_FOUND, "지출을 찾을 수 없습니다."),
+	// 벌칙 조건의 대상 지출이 게임과 다른 모임의 지출
+	EXPENSE_NOT_IN_MEETING(HttpStatus.BAD_REQUEST, "이 모임에 등록된 지출만 고를 수 있습니다."),
 	SETTLEMENT_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "이미 확정된 정산입니다."),
 	WARNING_UNCONFIRMED(HttpStatus.CONFLICT, "정산 경고를 확인한 뒤 다시 확정해 주세요."),
 
