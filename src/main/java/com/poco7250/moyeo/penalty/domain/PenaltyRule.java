@@ -96,6 +96,22 @@ public class PenaltyRule {
 	}
 
 	/**
+	 * 조건을 다시 정한다. 새로 정한 것이므로 설정자와 설정 시각도 바꾼다.
+	 *
+	 * @throws BusinessException 종류와 값이 맞지 않거나 범위를 벗어나면 INVALID_INPUT
+	 */
+	public void change(PenaltyMoneyType moneyType, Long amount, Integer ratioPct, Expense targetExpense, Long setBy,
+			LocalDateTime now) {
+		requireValidValue(moneyType, amount, ratioPct);
+		this.moneyType = moneyType;
+		this.amount = amount;
+		this.ratioPct = ratioPct;
+		this.targetExpense = targetExpense;
+		this.setBy = setBy;
+		this.updatedAt = now;
+	}
+
+	/**
 	 * 다시 돌린 새 회차로 조건을 옮긴다. 조건을 새로 정한 게 아니라서 설정자와 설정 시각은 그대로 둔다.
 	 */
 	public void moveTo(GameSession newGameSession) {

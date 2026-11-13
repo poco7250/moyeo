@@ -45,6 +45,18 @@ public class GameAccessChecker {
 		return game;
 	}
 
+	/**
+	 * 회원이 게임이 속한 모임의 호스트인지 검사하고 게임을 돌려준다. 진행자여도 호스트가 아니면 통과하지 못한다.
+	 * 없는 게임도 같은 403으로 응답해 게임 존재 여부를 드러내지 않는다.
+	 *
+	 * @throws BusinessException 없는 게임이거나 그룹 멤버가 아니면 NOT_GROUP_MEMBER, 호스트가 아니면 NOT_MEETING_HOST
+	 */
+	public GameSession requireHost(Long gameId, Long memberId) {
+		GameSession game = findGame(gameId);
+		meetingAccessChecker.requireHost(game.getRound().getMeeting().getId(), memberId);
+		return game;
+	}
+
 	private GameSession findGame(Long gameId) {
 		return gameSessionRepository.findById(gameId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_GROUP_MEMBER));
