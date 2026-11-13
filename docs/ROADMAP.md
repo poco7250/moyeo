@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-13 (`feature/settlement-confirm-gate` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-14 (`feature/settlement-reconfirm` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 8 완료(Task 038 완료, 2026-11-13), 다음은 Phase 9. Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격, 2026-11-11)과 Task 032(결과 공개 시 벌칙자 확정, 2026-11-12), Task 033(다시 돌리기 요청과 다시 돌린 회차 취소, 2026-11-12)에 이어 Task 034(다시 돌린 회차 결과 공개, 2026-11-12)로 완료했다. Phase 8은 Task 035(벌칙 부담액 계산·경고 순수 도메인, 2026-11-13)와 Task 036(벌칙 조건 설정·변경·해제·면제·면제 취소 API, 2026-11-13), Task 037(대상 지출 삭제 연동·벌칙 반영 내역 표시, 2026-11-13), Task 038(정산 확정 게이트·`PenaltyCharge` 스냅샷, 2026-11-13)로 완료했다. 다음은 Task 039(재확정과 1인당 변동액). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 정산 계산·송금 최소화와 벌칙 부담액 계산·경고 순수 도메인(`settlement/calc/`), 벌칙 계산 입력 조립과 정산 조회의 벌칙 반영 내역, 대상 지출 삭제 시 조건 정리(`settlement/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 정산 확정 게이트·`PenaltyCharge` 스냅샷, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API와 게임 상태 조회·차수별 게임 목록 API, 다시 돌리기 요청 API(`game/`), 게임 인가 `GameAccessChecker`(호스트 검사 포함, `global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이, 결과 공개 시 벌칙자 확정·다시 돌린 회차의 원 벌칙 무효·규칙 이관·조건 상속 `PenaltyAssigner`, 벌칙 조건 설정·변경·해제·면제·면제 취소 API(`penalty/`), 공통 코드(`global/`)가 있다.
+- **현재 단계:** Phase 9 진행 중(Task 039 완료, 2026-11-14), 다음은 Task 040. Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격, 2026-11-11)과 Task 032(결과 공개 시 벌칙자 확정, 2026-11-12), Task 033(다시 돌리기 요청과 다시 돌린 회차 취소, 2026-11-12)에 이어 Task 034(다시 돌린 회차 결과 공개, 2026-11-12)로 완료했다. Phase 8은 Task 035(벌칙 부담액 계산·경고 순수 도메인, 2026-11-13)와 Task 036(벌칙 조건 설정·변경·해제·면제·면제 취소 API, 2026-11-13), Task 037(대상 지출 삭제 연동·벌칙 반영 내역 표시, 2026-11-13), Task 038(정산 확정 게이트·`PenaltyCharge` 스냅샷, 2026-11-13)로 완료했다. Phase 9는 Task 039(재확정과 1인당 변동액, 2026-11-14)를 마쳤고 다음은 Task 040(리비전·변경 로그 조회와 재확정 알림·공유 문구). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 정산 계산·송금 최소화와 벌칙 부담액 계산·경고 순수 도메인(`settlement/calc/`), 벌칙 계산 입력 조립과 정산 조회의 벌칙 반영 내역, 대상 지출 삭제 시 조건 정리(`settlement/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 정산 확정 게이트·`PenaltyCharge` 스냅샷, 재확정(리비전 +1)과 직전 리비전 대비 1인당 변동액, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API와 게임 상태 조회·차수별 게임 목록 API, 다시 돌리기 요청 API(`game/`), 게임 인가 `GameAccessChecker`(호스트 검사 포함, `global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이, 결과 공개 시 벌칙자 확정·다시 돌린 회차의 원 벌칙 무효·규칙 이관·조건 상속 `PenaltyAssigner`, 벌칙 조건 설정·변경·해제·면제·면제 취소 API(`penalty/`), 공통 코드(`global/`)가 있다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -19,7 +19,7 @@
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 5 | ✅ 완료 |
 | 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 4 | ✅ 완료 |
 | 8 | 벌칙 정산 연동·확정 게이트 | 8 | 4 | 4 | ✅ 완료 |
-| 9 | 재확정·리비전 비교·알림 | 5-b | 2 | 0 | ⬜ 대기 |
+| 9 | 재확정·리비전 비교·알림 | 5-b | 2 | 1 | 🔄 진행 중 |
 | 10 | MVP 통합 검증 | 9 | 3 | 0 | ⬜ 대기 |
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
@@ -1132,25 +1132,33 @@ Phase 10 040 → 041, 042 → 043
 - **목표:** 리비전이 2개 이상이어야 의미 있는 것 — 재확정(리비전 +1, 게이트 재사용), 새 리비전 전체 송금 안내, 1인당 변동액, 이력 조회, 재확정 알림·공유 문구
 - **포함 기능 ID:** S-10(재확정), S-11
 
-### Task 039: 재확정과 1인당 변동액   ⬜ 대기
+### Task 039: 재확정과 1인당 변동액   ✅ 완료
 
+- **완료일:** 2026-11-14 · 브랜치 `feature/settlement-reconfirm`
 - **관련 기능:** S-10, S-11, E1
 - **선행 Task:** Task 038
 - **구현 사항**
-  - [ ] `SettlementConfirmService.confirm` 확장 — `REOPENED`면 같은 게이트 → 리비전 `currentRevisionNo + 1` 스냅샷(`RevisionMemberShare`·`PenaltyCharge`·전체 `Transfer`), 이전 리비전은 불변
-  - [ ] `settlement/calc/NetBalanceDeltaCalculator`(순수) — 입력 순잔액 맵 2개(직전 리비전, 새 리비전) → 멤버별 `Δ = N_new − N_prev`(한쪽에 없으면 0), `ΣΔ = 0` 검증. 저장하지 않음
-  - [ ] 재확정 응답에 변동액 목록 + 고정 안내 문구("이전 정산대로 이미 송금했다면 변동액만 앱 밖에서 더 보내거나 돌려받으세요. 아직 안 보냈다면 새 송금 안내대로 보내면 됩니다.")
-- **테스트**
-  - [ ] 단위(`NetBalanceDeltaCalculator`): 예 6 — 철수 +6,600 / 민수 −20,000 / 영희 +6,700 / 지수 +6,700, 합 0
-  - [ ] 단위: 한쪽 리비전에만 있는 멤버 → 0 기준, 결과 같은 재확정 → 전원 0원
-  - [ ] 단위(계산기 연계): 예 6 리비전 2 — 민수 50,000 / 철수 16,600 / 영희·지수 16,700, 순잔액 철수 +83,400, 송금 3건(민수→철수 50,000, 영희→철수 16,700, 지수→철수 16,700, 합 83,400)
-  - [ ] 통합(DB): 리비전 1 확정 → 조건 `RATIO 50%` 변경(`REOPENED`) → 재확정 → 리비전 2 저장, 리비전 1 `Transfer` 3건 그대로
-  - [ ] 단위: `REOPENED` 재확정에도 미설정·진행 중 게임·경고 게이트 적용
+  - [x] `Settlement.requireConfirmable()`이 `DRAFT`·`REOPENED`를 허용(`CONFIRMED`만 409 `SETTLEMENT_ALREADY_CONFIRMED`), `confirmFirst` → `int confirm(now)`로 통합: `DRAFT`면 리비전 1 + `firstConfirmedAt`, `REOPENED`면 `currentRevisionNo + 1`(`firstConfirmedAt` 불변)
+  - [x] `SettlementConfirmService.confirm` 확장 — `REOPENED`도 같은 게이트(`SettlementConfirmGate`) → 리비전 `currentRevisionNo + 1` 스냅샷(`RevisionMemberShare`·`PenaltyCharge`·새 순잔액 전체 기준 `Transfer`), 이전 리비전은 불변. 재확정이면 직전 리비전(`revisionNo − 1`)의 `RevisionMemberShare.netBalance`와 이번 계산 순잔액으로 변동액을 구한다(직전 리비전이 없으면 `IllegalStateException`)
+  - [x] `settlement/calc/NetBalanceDeltaCalculator`(순수) + `NetBalanceDelta(memberId, previousNetBalance, currentNetBalance, delta)` — 키 합집합, 없는 쪽 0, 회원 id 오름차순, `ΣΔ ≠ 0`이면 `IllegalStateException`. 저장하지 않음
+  - [x] 재확정 응답 `SettlementResponse.revisionChange`(`RevisionChangeResponse(previousRevisionNo, changes[NetBalanceChangeResponse(memberId, previousNetBalance, currentNetBalance, delta)], notice)`), `notice`는 고정 문구 상수 `RevisionChangeResponse.NOTICE`
+  - [x] ⚠️ 결정(2026-11-14, ROADMAP 미정 항목)
+    - 응답 타입을 나누지 않고 `SettlementResponse`에 nullable 필드 `revisionChange`를 붙였다. 재확정 응답에만 값이 있고 미리보기·조회·최초 확정은 `null`(기존 응답 형식 유지)
+    - 변동액 목록에는 **0원인 회원도 포함**한다(화면의 "낼 돈 30,000 → 50,000" 표시용으로 전/후 순잔액도 싣는다). 0 제외 목록은 Task 040 재확정 알림 몫
+    - 재확정에는 `ChangeLog`를 남기지 않는다(최초 확정과 같음 — 확정 이력은 리비전 자체가 기록)
+- **테스트** — `NetBalanceDeltaCalculatorTest` 5건, `SettlementCalculatorPenaltyTest.example6Revision2`, `SettlementTest` 갱신(재확정·`CONFIRMED` 거부), `SettlementConfirmServiceTest` 5건 추가(`reopenedRejected` 대체), `SettlementControllerTest.reconfirmShowsRevisionChange`, `PenaltyLedgerIntegrationTest` 3건 추가
+  - [x] 단위(`NetBalanceDeltaCalculator`): 예 6 — 철수 +6,600 / 민수 −20,000 / 영희 +6,700 / 지수 +6,700, 합 0
+  - [x] 단위: 한쪽 리비전에만 있는 멤버 → 0 기준, 결과 같은 재확정 → 전원 0원, 합 0 아닌 입력 → 예외
+  - [x] 단위(계산기 연계): 예 6 리비전 2 — 민수 50,000 / 철수 16,600 / 영희·지수 16,700, 순잔액 철수 +83,400, 송금 3건 합 83,400
+  - [x] 통합(DB): 리비전 1 확정 → 조건 `RATIO 50%` 변경(`REOPENED`) → 재확정 → 리비전 2 저장, 리비전 1 `Transfer` 3건·순잔액·`PenaltyCharge`(30,000) 그대로, 리비전 2 `PenaltyCharge` 50,000, 조회 `basisRevisionNo = 2`
+  - [x] 단위: `REOPENED` 재확정에도 미설정·진행 중 게임·경고 게이트 적용(통합: 조건 해제 후 재확정 → 409 `PENALTY_CONDITION_UNSET`, 리비전 1개 그대로)
+  - [x] (추가) 통합: 재확정 후 다시 확정 → 409 `SETTLEMENT_ALREADY_CONFIRMED`, 리비전 2개 그대로
 - **수락 기준**
-  - Given `REOPENED` 정산 / When 호스트가 재확정하면 / Then 같은 검사(미설정·진행 중 금액형 게임·경고 확인)를 다시 거쳐 리비전 +1이 저장되고, 송금 안내는 새 순잔액 전체 기준으로 생성되며 이전 리비전 `Transfer`는 바뀌지 않는다(예 6). (PRD S-10)
-  - Given 예 6 조건 / When 재확정하면 / Then 리비전 2 송금 안내는 민수→철수 50,000, 영희→철수 16,700, 지수→철수 16,700(3건, 합 83,400원)이고, 리비전 1 대비 1인당 변동액은 철수 +6,600 / 민수 −20,000 / 영희 +6,700 / 지수 +6,700(합 0)으로 반환되며, 리비전 1의 송금 안내 3건은 그대로 남는다. (PRD S-11)
+  - [x] Given `REOPENED` 정산 / When 호스트가 재확정하면 / Then 같은 검사(미설정·진행 중 금액형 게임·경고 확인)를 다시 거쳐 리비전 +1이 저장되고, 송금 안내는 새 순잔액 전체 기준으로 생성되며 이전 리비전 `Transfer`는 바뀌지 않는다(예 6). (PRD S-10) — `PenaltyLedgerIntegrationTest.example6Reconfirm`·`reconfirmBlockedByUnsetCondition`, `SettlementConfirmServiceTest.reconfirm*`
+  - [x] Given 예 6 조건 / When 재확정하면 / Then 리비전 2 송금 안내는 민수→철수 50,000, 영희→철수 16,700, 지수→철수 16,700(3건, 합 83,400원)이고, 리비전 1 대비 1인당 변동액은 철수 +6,600 / 민수 −20,000 / 영희 +6,700 / 지수 +6,700(합 0)으로 반환되며, 리비전 1의 송금 안내 3건은 그대로 남는다. (PRD S-11) — `PenaltyLedgerIntegrationTest.example6Reconfirm`, `NetBalanceDeltaCalculatorTest.example6`, `SettlementCalculatorPenaltyTest.example6Revision2`
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 1252건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
+- **참고:** 통합 테스트의 사다리 벌칙자는 민수·영희 중 무작위라 "민수" 자리를 벌칙자 id로 검증한다. 재확정 알림 이벤트·공유 문구·리비전 목록 조회는 Task 040
 
 ### Task 040: 리비전·변경 로그 조회와 재확정 알림·공유 문구   ⬜ 대기
 

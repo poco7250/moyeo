@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.inOrder;
@@ -36,6 +37,8 @@ import com.poco7250.moyeo.settlement.domain.Settlement;
 import com.poco7250.moyeo.settlement.domain.SettlementRevision;
 import com.poco7250.moyeo.settlement.domain.SettlementStatus;
 import com.poco7250.moyeo.settlement.domain.Transfer;
+import com.poco7250.moyeo.settlement.dto.NetBalanceChangeResponse;
+import com.poco7250.moyeo.settlement.dto.RevisionChangeResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementMemberResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementTransferResponse;
@@ -48,6 +51,7 @@ import com.poco7250.moyeo.support.TestClocks;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -176,7 +180,7 @@ class SettlementConfirmServiceTest {
 						new SettlementMemberResponse(3L, 10_000L, -10_000L)),
 				List.of(new SettlementTransferResponse(2L, 1L, 10_000L),
 						new SettlementTransferResponse(3L, 1L, 10_000L)),
-				List.of(), List.of()));
+				List.of(), List.of(), null));
 	}
 
 	@Test
@@ -220,15 +224,82 @@ class SettlementConfirmServiceTest {
 	}
 
 	@Test
-	@DisplayName("REOPENED도 재확정 구현 전까지 409 SETTLEMENT_ALREADY_CONFIRMED다")
-	void reopenedRejected() {
-		ReflectionTestUtils.setField(settlement, "status", SettlementStatus.REOPENED);
-		givenLocked();
+	@DisplayName("REOPENED면 리비전 2로 재확정하고 직전 리비전 대비 변동액(한쪽에만 있는 멤버는 0 기준)과 안내 문구를 싣는다")
+	void reconfirm() {
+		givenReopenedAfterRevision1();
+		// 1·2번이 30,000원을 나눠 3번은 새 리비전에 없다
+		given(inputAssembler.assemble(MEETING_ID, NO_PENALTIES)).willReturn(new SettlementInput(List.of(
+				new ExpenseInput(31L, 30_000L, HOST_ID, Set.of(1L, 2L), List.of()))));
+		givenSaves();
 
-		assertRejected(false, ErrorCode.SETTLEMENT_ALREADY_CONFIRMED);
+		SettlementResponse response = service.confirm(MEETING_ID, HOST_ID, false);
+
+		verify(revisionRepository).save(revisionCaptor.capture());
+		assertThat(revisionCaptor.getValue().getRevisionNo()).isEqualTo(2);
+		assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.CONFIRMED);
+		assertThat(settlement.getCurrentRevisionNo()).isEqualTo(2);
+		assertThat(response.basisRevisionNo()).isEqualTo(2);
+		assertThat(response.transfers()).containsExactly(new SettlementTransferResponse(2L, 1L, 15_000L));
+		assertThat(response.revisionChange()).isEqualTo(new RevisionChangeResponse(1, List.of(
+				new NetBalanceChangeResponse(1L, 20_000L, 15_000L, -5_000L),
+				new NetBalanceChangeResponse(2L, -10_000L, -15_000L, -5_000L),
+				new NetBalanceChangeResponse(3L, -10_000L, 0L, 10_000L)), RevisionChangeResponse.NOTICE));
+	}
+
+	@Test
+	@DisplayName("최초 확정 응답에는 변동액 안내가 없고 직전 리비전도 읽지 않는다")
+	void firstConfirmHasNoRevisionChange() {
+		givenLocked();
+		given(inputAssembler.assemble(MEETING_ID, NO_PENALTIES)).willReturn(NORMAL_INPUT);
+		givenSaves();
+
+		SettlementResponse response = service.confirm(MEETING_ID, HOST_ID, false);
+
+		assertThat(response.revisionChange()).isNull();
+		verify(revisionRepository, never()).findBySettlementIdAndRevisionNo(any(), anyInt());
+	}
+
+	@Test
+	@DisplayName("REOPENED 재확정도 조건 미설정 벌칙이 있으면 409 PENALTY_CONDITION_UNSET이고 REOPENED·리비전 1 그대로다")
+	void reconfirmUnsetPenaltyRejected() {
+		GameSession game = PenaltyFixtures.revealedMoneyGame(70L, PenaltyFixtures.round(5L, 1, "고깃집"), NOW);
+		MeetingPenalties penalties = new MeetingPenalties(List.of(PenaltyFixtures.penalty(100L, game, 2L)), Map.of());
+		givenReopened();
+		given(meetingPenaltyLoader.load(MEETING_ID)).willReturn(penalties);
+		given(inputAssembler.assemble(MEETING_ID, penalties)).willReturn(NORMAL_INPUT);
+
+		assertRejected(false, ErrorCode.PENALTY_CONDITION_UNSET);
 
 		assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.REOPENED);
-		verifyNoInteractions(revisionRepository);
+		assertThat(settlement.getCurrentRevisionNo()).isEqualTo(1);
+		verify(revisionRepository, never()).save(any());
+	}
+
+	@Test
+	@DisplayName("REOPENED 재확정도 대기 중인 금액형 게임이 있으면 409 MONEY_GAME_IN_PROGRESS다")
+	void reconfirmMoneyGameInProgressRejected() {
+		givenReopened();
+		given(inputAssembler.assemble(MEETING_ID, NO_PENALTIES)).willReturn(NORMAL_INPUT);
+		GameSession waiting = GameSession.create(PenaltyFixtures.round(5L, 1, "고깃집"),
+				GameType.LADDER, HOST_ID, PenaltyKind.MONEY, null, 1);
+		given(gameSessionRepository.findAllMoneyInProgressByMeetingId(MEETING_ID)).willReturn(List.of(waiting));
+
+		assertRejected(false, ErrorCode.MONEY_GAME_IN_PROGRESS);
+
+		assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.REOPENED);
+		verify(revisionRepository, never()).save(any());
+	}
+
+	@Test
+	@DisplayName("REOPENED 재확정도 경고를 확인하지 않으면 409 WARNING_UNCONFIRMED다")
+	void reconfirmWarningUnconfirmed() {
+		givenReopened();
+		given(inputAssembler.assemble(MEETING_ID, NO_PENALTIES)).willReturn(WARNING_INPUT);
+
+		assertRejected(false, ErrorCode.WARNING_UNCONFIRMED);
+
+		assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.REOPENED);
+		verify(revisionRepository, never()).save(any());
 	}
 
 	@Test
@@ -353,6 +424,26 @@ class SettlementConfirmServiceTest {
 
 	private void givenLocked() {
 		given(settlementGuard.lockForAmountChange(MEETING_ID)).willReturn(settlement);
+	}
+
+	// 리비전 1로 확정된 뒤 REOPENED가 된 정산
+	private void givenReopened() {
+		ReflectionTestUtils.setField(settlement, "id", 50L);
+		settlement.confirm(NOW.minusDays(1));
+		settlement.reopen();
+		givenLocked();
+	}
+
+	// REOPENED 정산 + 리비전 1 스냅샷(NORMAL_INPUT 확정값: 1번 +20,000, 2·3번 −10,000)
+	private void givenReopenedAfterRevision1() {
+		givenReopened();
+		SettlementRevision previous = SettlementRevision.create(settlement, 1, member(HOST_ID), NOW.minusDays(1), false);
+		ReflectionTestUtils.setField(previous, "id", 500L);
+		given(revisionRepository.findBySettlementIdAndRevisionNo(50L, 1)).willReturn(Optional.of(previous));
+		given(memberShareRepository.findAllByRevisionIdOrderByMemberIdAsc(500L)).willReturn(List.of(
+				RevisionMemberShare.create(previous, member(1L), 10_000L, 20_000L),
+				RevisionMemberShare.create(previous, member(2L), 10_000L, -10_000L),
+				RevisionMemberShare.create(previous, member(3L), 10_000L, -10_000L)));
 	}
 
 	private void givenSaves() {

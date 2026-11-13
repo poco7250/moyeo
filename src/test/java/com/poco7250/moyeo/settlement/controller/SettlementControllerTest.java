@@ -20,6 +20,8 @@ import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.settlement.calc.SettlementWarningType;
 import com.poco7250.moyeo.settlement.domain.SettlementStatus;
+import com.poco7250.moyeo.settlement.dto.NetBalanceChangeResponse;
+import com.poco7250.moyeo.settlement.dto.RevisionChangeResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementMemberResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementTransferResponse;
@@ -63,11 +65,11 @@ class SettlementControllerTest {
 					new SettlementMemberResponse(9L, 10_000L, -10_000L)),
 			List.of(new SettlementTransferResponse(9L, 8L, 10_000L)),
 			List.of(new SettlementWarningResponse(SettlementWarningType.NO_SHARE_TARGET, 31L)),
-			List.of(PENALTY_APPLIED, PENALTY_ASSIGNED));
+			List.of(PENALTY_APPLIED, PENALTY_ASSIGNED), null);
 	private static final SettlementResponse CONFIRMED = new SettlementResponse(SettlementStatus.CONFIRMED, 1, false,
 			List.of(new SettlementMemberResponse(8L, 10_000L, 10_000L)),
 			List.of(new SettlementTransferResponse(9L, 8L, 10_000L)),
-			List.of(), List.of());
+			List.of(), List.of(), null);
 
 	@Autowired
 	MockMvc mockMvc;
@@ -138,7 +140,33 @@ class SettlementControllerTest {
 		mockMvc.perform(post("/api/meetings/10/settlement/confirm").cookie(accessCookie()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.status").value("CONFIRMED"))
-				.andExpect(jsonPath("$.data.basisRevisionNo").value(1));
+				.andExpect(jsonPath("$.data.basisRevisionNo").value(1))
+				.andExpect(jsonPath("$.data.revisionChange").isEmpty());
+	}
+
+	@Test
+	@DisplayName("재확정하면 기준 리비전 2와 직전 리비전 대비 변동액·안내 문구를 revisionChange에 싣는다")
+	void reconfirmShowsRevisionChange() throws Exception {
+		SettlementResponse reconfirmed = new SettlementResponse(SettlementStatus.CONFIRMED, 2, false,
+				List.of(new SettlementMemberResponse(8L, 15_000L, 15_000L),
+						new SettlementMemberResponse(9L, 15_000L, -15_000L)),
+				List.of(new SettlementTransferResponse(9L, 8L, 15_000L)),
+				List.of(), List.of(),
+				new RevisionChangeResponse(1, List.of(
+						new NetBalanceChangeResponse(8L, 10_000L, 15_000L, 5_000L),
+						new NetBalanceChangeResponse(9L, -10_000L, -15_000L, -5_000L)),
+						RevisionChangeResponse.NOTICE));
+		given(settlementConfirmService.confirm(10L, 8L, false)).willReturn(reconfirmed);
+
+		mockMvc.perform(post("/api/meetings/10/settlement/confirm").cookie(accessCookie()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.basisRevisionNo").value(2))
+				.andExpect(jsonPath("$.data.revisionChange.previousRevisionNo").value(1))
+				.andExpect(jsonPath("$.data.revisionChange.changes[1].memberId").value(9))
+				.andExpect(jsonPath("$.data.revisionChange.changes[1].previousNetBalance").value(-10_000))
+				.andExpect(jsonPath("$.data.revisionChange.changes[1].currentNetBalance").value(-15_000))
+				.andExpect(jsonPath("$.data.revisionChange.changes[1].delta").value(-5_000))
+				.andExpect(jsonPath("$.data.revisionChange.notice").value(RevisionChangeResponse.NOTICE));
 	}
 
 	@ParameterizedTest

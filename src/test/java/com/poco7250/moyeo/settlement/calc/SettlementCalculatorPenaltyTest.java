@@ -11,7 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * PRD 4.5 계산 예시(예 1~5)를 벌칙 포함 정산 계산으로 검증한다.
+ * PRD 4.5 계산 예시(예 1~5, 예 6 리비전 2)를 벌칙 포함 정산 계산으로 검증한다.
  */
 class SettlementCalculatorPenaltyTest {
 
@@ -72,6 +72,24 @@ class SettlementCalculatorPenaltyTest {
 				new TransferGuide(JISU, CHULSU, 23_400L));
 		assertThat(result.warnings()).isEmpty();
 		assertThat(result.penaltyCharges()).containsExactly(charge(MINSU_PENALTY, MINSU, 30_000L));
+	}
+
+	@Test
+	@DisplayName("예 6 리비전 2: RATIO 50% — 민수 50,000 / 철수 16,600 / 영희·지수 16,700, 송금 3건 합 83,400")
+	void example6Revision2() {
+		SettlementResult result = calculate(100_000L, rule(PenaltyMoneyType.RATIO, null, 50, FIRST, 1L, minsu()));
+
+		assertThat(result.members()).containsExactly(
+				new MemberSettlement(CHULSU, 16_600L, 83_400L),
+				new MemberSettlement(MINSU, 50_000L, -50_000L),
+				new MemberSettlement(YOUNGHEE, 16_700L, -16_700L),
+				new MemberSettlement(JISU, 16_700L, -16_700L));
+		assertThat(result.transfers()).containsExactly(
+				new TransferGuide(MINSU, CHULSU, 50_000L),
+				new TransferGuide(YOUNGHEE, CHULSU, 16_700L),
+				new TransferGuide(JISU, CHULSU, 16_700L));
+		assertThat(result.transfers().stream().mapToLong(TransferGuide::amount).sum()).isEqualTo(83_400L);
+		assertThat(result.penaltyCharges()).containsExactly(charge(MINSU_PENALTY, MINSU, 50_000L));
 	}
 
 	@Test

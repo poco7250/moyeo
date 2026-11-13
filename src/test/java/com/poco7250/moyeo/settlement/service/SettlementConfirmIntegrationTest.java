@@ -171,7 +171,7 @@ class SettlementConfirmIntegrationTest {
 				new SettlementTransferResponse(other.getId(), host.getId(), 30_000L),
 				new SettlementTransferResponse(third.getId(), host.getId(), 30_000L));
 		assertThat(confirmed).isEqualTo(new SettlementResponse(
-				SettlementStatus.CONFIRMED, 1, false, expectedMembers, expectedTransfers, List.of(), List.of()));
+				SettlementStatus.CONFIRMED, 1, false, expectedMembers, expectedTransfers, List.of(), List.of(), null));
 		assertThat(revisionCount()).isEqualTo(1);
 		assertThat(queryService.get(meeting.getId(), other.getId())).isEqualTo(confirmed);
 		assertThat(currentSettlement().getFirstConfirmedAt()).isNotNull();
@@ -179,7 +179,7 @@ class SettlementConfirmIntegrationTest {
 		expenseService.update(expense.getId(), other.getId(), new ExpenseRequest(30_000L, host.getId(), "볼링"));
 
 		assertThat(queryService.get(meeting.getId(), other.getId())).isEqualTo(new SettlementResponse(
-				SettlementStatus.REOPENED, 1, false, expectedMembers, expectedTransfers, List.of(), List.of()));
+				SettlementStatus.REOPENED, 1, false, expectedMembers, expectedTransfers, List.of(), List.of(), null));
 	}
 
 	@Test

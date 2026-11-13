@@ -90,25 +90,32 @@ public class Settlement extends BaseTimeEntity {
 	}
 
 	/**
-	 * 최초 확정이 가능한 상태인지 검사한다. REOPENED 재확정은 Task 039에서 연다.
+	 * 확정·재확정이 가능한 상태인지 검사한다. DRAFT는 최초 확정, REOPENED는 재확정 대상이다.
 	 *
-	 * @throws BusinessException DRAFT가 아니면 SETTLEMENT_ALREADY_CONFIRMED
+	 * @throws BusinessException CONFIRMED면 SETTLEMENT_ALREADY_CONFIRMED
 	 */
 	public void requireConfirmable() {
-		if (status != SettlementStatus.DRAFT) {
+		if (status == SettlementStatus.CONFIRMED) {
 			throw new BusinessException(ErrorCode.SETTLEMENT_ALREADY_CONFIRMED);
 		}
 	}
 
 	/**
-	 * DRAFT 정산을 리비전 1로 확정한다.
+	 * 정산을 확정한다. DRAFT면 리비전 1로 최초 확정하고, REOPENED면 리비전을 하나 올려 재확정한다.
 	 *
-	 * @throws BusinessException DRAFT가 아니면 SETTLEMENT_ALREADY_CONFIRMED
+	 * @return 이번 확정으로 만들 리비전 번호
+	 * @throws BusinessException CONFIRMED면 SETTLEMENT_ALREADY_CONFIRMED
 	 */
-	public void confirmFirst(LocalDateTime now) {
+	public int confirm(LocalDateTime now) {
 		requireConfirmable();
+		if (status == SettlementStatus.DRAFT) {
+			currentRevisionNo = FIRST_REVISION_NO;
+			firstConfirmedAt = now;
+		} else {
+			currentRevisionNo = currentRevisionNo + 1;
+		}
 		status = SettlementStatus.CONFIRMED;
-		currentRevisionNo = FIRST_REVISION_NO;
-		firstConfirmedAt = now;
+		return currentRevisionNo;
 	}
+
 }
