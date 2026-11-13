@@ -156,6 +156,7 @@ class PenaltyLedgerIntegrationTest {
 	void tearDown() {
 		Long meetingId = meeting.getId();
 		String revisionIds = "(select id from settlement_revision where settlement_id = " + settlement.getId() + ")";
+		jdbcTemplate.update("delete from penalty_charge where revision_id in " + revisionIds);
 		jdbcTemplate.update("delete from transfer where revision_id in " + revisionIds);
 		jdbcTemplate.update("delete from revision_member_share where revision_id in " + revisionIds);
 		jdbcTemplate.update("delete from settlement_revision where settlement_id = ?", settlement.getId());

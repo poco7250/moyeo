@@ -27,4 +27,15 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
 	 * 주어진 회차를 다시 돌린 후속 회차가 있는지 확인한다(취소된 후속 회차는 rerunOf를 비우므로 제외된다).
 	 */
 	boolean existsByRerunOfId(Long rerunOfId);
+
+	/**
+	 * 모임의 금액형 게임 중 대기·진행 중인 것(다시 돌린 회차 포함)을 차수와 함께 id 순으로 조회한다(정산 확정 게이트용).
+	 */
+	@Query("select g from GameSession g join fetch g.round r "
+			+ "where r.meeting.id = :meetingId "
+			+ "and g.penaltyKind = com.poco7250.moyeo.game.domain.PenaltyKind.MONEY "
+			+ "and g.status in (com.poco7250.moyeo.game.domain.GameStatus.WAITING, "
+			+ "com.poco7250.moyeo.game.domain.GameStatus.PLAYING) "
+			+ "order by g.id")
+	List<GameSession> findAllMoneyInProgressByMeetingId(@Param("meetingId") Long meetingId);
 }

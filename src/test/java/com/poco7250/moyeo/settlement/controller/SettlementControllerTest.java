@@ -7,10 +7,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.poco7250.moyeo.game.domain.GameStatus;
 import com.poco7250.moyeo.game.domain.GameType;
 import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
 import com.poco7250.moyeo.penalty.domain.PenaltyStatus;
+import com.poco7250.moyeo.settlement.dto.InProgressGameResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementPenaltyResponse;
+import com.poco7250.moyeo.settlement.dto.UnsetPenaltyGameResponse;
 import com.poco7250.moyeo.auth.token.JwtTokenProvider;
 import com.poco7250.moyeo.auth.token.TokenCookieFactory;
 import com.poco7250.moyeo.global.error.BusinessException;
@@ -156,7 +159,8 @@ class SettlementControllerTest {
 
 	@ParameterizedTest
 	@EnumSource(value = ErrorCode.class, names = {
-			"NOT_GROUP_MEMBER", "NOT_MEETING_HOST", "SETTLEMENT_ALREADY_CONFIRMED", "WARNING_UNCONFIRMED"})
+			"NOT_GROUP_MEMBER", "NOT_MEETING_HOST", "SETTLEMENT_ALREADY_CONFIRMED", "WARNING_UNCONFIRMED",
+			"PENALTY_CONDITION_UNSET", "MONEY_GAME_IN_PROGRESS"})
 	@DisplayName("확정 거부는 에러 코드의 상태와 코드로 응답한다")
 	void confirmRejected(ErrorCode errorCode) throws Exception {
 		given(settlementConfirmService.confirm(10L, 8L, false)).willThrow(new BusinessException(errorCode));
@@ -164,7 +168,49 @@ class SettlementControllerTest {
 		mockMvc.perform(post("/api/meetings/10/settlement/confirm").cookie(accessCookie()))
 				.andExpect(status().is(errorCode.getStatus().value()))
 				.andExpect(jsonPath("$.success").value(false))
-				.andExpect(jsonPath("$.error.code").value(errorCode.name()));
+				.andExpect(jsonPath("$.error.code").value(errorCode.name()))
+				.andExpect(jsonPath("$.error.details").doesNotExist());
+	}
+
+	@Test
+	@DisplayName("조건 미설정으로 막히면 409와 함께 게임별 미설정 벌칙 목록을 error.details에 싣는다")
+	void confirmRejectedWithUnsetPenalties() throws Exception {
+		given(settlementConfirmService.confirm(10L, 8L, false)).willThrow(new BusinessException(
+				ErrorCode.PENALTY_CONDITION_UNSET,
+				List.of(new UnsetPenaltyGameResponse(70L, GameType.LADDER, 2, "볼링장", List.of(100L), List.of(2L)))));
+
+		mockMvc.perform(post("/api/meetings/10/settlement/confirm").cookie(accessCookie()))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.error.code").value("PENALTY_CONDITION_UNSET"))
+				.andExpect(jsonPath("$.error.details[0].gameId").value(70))
+				.andExpect(jsonPath("$.error.details[0].type").value("LADDER"))
+				.andExpect(jsonPath("$.error.details[0].roundSeq").value(2))
+				.andExpect(jsonPath("$.error.details[0].roundName").value("볼링장"))
+				.andExpect(jsonPath("$.error.details[0].penaltyIds[0]").value(100))
+				.andExpect(jsonPath("$.error.details[0].memberIds[0]").value(2));
+	}
+
+	@Test
+	@DisplayName("진행 중 금액형 게임으로 막히면 409와 게임 목록을, 경고 미확인이면 경고 내용을 error.details에 싣는다")
+	void confirmRejectedWithGamesAndWarnings() throws Exception {
+		given(settlementConfirmService.confirm(10L, 8L, false)).willThrow(new BusinessException(
+				ErrorCode.MONEY_GAME_IN_PROGRESS,
+				List.of(new InProgressGameResponse(72L, GameType.LADDER, GameStatus.WAITING, 2, "볼링장", 70L))));
+		given(settlementConfirmService.confirm(10L, 8L, true)).willThrow(new BusinessException(
+				ErrorCode.WARNING_UNCONFIRMED,
+				List.of(new SettlementWarningResponse(SettlementWarningType.PENALTY_EXCEEDS_TARGET, 31L))));
+
+		mockMvc.perform(post("/api/meetings/10/settlement/confirm").cookie(accessCookie()))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.error.details[0].gameId").value(72))
+				.andExpect(jsonPath("$.error.details[0].status").value("WAITING"))
+				.andExpect(jsonPath("$.error.details[0].rerunOfId").value(70));
+		mockMvc.perform(post("/api/meetings/10/settlement/confirm").cookie(accessCookie())
+						.contentType(MediaType.APPLICATION_JSON).content("{\"acknowledgeWarnings\":true}"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.error.code").value("WARNING_UNCONFIRMED"))
+				.andExpect(jsonPath("$.error.details[0].type").value("PENALTY_EXCEEDS_TARGET"))
+				.andExpect(jsonPath("$.error.details[0].expenseId").value(31));
 	}
 
 	@Test

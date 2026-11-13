@@ -146,6 +146,34 @@ class GameSessionRepositoryTest {
 				.isEqualTo(original.getId());
 	}
 
+	@Test
+	@DisplayName("모임의 대기·진행 중 금액형 게임만(다시 돌린 회차 포함) id 순으로 조회한다")
+	void findAllMoneyInProgressByMeetingId() {
+		GameSession waiting = save(newGame());
+		GameSession playing = newGame();
+		playing.start();
+		save(playing);
+		GameSession revealed = newGame();
+		revealed.start();
+		revealed.reveal(LocalDateTime.of(2026, 12, 20, 21, 0));
+		save(revealed);
+		GameSession rerun = save(GameSession.rerunOf(revealed, 2L));
+		GameSession canceled = newGame();
+		canceled.cancel();
+		save(canceled);
+		save(GameSession.create(round, GameType.LADDER, 1L, PenaltyKind.ACTION, null, 1));
+		save(GameSession.create(round, GameType.DRAW, 1L, PenaltyKind.NONE, null, 1));
+		Meeting otherMeeting = meetingRepository.saveAndFlush(
+				Meeting.create(group, "다른 모임", LocalDateTime.of(2026, 12, 21, 18, 0), null, null, 1L));
+		Round otherRound = roundRepository.saveAndFlush(Round.create(otherMeeting, 1, "밥"));
+		save(GameSession.create(otherRound, GameType.LADDER, 1L, PenaltyKind.MONEY, null, 1));
+		entityManager.clear();
+
+		assertThat(gameSessionRepository.findAllMoneyInProgressByMeetingId(round.getMeeting().getId()))
+				.extracting(GameSession::getId)
+				.containsExactly(waiting.getId(), playing.getId(), rerun.getId());
+	}
+
 	private GameSession newGame() {
 		return GameSession.create(round, GameType.LADDER, 1L, PenaltyKind.MONEY, null, 1);
 	}

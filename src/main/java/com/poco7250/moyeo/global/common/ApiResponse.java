@@ -37,4 +37,11 @@ public record ApiResponse<T>(boolean success, T data, ErrorResponse error) {
 	public static <T> ApiResponse<T> fail(ErrorCode errorCode, List<ErrorResponse.FieldError> fieldErrors) {
 		return new ApiResponse<>(false, null, ErrorResponse.of(errorCode, fieldErrors));
 	}
+
+	/**
+	 * 에러 코드와 상세 데이터로 실패 응답을 만든다.
+	 */
+	public static <T> ApiResponse<T> failWithDetails(ErrorCode errorCode, Object details) {
+		return new ApiResponse<>(false, null, ErrorResponse.of(errorCode, List.of(), details));
+	}
 }

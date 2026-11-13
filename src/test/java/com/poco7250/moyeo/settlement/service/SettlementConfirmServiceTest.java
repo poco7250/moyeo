@@ -12,13 +12,25 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.poco7250.moyeo.game.domain.GameSession;
+import com.poco7250.moyeo.game.domain.GameType;
+import com.poco7250.moyeo.game.domain.PenaltyKind;
+import com.poco7250.moyeo.game.repository.GameSessionRepository;
 import com.poco7250.moyeo.global.auth.MeetingAccessChecker;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
+import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.member.domain.Member;
 import com.poco7250.moyeo.member.repository.MemberRepository;
+import com.poco7250.moyeo.penalty.domain.Penalty;
+import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
+import com.poco7250.moyeo.penalty.domain.PenaltyRule;
 import com.poco7250.moyeo.settlement.calc.ExpenseInput;
+import com.poco7250.moyeo.settlement.calc.PenalizedMember;
+import com.poco7250.moyeo.settlement.calc.PenaltyRuleInput;
 import com.poco7250.moyeo.settlement.calc.SettlementInput;
+import com.poco7250.moyeo.settlement.domain.Expense;
+import com.poco7250.moyeo.settlement.domain.PenaltyCharge;
 import com.poco7250.moyeo.settlement.domain.RevisionMemberShare;
 import com.poco7250.moyeo.settlement.domain.Settlement;
 import com.poco7250.moyeo.settlement.domain.SettlementRevision;
@@ -27,6 +39,7 @@ import com.poco7250.moyeo.settlement.domain.Transfer;
 import com.poco7250.moyeo.settlement.dto.SettlementMemberResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementTransferResponse;
+import com.poco7250.moyeo.settlement.repository.PenaltyChargeRepository;
 import com.poco7250.moyeo.settlement.repository.RevisionMemberShareRepository;
 import com.poco7250.moyeo.settlement.repository.SettlementRepository;
 import com.poco7250.moyeo.settlement.repository.SettlementRevisionRepository;
@@ -34,6 +47,7 @@ import com.poco7250.moyeo.settlement.repository.TransferRepository;
 import com.poco7250.moyeo.support.TestClocks;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -87,6 +101,12 @@ class SettlementConfirmServiceTest {
 	@Mock
 	MemberRepository memberRepository;
 
+	@Mock
+	GameSessionRepository gameSessionRepository;
+
+	@Mock
+	PenaltyChargeRepository penaltyChargeRepository;
+
 	@Captor
 	ArgumentCaptor<SettlementRevision> revisionCaptor;
 
@@ -96,13 +116,17 @@ class SettlementConfirmServiceTest {
 	@Captor
 	ArgumentCaptor<List<Transfer>> transfersCaptor;
 
+	@Captor
+	ArgumentCaptor<List<PenaltyCharge>> chargesCaptor;
+
 	private SettlementConfirmService service;
 	private Settlement settlement;
 
 	@BeforeEach
 	void setUp() {
 		service = new SettlementConfirmService(meetingAccessChecker, settlementGuard, inputAssembler,
-				meetingPenaltyLoader, settlementRepository, revisionRepository, memberShareRepository,
+				meetingPenaltyLoader, new SettlementConfirmGate(gameSessionRepository),
+				new PenaltyChargeRecorder(penaltyChargeRepository), settlementRepository, revisionRepository, memberShareRepository,
 				transferRepository, memberRepository, TestClocks.fixed(NOW));
 		settlement = Settlement.createDraft(null);
 		// 검사에서 먼저 실패하는 경우엔 벌칙을 읽지 않으므로 lenient
@@ -256,6 +280,69 @@ class SettlementConfirmServiceTest {
 
 		verify(revisionRepository).save(revisionCaptor.capture());
 		assertThat(revisionCaptor.getValue().isWarningsAcknowledged()).isFalse();
+	}
+
+	@Test
+	@DisplayName("조건 미설정 금액형 벌칙이 있으면 409 PENALTY_CONDITION_UNSET이고 DRAFT 그대로 아무것도 저장하지 않는다")
+	void unsetPenaltyRejected() {
+		GameSession game = PenaltyFixtures.revealedMoneyGame(70L, PenaltyFixtures.round(5L, 1, "고깃집"), NOW);
+		MeetingPenalties penalties = new MeetingPenalties(List.of(PenaltyFixtures.penalty(100L, game, 2L)), Map.of());
+		givenLocked();
+		given(meetingPenaltyLoader.load(MEETING_ID)).willReturn(penalties);
+		given(inputAssembler.assemble(MEETING_ID, penalties)).willReturn(NORMAL_INPUT);
+
+		assertRejected(false, ErrorCode.PENALTY_CONDITION_UNSET);
+
+		assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.DRAFT);
+		verifyNoInteractions(revisionRepository, penaltyChargeRepository);
+	}
+
+	@Test
+	@DisplayName("대기 중인 금액형 게임이 있으면 409 MONEY_GAME_IN_PROGRESS이고 DRAFT 그대로다")
+	void moneyGameInProgressRejected() {
+		givenLocked();
+		given(inputAssembler.assemble(MEETING_ID, NO_PENALTIES)).willReturn(NORMAL_INPUT);
+		GameSession waiting = GameSession.create(PenaltyFixtures.round(5L, 1, "고깃집"),
+				GameType.LADDER, HOST_ID,
+				PenaltyKind.MONEY, null, 1);
+		given(gameSessionRepository.findAllMoneyInProgressByMeetingId(MEETING_ID)).willReturn(List.of(waiting));
+
+		assertRejected(false, ErrorCode.MONEY_GAME_IN_PROGRESS);
+
+		assertThat(settlement.getStatus()).isEqualTo(SettlementStatus.DRAFT);
+		verifyNoInteractions(revisionRepository);
+	}
+
+	@Test
+	@DisplayName("확정하면 APPLIED 벌칙별 부담액을 같은 리비전의 PenaltyCharge로 저장한다(예 1: RATIO 30% → 30,000원)")
+	void confirmSnapshotsPenaltyCharge() {
+		Round round = PenaltyFixtures.round(5L, 2, "볼링장");
+		Expense bowling = PenaltyFixtures.expense(31L, round, 1L, 100_000L, "볼링");
+		GameSession game = PenaltyFixtures.revealedMoneyGame(70L, round, NOW);
+		Penalty penalty = PenaltyFixtures.penalty(100L, game, 2L);
+		penalty.apply();
+		PenaltyRule rule = PenaltyFixtures.ratioRule(90L, game, 30, bowling, HOST_ID, NOW);
+		MeetingPenalties penalties = new MeetingPenalties(List.of(penalty), Map.of(70L, rule));
+		givenLocked();
+		given(meetingPenaltyLoader.load(MEETING_ID)).willReturn(penalties);
+		given(inputAssembler.assemble(MEETING_ID, penalties)).willReturn(new SettlementInput(
+				List.of(new ExpenseInput(31L, 100_000L, 1L, Set.of(1L, 2L, 3L, 4L), List.of())),
+				List.of(new PenaltyRuleInput(31L, PenaltyMoneyType.RATIO, null, 30, NOW, 70L,
+						List.of(new PenalizedMember(100L, 2L))))));
+		givenSaves();
+		given(penaltyChargeRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
+
+		service.confirm(MEETING_ID, HOST_ID, false);
+
+		verify(revisionRepository).save(revisionCaptor.capture());
+		verify(penaltyChargeRepository).saveAll(chargesCaptor.capture());
+		assertThat(chargesCaptor.getValue()).singleElement().satisfies(charge -> {
+			assertThat(charge.getRevision()).isSameAs(revisionCaptor.getValue());
+			assertThat(charge.getPenalty()).isSameAs(penalty);
+			assertThat(charge.getAmount()).isEqualTo(30_000L);
+			assertThat(charge.getRatioPct()).isEqualTo(30);
+			assertThat(charge.getTargetExpenseAmount()).isEqualTo(100_000L);
+		});
 	}
 
 	private void assertRejected(boolean acknowledge, ErrorCode errorCode) {
