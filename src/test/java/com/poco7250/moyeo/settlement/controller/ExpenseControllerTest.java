@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -18,6 +17,7 @@ import com.poco7250.moyeo.auth.token.JwtTokenProvider;
 import com.poco7250.moyeo.auth.token.TokenCookieFactory;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
+import com.poco7250.moyeo.settlement.dto.ExpenseDeleteResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseRequest;
 import com.poco7250.moyeo.settlement.dto.ExpenseResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseShareAdjustRequest;
@@ -156,16 +156,20 @@ class ExpenseControllerTest {
 	@Test
 	@DisplayName("지출을 삭제하면 200과 빈 공통 응답을 준다")
 	void deleteExpense() throws Exception {
+		given(expenseService.delete(30L, 8L)).willReturn(new ExpenseDeleteResponse(30L, List.of(70L)));
+
 		mockMvc.perform(delete("/api/expenses/30").cookie(accessCookie()))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.success").value(true));
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.expenseId").value(30))
+				.andExpect(jsonPath("$.data.conditionResetGameIds[0]").value(70));
 		verify(expenseService).delete(30L, 8L);
 	}
 
 	@Test
 	@DisplayName("비멤버의 지출 삭제는 403 NOT_GROUP_MEMBER")
 	void deleteByNonMember() throws Exception {
-		willThrow(new BusinessException(ErrorCode.NOT_GROUP_MEMBER)).given(expenseService).delete(30L, 8L);
+		given(expenseService.delete(30L, 8L)).willThrow(new BusinessException(ErrorCode.NOT_GROUP_MEMBER));
 
 		mockMvc.perform(delete("/api/expenses/30").cookie(accessCookie()))
 				.andExpect(status().isForbidden())

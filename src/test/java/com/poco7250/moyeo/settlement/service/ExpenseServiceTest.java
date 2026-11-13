@@ -3,6 +3,8 @@ package com.poco7250.moyeo.settlement.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -19,9 +21,12 @@ import com.poco7250.moyeo.group.repository.GroupMemberRepository;
 import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.member.domain.Member;
+import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
+import com.poco7250.moyeo.penalty.dto.PenaltyRuleSnapshot;
 import com.poco7250.moyeo.settlement.domain.ChangeLogEntityType;
 import com.poco7250.moyeo.settlement.domain.ChangeType;
 import com.poco7250.moyeo.settlement.domain.Expense;
+import com.poco7250.moyeo.settlement.dto.ExpenseDeleteResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseRequest;
 import com.poco7250.moyeo.settlement.dto.ExpenseResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseShareSnapshot;
@@ -39,6 +44,7 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -69,6 +75,12 @@ class ExpenseServiceTest {
 
 	@Mock
 	ChangeLogRecorder changeLogRecorder;
+
+	@Mock
+	TargetExpenseRuleDetacher targetExpenseRuleDetacher;
+
+	@Mock
+	ApplicationEventPublisher eventPublisher;
 
 	@InjectMocks
 	ExpenseService expenseService;
@@ -192,10 +204,12 @@ class ExpenseServiceTest {
 		Expense expense = givenExpense();
 		expense.addShare(member(5L), 3_000L, null, false);
 
-		expenseService.delete(EXPENSE_ID, ACTOR_ID);
+		ExpenseDeleteResponse response = expenseService.delete(EXPENSE_ID, ACTOR_ID);
 
-		InOrder order = inOrder(settlementGuard, expenseRepository, changeLogRecorder);
+		assertThat(response).isEqualTo(new ExpenseDeleteResponse(EXPENSE_ID, List.of()));
+		InOrder order = inOrder(settlementGuard, targetExpenseRuleDetacher, expenseRepository, changeLogRecorder);
 		order.verify(settlementGuard).lockForAmountChange(MEETING_ID);
+		order.verify(targetExpenseRuleDetacher).detach(EXPENSE_ID);
 		order.verify(expenseRepository).delete(expense);
 		order.verify(settlementGuard).markAmountChanged(MEETING_ID, ACTOR_ID,
 				List.of(new SettlementChangeSummary(ChangeLogEntityType.EXPENSE, EXPENSE_ID, ChangeType.DELETE)));
@@ -204,6 +218,41 @@ class ExpenseServiceTest {
 				new ExpenseSnapshot(ROUND_ID, PAYER_ID, 10_000L, "밥",
 						List.of(new ExpenseShareSnapshot(5L, 3_000L, null, false))),
 				null);
+	}
+
+	@Test
+	@DisplayName("벌칙 조건의 대상 지출을 삭제하면 조건 삭제 로그(삭제 전 값)를 남기고 조건 미설정 게임을 응답·이벤트로 알린다")
+	void deleteTargetExpense() {
+		Expense expense = givenExpense();
+		PenaltyRuleSnapshot ruleBefore = new PenaltyRuleSnapshot(70L, PenaltyMoneyType.RATIO, null, 30, EXPENSE_ID,
+				ACTOR_ID, LocalDateTime.of(2026, 12, 20, 21, 30));
+		given(targetExpenseRuleDetacher.detach(EXPENSE_ID)).willReturn(List.of(new DetachedRule(90L, 70L, ruleBefore)));
+
+		ExpenseDeleteResponse response = expenseService.delete(EXPENSE_ID, ACTOR_ID);
+
+		assertThat(response).isEqualTo(new ExpenseDeleteResponse(EXPENSE_ID, List.of(70L)));
+		InOrder order = inOrder(targetExpenseRuleDetacher, expenseRepository, settlementGuard, changeLogRecorder);
+		order.verify(targetExpenseRuleDetacher).detach(EXPENSE_ID);
+		order.verify(expenseRepository).delete(expense);
+		order.verify(settlementGuard).markAmountChanged(MEETING_ID, ACTOR_ID, List.of(
+				new SettlementChangeSummary(ChangeLogEntityType.EXPENSE, EXPENSE_ID, ChangeType.DELETE),
+				new SettlementChangeSummary(ChangeLogEntityType.PENALTY_RULE, 90L, ChangeType.DELETE)));
+		order.verify(changeLogRecorder).record(eq(MEETING_ID), eq(ACTOR_ID), eq(ChangeLogEntityType.EXPENSE),
+				eq(EXPENSE_ID), eq(ChangeType.DELETE), any(), isNull());
+		order.verify(changeLogRecorder).record(MEETING_ID, ACTOR_ID, ChangeLogEntityType.PENALTY_RULE, 90L,
+				ChangeType.DELETE, ruleBefore, null);
+		verify(eventPublisher).publishEvent(
+				new PenaltyConditionResetEvent(MEETING_ID, new ExpenseDeleteResponse(EXPENSE_ID, List.of(70L))));
+	}
+
+	@Test
+	@DisplayName("벌칙 조건 대상이 아닌 지출을 삭제하면 조건 초기화 이벤트를 내지 않는다")
+	void deleteNonTargetExpenseNoEvent() {
+		givenExpense();
+
+		expenseService.delete(EXPENSE_ID, ACTOR_ID);
+
+		verifyNoInteractions(eventPublisher);
 	}
 
 	@Test

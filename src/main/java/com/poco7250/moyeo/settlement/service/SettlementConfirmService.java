@@ -34,6 +34,7 @@ public class SettlementConfirmService {
 	private final MeetingAccessChecker meetingAccessChecker;
 	private final SettlementGuard settlementGuard;
 	private final SettlementInputAssembler inputAssembler;
+	private final MeetingPenaltyLoader meetingPenaltyLoader;
 	private final SettlementRepository settlementRepository;
 	private final SettlementRevisionRepository revisionRepository;
 	private final RevisionMemberShareRepository memberShareRepository;
@@ -52,7 +53,8 @@ public class SettlementConfirmService {
 		meetingAccessChecker.requireHost(meetingId, hostId);
 		Settlement settlement = settlementGuard.lockForAmountChange(meetingId);
 		settlement.requireConfirmable();
-		SettlementResult result = SettlementCalculator.calculate(inputAssembler.assemble(meetingId));
+		MeetingPenalties penalties = meetingPenaltyLoader.load(meetingId);
+		SettlementResult result = SettlementCalculator.calculate(inputAssembler.assemble(meetingId, penalties));
 		requireWarningsAcknowledged(result, acknowledgeWarnings);
 
 		LocalDateTime now = LocalDateTime.now(clock);
@@ -64,7 +66,8 @@ public class SettlementConfirmService {
 				Settlement.FIRST_REVISION_NO, member(hostId), now, !result.warnings().isEmpty()));
 		List<RevisionMemberShare> shares = saveMemberShares(revision, result);
 		List<Transfer> transfers = saveTransfers(revision, result);
-		return SettlementResponse.confirmed(settlement, shares, transfers);
+		return SettlementResponse.confirmed(settlement, shares, transfers,
+				penalties.toResponses(result.penaltyCharges()));
 	}
 
 	private void requireWarningsAcknowledged(SettlementResult result, boolean acknowledgeWarnings) {

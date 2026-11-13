@@ -11,13 +11,16 @@ import com.poco7250.moyeo.member.domain.Member;
 import com.poco7250.moyeo.settlement.domain.ChangeLogEntityType;
 import com.poco7250.moyeo.settlement.domain.ChangeType;
 import com.poco7250.moyeo.settlement.domain.Expense;
+import com.poco7250.moyeo.settlement.dto.ExpenseDeleteResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseRequest;
 import com.poco7250.moyeo.settlement.dto.ExpenseResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseSnapshot;
 import com.poco7250.moyeo.settlement.dto.SettlementChangeSummary;
 import com.poco7250.moyeo.settlement.repository.ExpenseRepository;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -36,6 +39,8 @@ public class ExpenseService {
 	private final GroupMemberRepository groupMemberRepository;
 	private final SettlementGuard settlementGuard;
 	private final ChangeLogRecorder changeLogRecorder;
+	private final TargetExpenseRuleDetacher targetExpenseRuleDetacher;
+	private final ApplicationEventPublisher eventPublisher;
 
 	/**
 	 * 차수에 지출을 등록한다.
@@ -73,18 +78,29 @@ public class ExpenseService {
 	}
 
 	/**
-	 * 지출을 분배 조정과 함께 삭제한다.
+	 * 지출을 분배 조정과 함께 삭제한다. 이 지출을 대상으로 한 벌칙 조건도 같은 트랜잭션에서 지우고
+	 * 그 게임 벌칙을 조건 미설정(ASSIGNED)으로 되돌린다(PRD S-1).
 	 *
+	 * @return 조건이 지워진 게임 목록을 담은 삭제 결과
 	 * @throws BusinessException 없는 지출이면 EXPENSE_NOT_FOUND, 그룹 멤버가 아니면 NOT_GROUP_MEMBER
 	 */
 	@Transactional
-	public void delete(Long expenseId, Long memberId) {
+	public ExpenseDeleteResponse delete(Long expenseId, Long memberId) {
 		Expense expense = expenseLoader.loadForMember(expenseId, memberId);
-		Meeting meeting = expense.getRound().getMeeting();
-		settlementGuard.lockForAmountChange(meeting.getId());
+		Long meetingId = expense.getRound().getMeeting().getId();
+		settlementGuard.lockForAmountChange(meetingId);
 		ExpenseSnapshot before = ExpenseSnapshot.from(expense);
+		// 조건이 지출을 FK로 가리키므로 조건 삭제가 지출 삭제보다 먼저 쓰기 대기열에 들어가야 한다
+		List<DetachedRule> detached = targetExpenseRuleDetacher.detach(expense.getId());
 		expenseRepository.delete(expense);
-		recordChange(meeting, memberId, expense, ChangeType.DELETE, before, null);
+		recordDeletion(meetingId, memberId, expense.getId(), before, detached);
+
+		ExpenseDeleteResponse response = new ExpenseDeleteResponse(expense.getId(),
+				detached.stream().map(DetachedRule::gameId).toList());
+		if (!detached.isEmpty()) {
+			eventPublisher.publishEvent(new PenaltyConditionResetEvent(meetingId, response));
+		}
+		return response;
 	}
 
 	/**
@@ -112,6 +128,22 @@ public class ExpenseService {
 				List.of(new SettlementChangeSummary(ChangeLogEntityType.EXPENSE, expense.getId(), changeType)));
 		changeLogRecorder.record(meeting.getId(), actorId, ChangeLogEntityType.EXPENSE, expense.getId(), changeType,
 				before, after);
+	}
+
+	/**
+	 * 지출 삭제와 함께 지운 조건을 정산에 한 번 반영하고, 지출 1건 + 조건 n건(삭제 전 값)을 변경 로그에 남긴다.
+	 */
+	private void recordDeletion(Long meetingId, Long actorId, Long expenseId, ExpenseSnapshot before,
+			List<DetachedRule> detached) {
+		List<SettlementChangeSummary> changes = new ArrayList<>();
+		changes.add(new SettlementChangeSummary(ChangeLogEntityType.EXPENSE, expenseId, ChangeType.DELETE));
+		detached.forEach(rule -> changes.add(
+				new SettlementChangeSummary(ChangeLogEntityType.PENALTY_RULE, rule.ruleId(), ChangeType.DELETE)));
+		settlementGuard.markAmountChanged(meetingId, actorId, changes);
+		changeLogRecorder.record(meetingId, actorId, ChangeLogEntityType.EXPENSE, expenseId, ChangeType.DELETE,
+				before, null);
+		detached.forEach(rule -> changeLogRecorder.record(meetingId, actorId, ChangeLogEntityType.PENALTY_RULE,
+				rule.ruleId(), ChangeType.DELETE, rule.before(), null));
 	}
 
 	private String normalizeMemo(String memo) {

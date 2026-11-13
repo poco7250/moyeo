@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-13 (`feature/penalty-condition-api` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-13 (`feature/penalty-ledger` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 8 진행 중(Task 036 완료, 2026-11-13) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격, 2026-11-11)과 Task 032(결과 공개 시 벌칙자 확정, 2026-11-12), Task 033(다시 돌리기 요청과 다시 돌린 회차 취소, 2026-11-12)에 이어 Task 034(다시 돌린 회차 결과 공개, 2026-11-12)로 완료했다. Phase 8은 Task 035(벌칙 부담액 계산·경고 순수 도메인, 2026-11-13)와 Task 036(벌칙 조건 설정·변경·해제·면제·면제 취소 API, 2026-11-13)을 완료했다. 다음은 Task 037(대상 지출 삭제 연동·벌칙 반영 내역 표시). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 정산 계산·송금 최소화와 벌칙 부담액 계산·경고 순수 도메인(`settlement/calc/`, 벌칙 입력 조립은 Task 037), 정산 조회·최초 확정 API와 리비전 스냅샷, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API와 게임 상태 조회·차수별 게임 목록 API, 다시 돌리기 요청 API(`game/`), 게임 인가 `GameAccessChecker`(호스트 검사 포함, `global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이, 결과 공개 시 벌칙자 확정·다시 돌린 회차의 원 벌칙 무효·규칙 이관·조건 상속 `PenaltyAssigner`, 벌칙 조건 설정·변경·해제·면제·면제 취소 API(`penalty/`), 공통 코드(`global/`)가 있다.
+- **현재 단계:** Phase 8 진행 중(Task 037 완료, 2026-11-13) — Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격, 2026-11-11)과 Task 032(결과 공개 시 벌칙자 확정, 2026-11-12), Task 033(다시 돌리기 요청과 다시 돌린 회차 취소, 2026-11-12)에 이어 Task 034(다시 돌린 회차 결과 공개, 2026-11-12)로 완료했다. Phase 8은 Task 035(벌칙 부담액 계산·경고 순수 도메인, 2026-11-13)와 Task 036(벌칙 조건 설정·변경·해제·면제·면제 취소 API, 2026-11-13), Task 037(대상 지출 삭제 연동·벌칙 반영 내역 표시, 2026-11-13)을 완료했다. 다음은 Task 038(정산 확정 게이트·`PenaltyCharge` 스냅샷). 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 정산 계산·송금 최소화와 벌칙 부담액 계산·경고 순수 도메인(`settlement/calc/`), 벌칙 계산 입력 조립과 정산 조회의 벌칙 반영 내역, 대상 지출 삭제 시 조건 정리(`settlement/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API와 게임 상태 조회·차수별 게임 목록 API, 다시 돌리기 요청 API(`game/`), 게임 인가 `GameAccessChecker`(호스트 검사 포함, `global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이, 결과 공개 시 벌칙자 확정·다시 돌린 회차의 원 벌칙 무효·규칙 이관·조건 상속 `PenaltyAssigner`, 벌칙 조건 설정·변경·해제·면제·면제 취소 API(`penalty/`), 공통 코드(`global/`)가 있다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -18,7 +18,7 @@
 | 5 | 정산 기본·최초 확정 | 5-a | 6 | 6 | ✅ 완료 |
 | 6 | 게임 방·사다리·꽝뽑기 | 6 | 5 | 5 | ✅ 완료 |
 | 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 4 | ✅ 완료 |
-| 8 | 벌칙 정산 연동·확정 게이트 | 8 | 4 | 2 | 🔄 진행 중 |
+| 8 | 벌칙 정산 연동·확정 게이트 | 8 | 4 | 3 | 🔄 진행 중 |
 | 9 | 재확정·리비전 비교·알림 | 5-b | 2 | 0 | ⬜ 대기 |
 | 10 | MVP 통합 검증 | 9 | 3 | 0 | ⬜ 대기 |
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
@@ -977,7 +977,7 @@ Phase 10 040 → 041, 042 → 043
   - [x] 단위: 원 회차 `WAIVED` → 새 벌칙 `WAIVED`(waivedBy·waivedAt 상속, 원 벌칙 면제 정보 유지), 원 회차 `ASSIGNED` → 새 벌칙 `ASSIGNED`(이관 로그 없음)
   - [x] 단위: 원 회차 벌칙자와 새 벌칙자가 겹쳐도 새 회차 벌칙이 따로 생김(회차가 다름), 행동형은 정산·변경 로그 미접근·memberId 오름차순
   - [x] 통합(DB, `GameRerunIntegrationTest` 3건 추가): 금액형 `APPLIED` 상속(원 벌칙 행 `VOIDED`로 남음, `penalty_rule` 1건이 새 회차를 가리키고 `updated_at` 불변, 정산 `REOPENED`, 이관·공개 `ChangeLog`), 면제 상속(면제자·시각 동일), 행동형(정산 상태·version 그대로)
-  - [ ] 통합(DB): 이관 후 대상 지출 삭제 시 FK 문제 없음 — 규칙이 걸린 지출 삭제 연동이 Task 037 범위라 여기서는 "이관 뒤 원 회차를 가리키는 규칙 행 0건"까지만 확인했다. 삭제 검증은 Task 037에서 한다
+  - [x] 통합(DB): 이관 후 대상 지출 삭제 시 FK 문제 없음 — 이번 Task에서는 "이관 뒤 원 회차를 가리키는 규칙 행 0건"까지 확인했고, 삭제 검증은 Task 037 `PenaltyLedgerIntegrationTest.deleteTargetOfTakenOverRule`에서 했다
 - **수락 기준**
   - [x] When 새 회차 결과가 공개되면 / Then 원 회차 `Penalty`는 삭제되지 않고 `VOIDED`(이력에만 표시, 정산 제외)가 되고, 원 회차 `PenaltyRule`은 새 회차로 이관되며, 새 벌칙자는 원 회차의 공개 직전 조건 상태대로 `APPLIED`/`WAIVED`/`ASSIGNED`로 생성된다. (PRD R-5) — `GameRerunIntegrationTest.rerunRevealMovesRuleAndInheritsApplied`·`rerunRevealInheritsWaived`, `PenaltyAssignerTest.rerunInheritsAssigned`
 - **완료 조건**
@@ -1067,25 +1067,33 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew test` 통과(전체 1199건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
 - **참고:** 정산 계산에 규칙을 싣는 조립은 Task 037 몫이라, 조건을 설정해도 아직 정산 조회 금액은 바뀌지 않는다
 
-### Task 037: 대상 지출 삭제 연동·벌칙 반영 내역 표시   ⬜ 대기
+### Task 037: 대상 지출 삭제 연동·벌칙 반영 내역 표시   ✅ 완료
 
+- **완료일:** 2026-11-13 · 브랜치 `feature/penalty-ledger`
 - **관련 기능:** S-1, S-4
 - **선행 Task:** Task 035, Task 036
 - **구현 사항**
-  - [ ] `ExpenseService.delete` 확장 — `targetExpense`로 지정한 `PenaltyRule` 삭제(삭제 전 값 `ChangeLog`) + 해당 게임 `APPLIED` → `ASSIGNED`, 같은 트랜잭션, 응답·이벤트에 "대상 지출이 삭제되어 조건을 다시 입력해야 함"
-  - [ ] `SettlementInputAssembler` 확장 — 비무효 `APPLIED` 벌칙·규칙·정렬 키 조립
-  - [ ] 정산 조회 응답에 벌칙 반영 내역: `APPLIED` = 게임 출처·대상 지출·금액·설정자·설정 시각("민수: 사다리 꽝 → 2차 볼링 +30,000원"), `ASSIGNED` = "조건 미설정", `WAIVED` = "금액 벌칙 없음" + waivedBy·waivedAt, `VOIDED` = 이력 조회에서만
-  - [ ] 정산 조회 응답에 경고 목록 포함
-- **테스트**
-  - [ ] 단위: 대상 지출 삭제 → 규칙 삭제 + `ASSIGNED` + `ChangeLog`, `CONFIRMED`면 `REOPENED`
-  - [ ] 단위: 대상 지출 금액 수정 → 벌칙 상태 그대로, 다음 계산에서 새 금액 기준 부담액
-  - [ ] `@WebMvcTest`/단위: 벌칙 상태별 표시 항목, `VOIDED`는 정산 탭 응답에 없음
-  - [ ] 통합(DB): 다시 돌려 이관된 규칙의 대상 지출 삭제 시 FK 오류 없음
+  - [x] `ExpenseService.delete` 확장 — `TargetExpenseRuleDetacher.detach`가 `targetExpense`로 지정한 `PenaltyRule` 삭제 + 해당 게임 `APPLIED` → `ASSIGNED`(지출 삭제보다 먼저 큐에 넣어 FK 안 걸림), 같은 트랜잭션. `markAmountChanged` 1회(EXPENSE DELETE + PENALTY_RULE DELETE 요약) + `ChangeLog`(지출 1건 + 규칙 n건, 삭제 전 값). 응답 `ExpenseDeleteResponse(expenseId, conditionResetGameIds)`, 조건이 지워졌으면 모임 토픽에 `PENALTY_CONDITION_RESET`(`PenaltyConditionResetEvent`, 커밋 후)
+  - [x] `SettlementInputAssembler` 확장 — `MeetingPenaltyLoader`(쿼리 2번: 모임의 금액형·비무효 벌칙 `PenaltyRepository.findAllActiveMoneyByMeetingId` + 조건 `PenaltyRuleRepository.findAllWithTargetByGameSessionIdIn`)로 읽은 `MeetingPenalties`에서 `APPLIED` 벌칙만 게임별 `PenaltyRuleInput`(정렬 키 `applyOrderAt`·`rootSessionId`)으로 조립. 확정(`SettlementConfirmService`)도 같은 입력을 써서 리비전 1에 벌칙이 반영된다
+  - [x] 정산 조회 응답 `penalties`(`SettlementPenaltyResponse`): penaltyId·memberId·status·게임 출처(gameId, type, roundSeq, roundName), `APPLIED`면 조건(moneyType, amount?, ratioPct?, 대상 지출(id, roundSeq, roundName, memo, amount), setBy, setAt) + chargeAmount, `WAIVED`면 waivedBy·waivedAt. `VOIDED`·행동형은 싣지 않음. 확정 응답에도 같은 내역
+  - [x] 정산 조회 응답의 경고 목록 — 미리보기에 이미 실려 있고 이제 `PENALTY_EXCEEDS_TARGET`이 실제로 뜬다
+  - [x] ⚠️ 결정(2026-11-13, ROADMAP 미정 항목)
+    - 벌칙 반영 내역은 정산 상태와 상관없이 **현재 벌칙 상태 + 현재 계산 부담액**이다(사용자 확인). 그래서 조회는 확정 이후에도 현재 계산을 한 번 한다. 리비전 스냅샷 기준 표시는 Task 038(`PenaltyCharge`) 몫. 확정 리비전 응답의 빈 경고 목록(Task 024 결정)은 그대로
+    - "민수: 사다리 꽝 → 2차 볼링 +30,000원" 문구는 서버가 만들지 않고 구조화 값만 내려준다(이름은 프론트가 그룹 프로필로 붙임)
+    - 지출 삭제 API 응답을 `Void`에서 `ExpenseDeleteResponse`로 바꿨다. "대상 지출이 삭제되어 조건을 다시 입력해야 함"은 `conditionResetGameIds`가 비어 있지 않을 때 화면이 띄운다. 실시간 알림은 정산 상태와 상관없이 `PENALTY_CONDITION_RESET`(모임 토픽, 기존 해석기 사용), `CONFIRMED`였으면 `SETTLEMENT_REOPENED`도 함께
+    - 지출 수정은 바꾸지 않았다(벌칙 상태 그대로, 다음 계산에서 새 금액 기준)
+- **테스트** — `TargetExpenseRuleDetacherTest` 2건, `ExpenseServiceTest`·`SettlementInputAssemblerTest`·`SettlementQueryServiceTest`·`SettlementControllerTest`·`ExpenseControllerTest` 보강, `PenaltyLedgerIntegrationTest` 6건
+  - [x] 단위: 대상 지출 삭제 → 규칙 삭제 + `ASSIGNED` + `ChangeLog`, `CONFIRMED`면 `REOPENED`(통합 `deleteTargetExpense`)
+  - [x] 단위: 대상 지출 금액 수정 → 벌칙 상태 그대로, 다음 계산에서 새 금액 기준 부담액(통합 `targetExpenseUpdateRecalculates`: 100,000 → 200,000이면 30,000 → 60,000)
+  - [x] `@WebMvcTest`/단위: 벌칙 상태별 표시 항목, `VOIDED`는 정산 탭 응답에 없음
+  - [x] 통합(DB): 다시 돌려 이관된 규칙의 대상 지출 삭제 시 FK 오류 없음
+  - [x] (추가) 통합: 예 1(`RATIO 30%`, 100,000원) 조회 → 벌칙자 30,000 / 결제자 23,200 / 나머지 23,400, 대상 아닌 지출 삭제는 조건 유지·이벤트 없음, 면제 게임은 금액 없이 `WAIVED`
 - **수락 기준**
-  - Given `APPLIED` 벌칙의 `targetExpense`인 지출 / When 그 지출을 삭제하면 / Then 같은 트랜잭션에서 `PenaltyRule`이 삭제(`ChangeLog`에 삭제 전 값 기록)되고 해당 게임 벌칙이 `ASSIGNED`로 돌아간다. (PRD S-1)
-  - Given 민수에게 2차 지출 "볼링" 대상 `RATIO 30%` 벌칙이 `APPLIED` / When 정산 탭을 조회하면 / Then "민수: 사다리 꽝 → 2차 볼링 +30,000원" 형식으로 벌칙 출처(게임)·대상 지출·금액·조건 설정자·설정 시각이 항목별로 노출된다. `ASSIGNED` 벌칙은 금액 없이 "조건 미설정", `WAIVED`는 "금액 벌칙 없음"과 면제자·면제 시각으로 표시되고, `VOIDED`는 이력에서만 보인다. (PRD S-4)
+  - [x] Given `APPLIED` 벌칙의 `targetExpense`인 지출 / When 그 지출을 삭제하면 / Then 같은 트랜잭션에서 `PenaltyRule`이 삭제(`ChangeLog`에 삭제 전 값 기록)되고 해당 게임 벌칙이 `ASSIGNED`로 돌아간다. (PRD S-1) — `PenaltyLedgerIntegrationTest.deleteTargetExpense`
+  - [x] Given 민수에게 2차 지출 "볼링" 대상 `RATIO 30%` 벌칙이 `APPLIED` / When 정산 탭을 조회하면 / Then "민수: 사다리 꽝 → 2차 볼링 +30,000원" 형식으로 벌칙 출처(게임)·대상 지출·금액·조건 설정자·설정 시각이 항목별로 노출된다. `ASSIGNED` 벌칙은 금액 없이 "조건 미설정", `WAIVED`는 "금액 벌칙 없음"과 면제자·면제 시각으로 표시되고, `VOIDED`는 이력에서만 보인다. (PRD S-4) — `PenaltyLedgerIntegrationTest.appliedRuleIsCalculatedAndShown`·`waivedShown`·`deleteTargetOfTakenOverRule`, `SettlementQueryServiceTest.penaltyItemsByStatus`
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 1214건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
+- **참고:** 확정 게이트가 아직 없어(Task 038) 지금은 `ASSIGNED` 금액형 벌칙이 남아 있어도 확정된다
 
 ### Task 038: 정산 확정 게이트·`PenaltyCharge` 스냅샷   ⬜ 대기
 

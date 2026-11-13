@@ -2,6 +2,8 @@ package com.poco7250.moyeo.settlement.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -169,7 +171,7 @@ class SettlementConfirmIntegrationTest {
 				new SettlementTransferResponse(other.getId(), host.getId(), 30_000L),
 				new SettlementTransferResponse(third.getId(), host.getId(), 30_000L));
 		assertThat(confirmed).isEqualTo(new SettlementResponse(
-				SettlementStatus.CONFIRMED, 1, false, expectedMembers, expectedTransfers, List.of()));
+				SettlementStatus.CONFIRMED, 1, false, expectedMembers, expectedTransfers, List.of(), List.of()));
 		assertThat(revisionCount()).isEqualTo(1);
 		assertThat(queryService.get(meeting.getId(), other.getId())).isEqualTo(confirmed);
 		assertThat(currentSettlement().getFirstConfirmedAt()).isNotNull();
@@ -177,7 +179,7 @@ class SettlementConfirmIntegrationTest {
 		expenseService.update(expense.getId(), other.getId(), new ExpenseRequest(30_000L, host.getId(), "볼링"));
 
 		assertThat(queryService.get(meeting.getId(), other.getId())).isEqualTo(new SettlementResponse(
-				SettlementStatus.REOPENED, 1, false, expectedMembers, expectedTransfers, List.of()));
+				SettlementStatus.REOPENED, 1, false, expectedMembers, expectedTransfers, List.of(), List.of()));
 	}
 
 	@Test
@@ -212,7 +214,7 @@ class SettlementConfirmIntegrationTest {
 			Object input = invocation.callRealMethod();
 			bothPassedStatusCheck.await(10, TimeUnit.SECONDS);
 			return input;
-		}).when(inputAssembler).assemble(meeting.getId());
+		}).when(inputAssembler).assemble(eq(meeting.getId()), any(MeetingPenalties.class));
 
 		List<Throwable> failures = List.of(confirmAsync(), confirmAsync()).stream()
 				.map(CompletableFuture::join)
@@ -232,7 +234,7 @@ class SettlementConfirmIntegrationTest {
 			CompletableFuture.runAsync(() -> expenseService.update(expense.getId(), other.getId(),
 					new ExpenseRequest(30_000L, host.getId(), "볼링"))).join();
 			return input;
-		}).when(inputAssembler).assemble(meeting.getId());
+		}).when(inputAssembler).assemble(eq(meeting.getId()), any(MeetingPenalties.class));
 
 		assertThatThrownBy(() -> confirmService.confirm(meeting.getId(), host.getId(), false))
 				.isInstanceOf(ObjectOptimisticLockingFailureException.class);
