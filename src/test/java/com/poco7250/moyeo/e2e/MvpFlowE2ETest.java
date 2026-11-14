@@ -16,8 +16,11 @@ import com.poco7250.moyeo.game.service.GameSeedGenerator;
 import com.poco7250.moyeo.group.dto.GroupCreateResponse;
 import com.poco7250.moyeo.group.dto.InvitePreviewResponse;
 import com.poco7250.moyeo.meeting.domain.AttendanceStatus;
+import com.poco7250.moyeo.meeting.domain.MeetingDateStatus;
 import com.poco7250.moyeo.meeting.domain.PlaceStatus;
 import com.poco7250.moyeo.meeting.domain.RoundTemplate;
+import com.poco7250.moyeo.meeting.dto.DateCandidateVotes;
+import com.poco7250.moyeo.meeting.dto.MeetingDateVotesResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingDetailResponse;
 import com.poco7250.moyeo.meeting.dto.RoundResponse;
 import com.poco7250.moyeo.member.dto.MemberResponse;
@@ -34,6 +37,7 @@ import com.poco7250.moyeo.settlement.domain.SettlementStatus;
 import com.poco7250.moyeo.support.DatabaseCleaner;
 import com.poco7250.moyeo.support.TestcontainersConfiguration;
 import jakarta.servlet.http.Cookie;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -101,11 +105,12 @@ class MvpFlowE2ETest {
 	}
 
 	@Test
-	@DisplayName("그룹 생성 → 초대 → 가입 → 모임·차수 → 참석 → 장소 → 게임 → 지출 → 조건 → 확정 → 수정 → 재확정")
+	@DisplayName("그룹 생성 → 초대 → 가입 → 모임·차수 → 날짜 투표·확정 → 참석 → 장소 → 게임 → 지출 → 조건 → 확정 → 수정 → 재확정")
 	void coreFlow() {
 		String inviteToken = hostCreatesGroup();
 		guestsJoinByInvite(inviteToken);
 		MeetingDetailResponse meeting = createMeeting();
+		decideDate(meeting.id());
 		Long meal = roundOf(meeting, 1);
 		Long bowling = roundOf(meeting, 2);
 		decidePlaces(meeting.id(), meal, bowling);
@@ -157,14 +162,44 @@ class MvpFlowE2ETest {
 		assertThat(members.size()).isEqualTo(4);
 	}
 
+	/**
+	 * 날짜가 미정이라 후보 두 개로 날짜 투표 모임을 만든다(PRD M-5).
+	 */
 	private MeetingDetailResponse createMeeting() {
-		Map<String, Object> body = Map.of("title", "연말 모임", "startAt", "2099-12-20T18:00:00",
-				"template", RoundTemplate.MEAL_BOWLING);
+		Map<String, Object> body = Map.of("title", "연말 모임", "template", RoundTemplate.MEAL_BOWLING,
+				"dateCandidates", List.of("2099-12-19T18:00:00", "2099-12-20T18:00:00"));
 		MeetingDetailResponse meeting = client.ok(HttpMethod.POST, "/api/groups/" + ids.get("group") + "/meetings",
 				sessions.get("철수"), body, MeetingDetailResponse.class);
+		assertThat(meeting.dateStatus()).isEqualTo(MeetingDateStatus.VOTING);
+		assertThat(meeting.startAt()).isNull();
 		assertThat(meeting.rounds()).extracting(RoundResponse::placeStatus)
 				.containsExactly(PlaceStatus.UNDECIDED, PlaceStatus.UNDECIDED);
 		return meeting;
+	}
+
+	/**
+	 * 게스트는 되는 날짜를 고르고(지수는 19일이 안 됨), 호스트가 가장 많이 되는 20일로 확정한다.
+	 */
+	private void decideDate(Long meetingId) {
+		String votesUri = "/api/meetings/" + meetingId + "/date-votes";
+		MeetingDateVotesResponse votes = client.ok(HttpMethod.GET, votesUri, sessions.get("민수"), null,
+				MeetingDateVotesResponse.class);
+		Long dec19 = votes.candidates().get(0).candidateId();
+		Long dec20 = votes.candidates().get(1).candidateId();
+		respondDates(meetingId, "민수", List.of(dec19, dec20));
+		respondDates(meetingId, "영희", List.of(dec19, dec20));
+		MeetingDateVotesResponse tally = respondDates(meetingId, "지수", List.of(dec20));
+		assertThat(tally.candidates()).extracting(DateCandidateVotes::availableCount).containsExactly(2, 3);
+
+		MeetingDetailResponse confirmed = client.ok(HttpMethod.POST, "/api/meetings/" + meetingId + "/date/confirm",
+				sessions.get("철수"), Map.of("candidateId", dec20), MeetingDetailResponse.class);
+		assertThat(confirmed.dateStatus()).isEqualTo(MeetingDateStatus.CONFIRMED);
+		assertThat(confirmed.startAt()).isEqualTo(LocalDateTime.of(2099, 12, 20, 18, 0));
+	}
+
+	private MeetingDateVotesResponse respondDates(Long meetingId, String name, List<Long> availableIds) {
+		return client.ok(HttpMethod.PUT, "/api/meetings/" + meetingId + "/date-votes/me", sessions.get(name),
+				Map.of("availableCandidateIds", availableIds), MeetingDateVotesResponse.class);
 	}
 
 	/**

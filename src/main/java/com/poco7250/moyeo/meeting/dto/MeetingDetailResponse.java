@@ -1,6 +1,7 @@
 package com.poco7250.moyeo.meeting.dto;
 
 import com.poco7250.moyeo.meeting.domain.Meeting;
+import com.poco7250.moyeo.meeting.domain.MeetingDateStatus;
 import com.poco7250.moyeo.meeting.domain.MeetingShareText;
 import com.poco7250.moyeo.meeting.domain.Round;
 import java.time.LocalDateTime;
@@ -9,12 +10,14 @@ import java.util.List;
 /**
  * 모임 상세 응답. url은 단톡방에 공유할 링크(OG 미리보기 경로라 앱 내부 이동에는 id를 쓴다),
  * shareText는 카카오톡 공유 문구, host는 요청자가 호스트인지 여부다.
+ * 날짜 투표 중(dateStatus = VOTING)이면 startAt은 null이고, 후보·득표는 날짜 투표 API로 본다.
  */
 public record MeetingDetailResponse(
 		Long id,
 		Long groupId,
 		String title,
 		LocalDateTime startAt,
+		MeetingDateStatus dateStatus,
 		String memo,
 		LocalDateTime responseDeadline,
 		Long hostMemberId,
@@ -32,6 +35,7 @@ public record MeetingDetailResponse(
 				meeting.getGroup().getId(),
 				meeting.getTitle(),
 				meeting.getStartAt(),
+				meeting.getDateStatus(),
 				meeting.getMemo(),
 				meeting.getResponseDeadline(),
 				meeting.getHostMemberId(),

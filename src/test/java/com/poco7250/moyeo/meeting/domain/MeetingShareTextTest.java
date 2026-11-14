@@ -38,6 +38,17 @@ class MeetingShareTextTest {
 	}
 
 	@Test
+	void 날짜_투표_중이면_OG_설명에_요일_대신_날짜_투표_중이라고_쓴다() {
+		assertThat(MeetingShareText.ogDescription(null, null, 0, 8)).isEqualTo("날짜 투표 중 · 장소 미정 · 0/8명 참석");
+	}
+
+	@Test
+	void 날짜_투표_중이면_카카오톡_문구의_일시_자리에_날짜_투표_중이라고_쓴다() {
+		assertThat(MeetingShareText.kakaoText("연말 모임", null, null, "/share/meetings/t"))
+				.isEqualTo("[연말 모임]\n날짜 투표 중\n장소: 장소 미정\n/share/meetings/t");
+	}
+
+	@Test
 	void 첫_차수의_확정_장소_이름을_찾고_미확정이거나_차수가_없으면_null이다() {
 		Round first = round(1);
 		Round second = round(2);

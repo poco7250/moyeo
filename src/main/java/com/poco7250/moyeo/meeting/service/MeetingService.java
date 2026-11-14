@@ -7,17 +7,21 @@ import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.group.domain.Group;
 import com.poco7250.moyeo.group.repository.GroupRepository;
 import com.poco7250.moyeo.meeting.domain.Meeting;
+import com.poco7250.moyeo.meeting.domain.MeetingDateCandidate;
+import com.poco7250.moyeo.meeting.domain.MeetingDateStatus;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.dto.GroupMeetingsResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingCreateRequest;
 import com.poco7250.moyeo.meeting.dto.MeetingDetailResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingSummaryResponse;
+import com.poco7250.moyeo.meeting.repository.MeetingDateCandidateRepository;
 import com.poco7250.moyeo.meeting.repository.MeetingRepository;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.settlement.domain.Settlement;
 import com.poco7250.moyeo.settlement.repository.SettlementRepository;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MeetingService {
 
 	private final MeetingRepository meetingRepository;
+	private final MeetingDateCandidateRepository meetingDateCandidateRepository;
 	private final RoundRepository roundRepository;
 	private final SettlementRepository settlementRepository;
 	private final GroupRepository groupRepository;
@@ -42,6 +47,7 @@ public class MeetingService {
 
 	/**
 	 * 모임을 만든다. 요청자가 호스트가 되고, 차수와 미확정(DRAFT) 정산이 한 트랜잭션에서 함께 생긴다.
+	 * 날짜 후보를 보냈으면 날짜 투표(VOTING) 모임으로 만들고 후보도 함께 저장한다(PRD M-5).
 	 *
 	 * @throws BusinessException 그룹 멤버가 아니면 NOT_GROUP_MEMBER
 	 */
@@ -50,8 +56,11 @@ public class MeetingService {
 		groupAccessChecker.requireMember(groupId, memberId);
 		Group group = groupRepository.getReferenceById(groupId);
 
-		Meeting meeting = meetingRepository.save(Meeting.create(group, request.title(), request.startAt(),
-				request.memo(), request.responseDeadline(), memberId));
+		Meeting meeting = meetingRepository.save(newMeeting(group, memberId, request));
+		if (request.hasDateCandidates()) {
+			meetingDateCandidateRepository.saveAll(request.dateCandidates().stream().sorted()
+					.map(startAt -> MeetingDateCandidate.propose(meeting, startAt)).toList());
+		}
 		List<Round> rounds = roundRepository.saveAll(createRounds(meeting, request.resolveRoundNames()));
 		settlementRepository.save(Settlement.createDraft(meeting));
 		return toDetail(meeting, rounds, memberId);
@@ -71,6 +80,7 @@ public class MeetingService {
 
 	/**
 	 * 그룹의 모임을 현재 시각 기준 다가오는 모임과 지난 모임으로 나눠 조회한다. 시작 시각 정각은 다가오는 쪽이다.
+	 * 날짜 투표 중인 모임은 시작 시각이 없어서 다가오는 모임 맨 앞에 최근 생성 순으로 둔다.
 	 *
 	 * @throws BusinessException 그룹 멤버가 아니면 NOT_GROUP_MEMBER
 	 */
@@ -78,9 +88,23 @@ public class MeetingService {
 	public GroupMeetingsResponse getGroupMeetings(Long groupId, Long memberId) {
 		groupAccessChecker.requireMember(groupId, memberId);
 		LocalDateTime now = LocalDateTime.now(clock);
-		return new GroupMeetingsResponse(
-				toSummaries(meetingRepository.findAllByGroupIdAndStartAtGreaterThanEqualOrderByStartAtAsc(groupId, now)),
+		List<Meeting> upcoming = new ArrayList<>(meetingRepository
+				.findAllByGroupIdAndDateStatusOrderByCreatedAtDescIdDesc(groupId, MeetingDateStatus.VOTING));
+		upcoming.addAll(meetingRepository.findAllByGroupIdAndStartAtGreaterThanEqualOrderByStartAtAsc(groupId, now));
+		return new GroupMeetingsResponse(toSummaries(upcoming),
 				toSummaries(meetingRepository.findAllByGroupIdAndStartAtLessThanOrderByStartAtDesc(groupId, now)));
+	}
+
+	/**
+	 * 요청에 날짜 후보가 있으면 날짜 투표 모임, 없으면 날짜가 정해진 모임을 만든다.
+	 */
+	private Meeting newMeeting(Group group, Long memberId, MeetingCreateRequest request) {
+		if (request.hasDateCandidates()) {
+			return Meeting.createWithDateVote(group, request.title(), request.memo(), request.responseDeadline(),
+					memberId);
+		}
+		return Meeting.create(group, request.title(), request.startAt(), request.memo(), request.responseDeadline(),
+				memberId);
 	}
 
 	/**

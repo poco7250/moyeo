@@ -111,10 +111,18 @@
 
 | ID | Given / When / Then |
 |---|---|
-| M-1 | Given 그룹 멤버 / When 제목·날짜·시간·메모로 모임을 생성하면 / Then 모임이 그룹에 등록되고 모임 상세 링크가 반환되며, 생성자가 `Meeting.hostMemberId`로 저장되고 `Settlement`가 `DRAFT`로 함께 생성된다. 제목·날짜 누락 시 400과 필드 에러를 받는다. |
+| M-1 | Given 그룹 멤버 / When 제목·날짜·시간·메모로 모임을 생성하면 / Then 모임이 그룹에 등록되고 모임 상세 링크가 반환되며, 생성자가 `Meeting.hostMemberId`로 저장되고 `Settlement`가 `DRAFT`로 함께 생성된다. 제목 누락, 또는 날짜·시간과 날짜 후보(M-5)가 둘 다 없거나 둘 다 있으면 400과 필드 에러를 받는다. |
 | M-2 | Given 모임 생성 화면 / When "밥→볼링" 템플릿을 고르면 / Then 1차(밥)·2차(볼링) 차수가 순서대로 생성되고, 각 차수의 장소 상태는 `UNDECIDED`다. |
 | M-3 | Given 차수가 2개인 모임 / When 멤버가 "늦참(2차부터)"을 고르면 / Then 1차는 불참, 2차는 참석으로 저장된다. "1차만"은 그 반대로 저장된다. 같은 멤버가 다시 응답하면 기존 응답이 갱신된다(차수당 1건). |
 | M-4 | Given 응답 마감 시간이 지난 모임 / When 멤버가 응답을 바꾸려 하면 / Then 거부된다(호스트 = 모임 생성자의 대리 수정은 허용, 그 외 멤버 403). 현황판은 차수별로 참석/불참/미정/미응답 멤버 목록을 보여준다. |
+
+> 설계 포인트: **날짜 후보 투표(M-5, 2026-11-14 결정).** 날짜가 미정이면 모임을 만들 때 `startAt` 대신 날짜 후보(날짜 + 시작 시각, 2~10개, 미래 시각, 같은 시각 중복 불가)를 보내 **날짜 투표(`Meeting.dateStatus = VOTING`, `startAt` 없음)** 모임으로 만든다. 후보 추가는 **호스트만**(투표 중에만, 모임당 최대 10개). 멤버는 **가능한 후보 집합을 통째로 제출**한다(빠진 후보는 불가, 빈 목록 = 전부 불가, 같은 제출은 멱등). 응답은 후보 × 멤버마다 가능/불가 1건(`(candidate, member)` 유니크)이고, 응답 뒤에 추가된 후보는 그 멤버의 미응답이다. **확정은 호스트 수동**(마감·자동 확정 없음) — 고른 후보 시각이 `startAt`이 되고 `CONFIRMED`가 된다. 확정 후 후보 추가·응답·확정은 409 `MEETING_DATE_NOT_VOTING`이고 후보·응답은 이력으로 남는다. 확정 동시 요청은 `Meeting.version` 낙관적 락으로 1건만 반영한다. 날짜 투표 중 모임은 그룹 목록의 다가오는 모임 맨 앞(최근 생성 순)에 두고, 공유 문구·OG 설명은 날짜 자리에 "날짜 투표 중"을 쓴다. 실시간은 모임 토픽 `DATE_VOTE_CHANGED`(후보별 가능·불가·미응답 현황)·`MEETING_DATE_CONFIRMED`. 후보 삭제·확정 후 재투표는 범위 밖이다.
+
+**수용 기준 (P1)**
+
+| ID | Given / When / Then |
+|---|---|
+| M-5 | Given 날짜 후보 2개 이상으로 만든 날짜 투표 모임 / When 멤버들이 가능한 후보를 제출하고 호스트가 후보 하나를 확정하면 / Then 후보마다 가능·불가·미응답 멤버가 집계되고, 확정한 후보 시각이 모임 `startAt`이 되어 `CONFIRMED`가 된다. 호스트가 아닌 멤버의 후보 추가·확정은 403(`NOT_MEETING_HOST`), 확정 후 응답·후보 추가·확정은 409(`MEETING_DATE_NOT_VOTING`), 다른 모임 후보 id는 404(`MEETING_DATE_CANDIDATE_NOT_FOUND`), 같은 시각 후보는 409(`MEETING_DATE_CANDIDATE_DUPLICATED`), 11번째 후보는 409(`MEETING_DATE_CANDIDATE_LIMIT`)다. 확정 동시 2건은 1건만 성공한다. |
 
 ### 4.3 장소 결정
 
@@ -504,8 +512,11 @@
 ```
 Member(kakaoId) ─┬─< GroupMember(nickname, emoji, role) >── Group ─< InviteLink (token, expiresAt)
                  │     ※ (group, member) 유니크          ├─< FavoritePlace (Place, P1)
-                 │                                       └─< Meeting(title, startAt, memo, responseDeadline,
-                 │                                             │       hostMemberId(생성자 = 호스트, D4))
+                 │                                       └─< Meeting(title, startAt?(날짜 투표 중이면 없음), memo, responseDeadline,
+                 │                                             │       hostMemberId(생성자 = 호스트, D4),
+                 │                                             │       dateStatus: VOTING/CONFIRMED (M-5), version)
+                 │                                             ├─< MeetingDateCandidate (startAt) ※ (meeting, startAt) 유니크, 최대 10개 (M-5)
+                 │                                             │     └─< MeetingDateVote (member, available) ※ (candidate, member) 유니크
                  │                                             ├── Settlement (status: DRAFT/CONFIRMED/REOPENED, currentRevisionNo?,
                  │                                             │     │          firstConfirmedAt?, version)
                  │                                             │     │   ※ meeting 유니크(모임당 1건, 모임 생성 시 DRAFT)
@@ -703,6 +714,7 @@ Member(kakaoId) ─┬─< GroupMember(nickname, emoji, role) >── Group ─<
 | 게임 취소 변경 로그 범위 (2026-11-10) | **금액형 게임 취소만 `ChangeLog`에 기록한다.** 행동형·`NONE` 취소 이력은 `CANCELED` 상태로 남는다 | 7장 `ChangeLog` 기록 대상 |
 | 카카오 데이터 무저장 (오픈 이슈 5 종결, 2026-11-04) | **카카오에 문의하지 않고, 허용이 확인되지 않은 활용은 전부 불가로 본다.** 검색은 참고용(실시간 표시만, 입력칸 자동 채우기 금지), 장소 ID·이름·주소·좌표·place_url 등 카카오 응답 값은 저장하지 않음, `Place`는 사용자 입력(`label`·`manualAddress?`·`manualMapUrl?`)만, 지도는 `manualMapUrl` 또는 `/link/search/`(길찾기 `/link/to` 제공 안 함), P-7·P-10 보류(재설계) | P-1·P-5·P-7·P-10, 4.3 장소 도메인 규칙, 5장 장소 탭, 6장 외부 API, 7장 `Place`, 9장 리스크 |
 | 직접 입력 지도 링크 (N6) | **`manualMapUrl`은 `https`만, 최대 2,048자(위반 400). 없으면 `https://map.kakao.com/link/search/{manualAddress 또는 label}`로 대체**(API 호출·저장 없음) | P-1·P-5 수용 기준, 장소 도메인 규칙 |
+| 날짜 후보 투표 (M-5, 2026-11-14) | **후보 = 날짜 + 시작 시각, 응답 = 가능 후보 복수 선택(통째로 제출), 확정 = 호스트 수동.** 후보 추가도 호스트만, 날짜 투표 중 모임은 `startAt` 없이 `dateStatus = VOTING` | 4.2 M-5 설계 포인트·수용 기준, 7장 `Meeting`·`MeetingDateCandidate`·`MeetingDateVote` |
 
 ### 오픈 이슈
 
