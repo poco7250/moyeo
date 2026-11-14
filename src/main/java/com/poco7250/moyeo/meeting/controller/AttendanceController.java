@@ -3,6 +3,7 @@ package com.poco7250.moyeo.meeting.controller;
 import com.poco7250.moyeo.auth.security.LoginMember;
 import com.poco7250.moyeo.global.common.ApiResponse;
 import com.poco7250.moyeo.meeting.dto.AttendanceBoardResponse;
+import com.poco7250.moyeo.meeting.dto.AttendanceReminderResponse;
 import com.poco7250.moyeo.meeting.dto.AttendanceRespondRequest;
 import com.poco7250.moyeo.meeting.dto.MemberAttendanceResponse;
 import com.poco7250.moyeo.meeting.service.AttendanceBoardService;
@@ -52,5 +53,14 @@ public class AttendanceController {
 	@GetMapping("/attendance-board")
 	public ApiResponse<AttendanceBoardResponse> board(@LoginMember Long memberId, @PathVariable Long meetingId) {
 		return ApiResponse.ok(attendanceBoardService.getBoard(meetingId, memberId));
+	}
+
+	/**
+	 * 한 차수라도 응답하지 않은 멤버와 단톡방에 붙여 넣을 리마인드 문구를 돌려준다(그룹 멤버 누구나).
+	 */
+	@GetMapping("/attendance-reminder")
+	public ApiResponse<AttendanceReminderResponse> reminder(@LoginMember Long memberId,
+			@PathVariable Long meetingId) {
+		return ApiResponse.ok(attendanceBoardService.getReminder(meetingId, memberId));
 	}
 }

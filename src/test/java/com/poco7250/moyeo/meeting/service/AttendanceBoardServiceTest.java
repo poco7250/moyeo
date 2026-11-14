@@ -1,18 +1,24 @@
 package com.poco7250.moyeo.meeting.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.poco7250.moyeo.global.auth.MeetingAccessChecker;
+import com.poco7250.moyeo.global.error.BusinessException;
+import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.group.domain.Group;
 import com.poco7250.moyeo.group.domain.GroupMember;
 import com.poco7250.moyeo.group.domain.GroupRole;
 import com.poco7250.moyeo.group.repository.GroupMemberRepository;
+import com.poco7250.moyeo.meeting.config.MeetingLinkProperties;
 import com.poco7250.moyeo.meeting.domain.Attendance;
 import com.poco7250.moyeo.meeting.domain.AttendanceStatus;
 import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.dto.AttendanceBoardResponse;
+import com.poco7250.moyeo.meeting.dto.AttendanceReminderResponse;
 import com.poco7250.moyeo.meeting.dto.BoardMember;
 import com.poco7250.moyeo.meeting.dto.RoundBoard;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
@@ -80,9 +86,7 @@ class AttendanceBoardServiceTest {
 				Attendance.respond(second, b.getMember(), AttendanceStatus.ATTEND, DEADLINE),
 				Attendance.respond(second, c.getMember(), AttendanceStatus.UNDECIDED, DEADLINE)));
 
-		AttendanceBoardResponse response = new AttendanceBoardService(meetingAccessChecker, roundRepository,
-				attendanceRepository, groupMemberRepository, TestClocks.fixed(DEADLINE.plusSeconds(1)))
-				.getBoard(MEETING_ID, 1L);
+		AttendanceBoardResponse response = service(DEADLINE.plusSeconds(1)).getBoard(MEETING_ID, 1L);
 
 		assertThat(response.closed()).isTrue();
 		assertThat(response.responseDeadline()).isEqualTo(DEADLINE);
@@ -96,6 +100,64 @@ class AttendanceBoardServiceTest {
 		assertThat(ids(bowling.attend())).containsExactly(2L);
 		assertThat(ids(bowling.undecided())).containsExactly(3L);
 		assertThat(bowling.noResponse()).extracting(BoardMember::nickname).containsExactly("가");
+	}
+
+	@Test
+	@DisplayName("리마인드는 한 차수라도 미응답인 멤버를 가입 순으로 중복 없이 모으고 문구를 만든다")
+	void reminder() {
+		givenBoardData(List.of(
+				Attendance.respond(first, a.getMember(), AttendanceStatus.ATTEND, DEADLINE),
+				Attendance.respond(first, b.getMember(), AttendanceStatus.ABSENT, DEADLINE),
+				Attendance.respond(second, b.getMember(), AttendanceStatus.ATTEND, DEADLINE),
+				Attendance.respond(second, c.getMember(), AttendanceStatus.UNDECIDED, DEADLINE)));
+
+		AttendanceReminderResponse response = service(DEADLINE.minusHours(1)).getReminder(MEETING_ID, 1L);
+
+		// 1차 미응답 = 다, 2차 미응답 = 가 → 가입 순(가, 다)
+		assertThat(ids(response.noResponse())).containsExactly(1L, 3L);
+		assertThat(response.meetingId()).isEqualTo(MEETING_ID);
+		assertThat(response.responseDeadline()).isEqualTo(DEADLINE);
+		assertThat(response.shareText()).contains("아직 참석 응답 안 한 사람: 가, 다").endsWith("/meetings/10");
+	}
+
+	@Test
+	@DisplayName("모두 응답했으면 리마인드 미응답자는 빈 목록이고 문구는 null이다")
+	void reminderAllAnswered() {
+		givenBoardData(List.of(
+				Attendance.respond(first, a.getMember(), AttendanceStatus.ATTEND, DEADLINE),
+				Attendance.respond(first, b.getMember(), AttendanceStatus.ATTEND, DEADLINE),
+				Attendance.respond(first, c.getMember(), AttendanceStatus.ABSENT, DEADLINE),
+				Attendance.respond(second, a.getMember(), AttendanceStatus.ATTEND, DEADLINE),
+				Attendance.respond(second, b.getMember(), AttendanceStatus.UNDECIDED, DEADLINE),
+				Attendance.respond(second, c.getMember(), AttendanceStatus.ABSENT, DEADLINE)));
+
+		AttendanceReminderResponse response = service(DEADLINE.minusHours(1)).getReminder(MEETING_ID, 1L);
+
+		assertThat(response.noResponse()).isEmpty();
+		assertThat(response.shareText()).isNull();
+	}
+
+	@Test
+	@DisplayName("응답 마감이 지나면 리마인드는 409 ATTENDANCE_REMINDER_CLOSED이고 응답을 읽지 않는다")
+	void reminderClosed() {
+		given(meetingAccessChecker.requireMember(MEETING_ID, 1L)).willReturn(meeting);
+
+		assertThatThrownBy(() -> service(DEADLINE.plusSeconds(1)).getReminder(MEETING_ID, 1L))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.ATTENDANCE_REMINDER_CLOSED);
+		verifyNoInteractions(attendanceRepository);
+	}
+
+	private void givenBoardData(List<Attendance> attendances) {
+		given(meetingAccessChecker.requireMember(MEETING_ID, 1L)).willReturn(meeting);
+		given(roundRepository.findAllByMeetingIdOrderBySeq(MEETING_ID)).willReturn(List.of(first, second));
+		given(groupMemberRepository.findAllByGroupIdOrderByIdAsc(GROUP_ID)).willReturn(List.of(a, b, c));
+		given(attendanceRepository.findAllByMeetingId(MEETING_ID)).willReturn(attendances);
+	}
+
+	private AttendanceBoardService service(LocalDateTime now) {
+		return new AttendanceBoardService(meetingAccessChecker, roundRepository, attendanceRepository,
+				groupMemberRepository, TestClocks.fixed(now), new MeetingLinkProperties(""));
 	}
 
 	private static List<Long> ids(List<BoardMember> members) {

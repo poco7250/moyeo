@@ -15,6 +15,7 @@ import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.AttendanceStatus;
 import com.poco7250.moyeo.meeting.dto.AttendanceBoardResponse;
+import com.poco7250.moyeo.meeting.dto.AttendanceReminderResponse;
 import com.poco7250.moyeo.meeting.dto.AttendanceRespondRequest;
 import com.poco7250.moyeo.meeting.dto.BoardMember;
 import com.poco7250.moyeo.meeting.dto.MemberAttendanceResponse;
@@ -189,6 +190,40 @@ class AttendanceControllerTest {
 		mockMvc.perform(get("/api/meetings/10/attendance-board").cookie(accessCookie(8L)))
 				.andExpect(status().isForbidden())
 				.andExpect(jsonPath("$.error.code").value(ErrorCode.NOT_GROUP_MEMBER.name()));
+	}
+
+	@Test
+	@DisplayName("리마인드는 미응답 멤버와 공유 문구를 공통 응답으로 준다")
+	void reminder() throws Exception {
+		given(attendanceBoardService.getReminder(10L, 8L)).willReturn(new AttendanceReminderResponse(10L,
+				LocalDateTime.of(2026, 12, 19, 18, 0), List.of(new BoardMember(2L, "나", null)), "리마인드 문구"));
+
+		mockMvc.perform(get("/api/meetings/10/attendance-reminder").cookie(accessCookie(8L)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.meetingId").value(10))
+				.andExpect(jsonPath("$.data.responseDeadline").value("2026-12-19T18:00:00"))
+				.andExpect(jsonPath("$.data.noResponse[0].nickname").value("나"))
+				.andExpect(jsonPath("$.data.shareText").value("리마인드 문구"));
+	}
+
+	@Test
+	@DisplayName("응답 마감 뒤 리마인드는 409 ATTENDANCE_REMINDER_CLOSED")
+	void reminderClosed() throws Exception {
+		given(attendanceBoardService.getReminder(10L, 8L))
+				.willThrow(new BusinessException(ErrorCode.ATTENDANCE_REMINDER_CLOSED));
+
+		mockMvc.perform(get("/api/meetings/10/attendance-reminder").cookie(accessCookie(8L)))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.error.code").value(ErrorCode.ATTENDANCE_REMINDER_CLOSED.name()));
+	}
+
+	@Test
+	@DisplayName("로그인하지 않으면 리마인드는 401이고 서비스를 부르지 않는다")
+	void reminderUnauthenticated() throws Exception {
+		mockMvc.perform(get("/api/meetings/10/attendance-reminder"))
+				.andExpect(status().isUnauthorized());
+		verifyNoInteractions(attendanceBoardService);
 	}
 
 	private static org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder putJson(

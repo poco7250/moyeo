@@ -132,6 +132,7 @@ class AuthorizationMatrixTest {
 			new Endpoint(HttpMethod.PUT, "/api/meetings/{meetingId}/attendances/{memberId}", Access.HOST,
 					ROUNDS_BODY),
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/attendance-board", Access.MEMBER),
+			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/attendance-reminder", Access.MEMBER),
 			// 날짜 후보 투표
 			new Endpoint(HttpMethod.POST, "/api/meetings/{meetingId}/date-candidates", Access.HOST,
 					"{\"startAt\":\"2099-12-21T18:00:00\"}"),

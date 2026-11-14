@@ -2,13 +2,17 @@ package com.poco7250.moyeo.meeting.service;
 
 import com.poco7250.moyeo.global.auth.MeetingAccessChecker;
 import com.poco7250.moyeo.global.error.BusinessException;
+import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.group.domain.GroupMember;
 import com.poco7250.moyeo.group.repository.GroupMemberRepository;
+import com.poco7250.moyeo.meeting.config.MeetingLinkProperties;
 import com.poco7250.moyeo.meeting.domain.Attendance;
 import com.poco7250.moyeo.meeting.domain.AttendanceStatus;
 import com.poco7250.moyeo.meeting.domain.Meeting;
+import com.poco7250.moyeo.meeting.domain.MeetingShareText;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.dto.AttendanceBoardResponse;
+import com.poco7250.moyeo.meeting.dto.AttendanceReminderResponse;
 import com.poco7250.moyeo.meeting.dto.BoardMember;
 import com.poco7250.moyeo.meeting.dto.RoundBoard;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
@@ -18,13 +22,14 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 참석 현황판(PRD M-4). 차수·응답·그룹 멤버를 한 번씩 읽어 메모리에서 나눈다.
+ * 참석 현황판(PRD M-4)과 미응답자 리마인드(M-6). 차수·응답·그룹 멤버를 한 번씩 읽어 메모리에서 나눈다.
  */
 @Service
 @RequiredArgsConstructor
@@ -35,6 +40,7 @@ public class AttendanceBoardService {
 	private final AttendanceRepository attendanceRepository;
 	private final GroupMemberRepository groupMemberRepository;
 	private final Clock clock;
+	private final MeetingLinkProperties meetingLinkProperties;
 
 	/**
 	 * 차수별 참석/불참/미정/미응답 멤버 목록을 돌려준다. 미응답 = 그룹 멤버 중 그 차수에 응답이 없는 사람.
@@ -44,16 +50,61 @@ public class AttendanceBoardService {
 	@Transactional(readOnly = true)
 	public AttendanceBoardResponse getBoard(Long meetingId, Long memberId) {
 		Meeting meeting = meetingAccessChecker.requireMember(meetingId, memberId);
-		List<Round> rounds = roundRepository.findAllByMeetingIdOrderBySeq(meetingId);
-		List<GroupMember> members = groupMemberRepository.findAllByGroupIdOrderByIdAsc(meeting.getGroup().getId());
-		Map<Long, Map<Long, AttendanceStatus>> statusByRound = groupByRound(
-				attendanceRepository.findAllByMeetingId(meetingId));
+		return new AttendanceBoardResponse(meeting.getResponseDeadline(),
+				meeting.isResponseClosed(LocalDateTime.now(clock)), roundBoards(meeting, groupMembers(meeting)));
+	}
 
-		List<RoundBoard> boards = rounds.stream()
+	/**
+	 * 한 차수라도 응답하지 않은 멤버와 단톡방용 리마인드 문구를 돌려준다(PRD M-6). 아무것도 저장하지 않는다.
+	 *
+	 * @throws BusinessException 그룹 멤버가 아니면 NOT_GROUP_MEMBER, 응답 마감이 지났으면 ATTENDANCE_REMINDER_CLOSED
+	 */
+	@Transactional(readOnly = true)
+	public AttendanceReminderResponse getReminder(Long meetingId, Long memberId) {
+		Meeting meeting = meetingAccessChecker.requireMember(meetingId, memberId);
+		if (meeting.isResponseClosed(LocalDateTime.now(clock))) {
+			throw new BusinessException(ErrorCode.ATTENDANCE_REMINDER_CLOSED);
+		}
+		List<GroupMember> members = groupMembers(meeting);
+		List<BoardMember> noResponse = unionNoResponse(members, roundBoards(meeting, members));
+		String shareText = noResponse.isEmpty() ? null
+				: MeetingShareText.reminderText(meeting.getTitle(), meeting.getStartAt(),
+						noResponse.stream().map(BoardMember::nickname).toList(), meeting.getResponseDeadline(),
+						meetingLinkProperties.urlOf(meetingId));
+		return new AttendanceReminderResponse(meetingId, meeting.getResponseDeadline(), noResponse, shareText);
+	}
+
+	/**
+	 * 차수·응답·그룹 멤버를 한 번씩 읽어 차수별 현황으로 나눈다.
+	 */
+	private List<RoundBoard> roundBoards(Meeting meeting, List<GroupMember> members) {
+		List<Round> rounds = roundRepository.findAllByMeetingIdOrderBySeq(meeting.getId());
+		Map<Long, Map<Long, AttendanceStatus>> statusByRound = groupByRound(
+				attendanceRepository.findAllByMeetingId(meeting.getId()));
+		return rounds.stream()
 				.map(r -> toRoundBoard(r, members, statusByRound.getOrDefault(r.getId(), Map.of())))
 				.toList();
-		return new AttendanceBoardResponse(meeting.getResponseDeadline(),
-				meeting.isResponseClosed(LocalDateTime.now(clock)), boards);
+	}
+
+	/**
+	 * 모임이 속한 그룹의 멤버를 가입 순으로 읽는다.
+	 */
+	private List<GroupMember> groupMembers(Meeting meeting) {
+		return groupMemberRepository.findAllByGroupIdOrderByIdAsc(meeting.getGroup().getId());
+	}
+
+	/**
+	 * 한 차수라도 미응답인 멤버를 그룹 가입 순으로 중복 없이 모은다.
+	 */
+	static List<BoardMember> unionNoResponse(List<GroupMember> members, List<RoundBoard> boards) {
+		Set<Long> noResponseIds = boards.stream()
+				.flatMap(b -> b.noResponse().stream())
+				.map(BoardMember::memberId)
+				.collect(Collectors.toSet());
+		return members.stream()
+				.filter(m -> noResponseIds.contains(m.getMember().getId()))
+				.map(BoardMember::from)
+				.toList();
 	}
 
 	/**
