@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-14 (`feature/settlement-scenario-test` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-14 (`feature/concurrency-realtime-test` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** Phase 10 진행 중(Task 041 완료, 2026-11-14), 다음은 Task 042(동시성·실시간 통합 테스트). Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격, 2026-11-11)과 Task 032(결과 공개 시 벌칙자 확정, 2026-11-12), Task 033(다시 돌리기 요청과 다시 돌린 회차 취소, 2026-11-12)에 이어 Task 034(다시 돌린 회차 결과 공개, 2026-11-12)로 완료했다. Phase 8은 Task 035(벌칙 부담액 계산·경고 순수 도메인, 2026-11-13)와 Task 036(벌칙 조건 설정·변경·해제·면제·면제 취소 API, 2026-11-13), Task 037(대상 지출 삭제 연동·벌칙 반영 내역 표시, 2026-11-13), Task 038(정산 확정 게이트·`PenaltyCharge` 스냅샷, 2026-11-13)로 완료했다. Phase 9는 Task 039(재확정과 1인당 변동액, 2026-11-14)와 Task 040(리비전·변경 로그 조회와 재확정 알림·공유 문구, 2026-11-14)로 완료했다. Phase 10은 Task 041(정산 시나리오 통합 테스트 예 1~6, 2026-11-14)을 완료했고 다음은 Task 042. 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 정산 계산·송금 최소화와 벌칙 부담액 계산·경고 순수 도메인(`settlement/calc/`), 벌칙 계산 입력 조립과 정산 조회의 벌칙 반영 내역, 대상 지출 삭제 시 조건 정리(`settlement/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 정산 확정 게이트·`PenaltyCharge` 스냅샷, 재확정(리비전 +1)과 직전 리비전 대비 1인당 변동액, 리비전 목록·변경 로그 조회 API와 재확정 알림·공유 문구, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API와 게임 상태 조회·차수별 게임 목록 API, 다시 돌리기 요청 API(`game/`), 게임 인가 `GameAccessChecker`(호스트 검사 포함, `global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이, 결과 공개 시 벌칙자 확정·다시 돌린 회차의 원 벌칙 무효·규칙 이관·조건 상속 `PenaltyAssigner`, 벌칙 조건 설정·변경·해제·면제·면제 취소 API(`penalty/`), 공통 코드(`global/`)가 있다.
+- **현재 단계:** Phase 10 진행 중(Task 042 완료, 2026-11-14), 다음은 Task 043(MVP 핵심 흐름 E2E·배포 전 점검). Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격, 2026-11-11)과 Task 032(결과 공개 시 벌칙자 확정, 2026-11-12), Task 033(다시 돌리기 요청과 다시 돌린 회차 취소, 2026-11-12)에 이어 Task 034(다시 돌린 회차 결과 공개, 2026-11-12)로 완료했다. Phase 8은 Task 035(벌칙 부담액 계산·경고 순수 도메인, 2026-11-13)와 Task 036(벌칙 조건 설정·변경·해제·면제·면제 취소 API, 2026-11-13), Task 037(대상 지출 삭제 연동·벌칙 반영 내역 표시, 2026-11-13), Task 038(정산 확정 게이트·`PenaltyCharge` 스냅샷, 2026-11-13)로 완료했다. Phase 9는 Task 039(재확정과 1인당 변동액, 2026-11-14)와 Task 040(리비전·변경 로그 조회와 재확정 알림·공유 문구, 2026-11-14)로 완료했다. Phase 10은 Task 041(정산 시나리오 통합 테스트 예 1~6, 2026-11-14)과 Task 042(동시성·실시간 통합 테스트, 2026-11-14)를 완료했고 다음은 Task 043. 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 정산 계산·송금 최소화와 벌칙 부담액 계산·경고 순수 도메인(`settlement/calc/`), 벌칙 계산 입력 조립과 정산 조회의 벌칙 반영 내역, 대상 지출 삭제 시 조건 정리(`settlement/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 정산 확정 게이트·`PenaltyCharge` 스냅샷, 재확정(리비전 +1)과 직전 리비전 대비 1인당 변동액, 리비전 목록·변경 로그 조회 API와 재확정 알림·공유 문구, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API와 게임 상태 조회·차수별 게임 목록 API, 다시 돌리기 요청 API(`game/`), 게임 인가 `GameAccessChecker`(호스트 검사 포함, `global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이, 결과 공개 시 벌칙자 확정·다시 돌린 회차의 원 벌칙 무효·규칙 이관·조건 상속 `PenaltyAssigner`, 벌칙 조건 설정·변경·해제·면제·면제 취소 API(`penalty/`), 공통 코드(`global/`)가 있다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -20,7 +20,7 @@
 | 7 | 벌칙자 확정·다시 돌리기 | 7 | 4 | 4 | ✅ 완료 |
 | 8 | 벌칙 정산 연동·확정 게이트 | 8 | 4 | 4 | ✅ 완료 |
 | 9 | 재확정·리비전 비교·알림 | 5-b | 2 | 2 | ✅ 완료 |
-| 10 | MVP 통합 검증 | 9 | 3 | 1 | 🔄 진행 중 |
+| 10 | MVP 통합 검증 | 9 | 3 | 2 | 🔄 진행 중 |
 | 11 | v0.2 (개략) | — | 7 | 0 | ⬜ 대기 |
 | 12 | v0.3 (개략) | — | 9 | 0 | ⬜ 대기 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
@@ -1217,24 +1217,34 @@ Phase 10 040 → 041, 042 → 043
 - **완료 조건**
   - [x] `./gradlew test` 통과(전체 1293건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
 
-### Task 042: 동시성·실시간 통합 테스트   ⬜ 대기
+### Task 042: 동시성·실시간 통합 테스트   ✅ 완료
 
+- **완료일:** 2026-11-14 · 브랜치 `feature/concurrency-realtime-test`
 - **관련 기능:** 6장 트랜잭션·동시성 락 표, 6장 실시간
 - **선행 Task:** Task 040
-- **구현 사항**
-  - [ ] 멀티스레드 테스트 헬퍼(`CountDownLatch`/`ExecutorService`)와 실제 DB(Task 002 전략)
-- **테스트**
-  - [ ] 그룹 가입 동시 클릭 → 멤버 1건
-  - [ ] 참석 응답 동시 → 1건, 재시도 facade 동작
-  - [ ] 장소 마감 vs 수동 확정 → 1건 반영
-  - [x] 게임 시작 동시 요청(추첨 1회) — Task 027 `GameLobbyIntegrationTest`
-  - [ ] 다시 돌리기 동시 2건 → 1건
-  - [ ] 정산 확정 vs 지출 수정 / 조건 설정 / 금액형 게임 취소 → 직렬화(한쪽 409)
-  - [ ] 롤백된 쓰기는 STOMP 메시지 0건, 커밋된 쓰기는 1건(실제 STOMP 클라이언트 또는 브로커 채널 캡처)
+- **구현 사항** (운영 코드 변경 없음, 테스트만 추가)
+  - [x] 멀티스레드 테스트 헬퍼 `support/ConcurrentRunner`(`ExecutorService` + 시작 `CountDownLatch`, 작업별 결과·예외를 `Outcome`으로 수집, 30초 제한)와 실제 DB(Testcontainers MySQL), 정리는 `DatabaseCleaner`
+  - [x] ⚠️ 결정(2026-11-14)
+    - 락 표 항목 중 이미 앞선 Task에서 실제 DB 동시성 테스트가 있는 것은 새로 짜지 않고 기존 테스트를 근거로 연결했다(아래 "기존" 표시)
+    - 첫 확정(`DRAFT → CONFIRMED`)은 실시간 이벤트가 없어서, STOMP "롤백 0건" 검증은 **재확정 vs 참석 변경** 경합으로 했다(참석 변경은 항상 `ATTENDANCE_CHANGED`를 보낸다)
+    - 구독 등록 시점은 프로브 이벤트를 받을 때까지 반복 발행해 확인한다(기존 `WebSocketIntegrationTest` 방식)
+    - `OptimisticRetryExecutor`는 바깥 트랜잭션 안에서 부르면 막히므로, 바깥 트랜잭션 롤백 검증은 트랜잭션 단위인 `AttendanceWriter`를 직접 부른다
+    - 확정 vs 금액형 게임 취소는 진행 중 금액형 게임이 있으면 게이트가 먼저 막아서 "게이트 통과 뒤 취소가 끼어드는" 순서를 재현할 수 없다. 그래서 동시 실행 불변식만 본다
+- **테스트** — `concurrency/ConcurrencyIntegrationTest`(16건, 반복 포함), `concurrency/RealtimeCommitStompIntegrationTest`(3건)
+  - [x] 그룹 가입 동시 클릭(같은 회원·같은 링크 5건) → 전부 성공, 멤버십 1건, 새 가입 응답 1건 — `concurrentJoin`(`@RepeatedTest(5)`)
+  - [x] 참석 응답 동시 → 1건, 재시도 facade 동작 — 첫 응답 동시(유니크 위반 재시도) `concurrentFirstAttendance`(`@RepeatedTest(5)`), 락 충돌 재시도는 기존 `AttendanceServiceIntegrationTest.conflictingResponsesBothSucceedByRetry`
+  - [x] 장소 마감 vs 수동 확정 → 1건 반영 — 기존 `PlaceVoteCloseIntegrationTest`(양방향 + 동시 실행)
+  - [x] 게임 시작 동시 요청(추첨 1회) — 기존 `GameLobbyIntegrationTest.concurrentStart`·`concurrentMoneyStart`
+  - [x] 다시 돌리기 동시 2건 → 1건 — 기존 `GameRerunIntegrationTest.concurrentRerun`
+  - [x] 정산 확정 vs 지출 수정 / 조건 설정 / 금액형 게임 취소 → 직렬화(한쪽 409)
+    - 지출 수정: 기존 `SettlementConfirmIntegrationTest.expenseUpdateBeatsConfirm`, 확정 동시 2건 `concurrentConfirm`
+    - 조건 설정: 확정 계산 직후 조건 변경이 먼저 커밋 → 확정 낙관적 락 충돌(API 409 `CONCURRENT_MODIFICATION`), 리비전 0, 새 조건값 유지 — `ruleChangeBeatsConfirm`. 조건 설정 동시 2건은 기존 `PenaltyConditionIntegrationTest`
+    - 금액형 게임 취소: 동시 실행 → 취소는 항상 성공, 확정은 취소가 먼저면 리비전 1, 아니면 409 `MONEY_GAME_IN_PROGRESS` 또는 낙관적 락 충돌(리비전 0) — `confirmVersusMoneyGameCancel`(`@RepeatedTest(5)`)
+  - [x] 롤백된 쓰기는 STOMP 메시지 0건, 커밋된 쓰기는 1건(실제 STOMP 클라이언트로 `/topic/meetings/{id}` 구독) — `committedWriteSendsOnce`(`ATTENDANCE_CHANGED` 1건), `rolledBackWriteSendsNothing`(바깥 트랜잭션 롤백 → 0건·행 없음), `lostReconfirmSendsNothing`(밀린 재확정 → `SETTLEMENT_RECONFIRMED` 0건·참석 변경 1건, 다시 재확정 → 1건)
 - **수락 기준**
-  - Given 6장 락 표의 각 충돌 상황 / When 동시 요청을 보내면 / Then 표에 적힌 전략대로 하나만 반영되고 늦은 쪽은 명시된 409 코드를 받는다.
+  - [x] Given 6장 락 표의 각 충돌 상황 / When 동시 요청을 보내면 / Then 표에 적힌 전략대로 하나만 반영되고 늦은 쪽은 명시된 409 코드를 받는다.
 - **완료 조건**
-  - [ ] `./gradlew test` 통과 · [ ] `/spring-tools:validate` 통과 · [ ] 수락 기준 충족
+  - [x] `./gradlew test` 통과(전체 1312건, 새 테스트는 2회 더 돌려 플래키 없음 확인) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
 
 ### Task 043: MVP 핵심 흐름 E2E·배포 전 점검   ⬜ 대기
 
