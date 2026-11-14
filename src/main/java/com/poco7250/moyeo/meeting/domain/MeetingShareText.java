@@ -52,6 +52,21 @@ public final class MeetingShareText {
 		return "[%s]\n%s\n장소: %s\n%s".formatted(title, when, placeOrUndecided(firstPlaceLabel), url);
 	}
 
+	/**
+	 * 참석 미응답자 리마인드 문구를 만든다(PRD M-6). 예: "[토요일 모임] 3월 8일(토) 18:00\n아직 참석 응답 안 한 사람: 민수, 영희\n...".
+	 * 날짜 투표 중이면 날짜 자리에 "날짜 투표 중", 응답 마감이 없으면 마감 문장 없이 "응답 부탁해!"를 넣는다.
+	 *
+	 * @param nicknames 미응답자 그룹 닉네임(비어 있지 않아야 한다)
+	 */
+	public static String reminderText(String title, LocalDateTime startAt, List<String> nicknames,
+			LocalDateTime responseDeadline, String url) {
+		String when = startAt == null ? DATE_VOTING : startAt.format(DATE_TIME);
+		String ask = responseDeadline == null ? "응답 부탁해!"
+				: responseDeadline.format(DATE_TIME) + "까지 응답 부탁해!";
+		return "[%s] %s\n아직 참석 응답 안 한 사람: %s\n%s\n%s".formatted(title, when, String.join(", ", nicknames),
+				ask, url);
+	}
+
 	private static String placeOrUndecided(String label) {
 		return label == null ? PLACE_UNDECIDED : label;
 	}

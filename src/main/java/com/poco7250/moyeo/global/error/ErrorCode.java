@@ -56,6 +56,8 @@ public enum ErrorCode {
 	ATTENDANCE_SHORTCUT_NOT_APPLICABLE(HttpStatus.BAD_REQUEST, "차수가 2개 이상인 모임에서만 쓸 수 있는 옵션입니다."),
 	// 호스트 대리 수정 대상이 이 그룹 멤버가 아님
 	ATTENDANCE_TARGET_NOT_MEMBER(HttpStatus.NOT_FOUND, "응답을 수정할 멤버를 찾을 수 없습니다."),
+	// 마감 뒤엔 멤버가 직접 응답할 수 없어 리마인드 문구를 만들지 않는다
+	ATTENDANCE_REMINDER_CLOSED(HttpStatus.CONFLICT, "응답이 마감되어 리마인드할 수 없습니다."),
 
 	// 장소
 	// 카카오 로컬 키 오류·쿼터 초과·장애·타임아웃. 프론트는 이 코드면 직접 입력(이름 + 주소·지도 링크) 폼을 보여준다

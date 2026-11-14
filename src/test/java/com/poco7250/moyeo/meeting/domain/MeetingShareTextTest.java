@@ -49,6 +49,20 @@ class MeetingShareTextTest {
 	}
 
 	@Test
+	void 리마인드_문구에_제목_일시_미응답자_마감_링크가_들어간다() {
+		assertThat(MeetingShareText.reminderText("연말 모임", SATURDAY, List.of("민수", "영희"),
+				LocalDateTime.of(2026, 12, 18, 21, 0), "/meetings/10"))
+				.isEqualTo("[연말 모임] 12월 19일(토) 18:00\n아직 참석 응답 안 한 사람: 민수, 영희\n"
+						+ "12월 18일(금) 21:00까지 응답 부탁해!\n/meetings/10");
+	}
+
+	@Test
+	void 리마인드_문구는_날짜_투표_중이면_날짜_투표_중_마감이_없으면_마감_시각_없이_쓴다() {
+		assertThat(MeetingShareText.reminderText("연말 모임", null, List.of("민수"), null, "/meetings/10"))
+				.isEqualTo("[연말 모임] 날짜 투표 중\n아직 참석 응답 안 한 사람: 민수\n응답 부탁해!\n/meetings/10");
+	}
+
+	@Test
 	void 첫_차수의_확정_장소_이름을_찾고_미확정이거나_차수가_없으면_null이다() {
 		Round first = round(1);
 		Round second = round(2);
