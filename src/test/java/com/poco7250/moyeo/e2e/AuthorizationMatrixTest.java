@@ -133,6 +133,13 @@ class AuthorizationMatrixTest {
 					ROUNDS_BODY),
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/attendance-board", Access.MEMBER),
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/attendance-reminder", Access.MEMBER),
+			// 당일 체크인·실제 참석자 확정
+			endpoint(HttpMethod.PUT, "/api/rounds/{roundId}/check-ins/me", Access.MEMBER),
+			endpoint(HttpMethod.DELETE, "/api/rounds/{roundId}/check-ins/me", Access.MEMBER),
+			// 대상이 호출자 본인이면 본인 체크인으로 처리되므로, 호스트를 대상으로 비호스트 거부를 본다
+			endpoint(HttpMethod.PUT, "/api/rounds/{roundId}/check-ins/{hostId}", Access.HOST),
+			endpoint(HttpMethod.DELETE, "/api/rounds/{roundId}/check-ins/{hostId}", Access.HOST),
+			endpoint(HttpMethod.POST, "/api/rounds/{roundId}/attendance/confirm", Access.HOST),
 			// 날짜 후보 투표
 			new Endpoint(HttpMethod.POST, "/api/meetings/{meetingId}/date-candidates", Access.HOST,
 					"{\"startAt\":\"2099-12-21T18:00:00\"}"),

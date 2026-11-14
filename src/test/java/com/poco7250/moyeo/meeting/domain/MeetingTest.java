@@ -110,6 +110,21 @@ class MeetingTest {
 		assertThat(voting.isDateVoting()).isTrue();
 	}
 
+	@Test
+	@DisplayName("체크인은 모임 날짜 0시부터 열리고, 전날이나 날짜 투표 중이면 409 CHECK_IN_NOT_OPEN")
+	void checkInOpensOnMeetingDay() {
+		Meeting meeting = Meeting.create(Group.create("대학 동기"), "연말 모임", LocalDateTime.of(2026, 12, 20, 18, 0),
+				null, null, 7L);
+
+		assertThat(meeting.isCheckInOpen(LocalDateTime.of(2026, 12, 20, 0, 0))).isTrue();
+		assertThat(meeting.isCheckInOpen(LocalDateTime.of(2026, 12, 21, 1, 0))).isTrue();
+		assertThat(meeting.isCheckInOpen(LocalDateTime.of(2026, 12, 19, 23, 59, 59))).isFalse();
+		assertThatThrownBy(() -> meeting.requireCheckInOpen(LocalDateTime.of(2026, 12, 19, 23, 0)))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.CHECK_IN_NOT_OPEN);
+		assertThat(votingMeeting(1L).isCheckInOpen(LocalDateTime.of(2026, 12, 20, 0, 0))).isFalse();
+	}
+
 	private static Meeting votingMeeting(Long id) {
 		Meeting voting = Meeting.createWithDateVote(Group.create("대학 동기"), "연말 모임", null, null, 7L);
 		ReflectionTestUtils.setField(voting, "id", id);

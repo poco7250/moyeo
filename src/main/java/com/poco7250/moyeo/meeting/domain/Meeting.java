@@ -150,4 +150,22 @@ public class Meeting extends BaseTimeEntity {
 	public boolean isResponseClosed(LocalDateTime now) {
 		return responseDeadline != null && now.isAfter(responseDeadline);
 	}
+
+	/**
+	 * 체크인·실제 참석자 확정이 열렸는지 본다(PRD M-7). 모임 날짜(startAt) 0시부터 열리고, 날짜 투표 중이면 닫혀 있다.
+	 */
+	public boolean isCheckInOpen(LocalDateTime now) {
+		return startAt != null && !now.toLocalDate().isBefore(startAt.toLocalDate());
+	}
+
+	/**
+	 * 체크인·실제 참석자 확정이 열렸는지 검사한다.
+	 *
+	 * @throws BusinessException 모임 당일 전이거나 날짜 투표 중이면 CHECK_IN_NOT_OPEN
+	 */
+	public void requireCheckInOpen(LocalDateTime now) {
+		if (!isCheckInOpen(now)) {
+			throw new BusinessException(ErrorCode.CHECK_IN_NOT_OPEN);
+		}
+	}
 }

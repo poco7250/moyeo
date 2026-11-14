@@ -13,7 +13,6 @@ import com.poco7250.moyeo.meeting.dto.MemberAttendanceResponse;
 import com.poco7250.moyeo.meeting.dto.RoundAttendanceItem;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
-import com.poco7250.moyeo.member.repository.MemberRepository;
 import com.poco7250.moyeo.settlement.dto.AttendanceChange;
 import com.poco7250.moyeo.settlement.service.AttendanceSettlementHandler;
 import java.time.Clock;
@@ -22,7 +21,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +39,7 @@ public class AttendanceWriter {
 	private final GroupMemberRepository groupMemberRepository;
 	private final RoundRepository roundRepository;
 	private final AttendanceRepository attendanceRepository;
-	private final MemberRepository memberRepository;
+	private final AttendanceUpserter attendanceUpserter;
 	private final AttendanceSettlementHandler attendanceSettlementHandler;
 	private final ApplicationEventPublisher eventPublisher;
 	private final Clock clock;
@@ -88,7 +86,7 @@ public class AttendanceWriter {
 				.collect(Collectors.toMap(a -> a.getRound().getId(), Function.identity()));
 
 		List<AttendanceChange> changes = new ArrayList<>();
-		answers.forEach((round, status) -> upsert(existing.get(round.getId()), round, memberId, status, now)
+		answers.forEach((round, status) -> attendanceUpserter.upsert(existing.get(round.getId()), round, memberId, status, now)
 				.ifPresent(changes::add));
 
 		MemberAttendanceResponse response = toResponse(memberId, rounds, answers, existing);
@@ -121,26 +119,6 @@ public class AttendanceWriter {
 			throw new BusinessException(ErrorCode.ROUND_NOT_FOUND);
 		}
 		return answers;
-	}
-
-	/**
-	 * 응답 한 건을 반영한다. 기존 값과 같으면 쓰지 않는다(재시도·중복 요청 멱등).
-	 *
-	 * @return 실제로 바뀐 내용. 같은 값이면 비어 있다
-	 */
-	private Optional<AttendanceChange> upsert(Attendance current, Round round, Long memberId, AttendanceStatus status,
-			LocalDateTime now) {
-		if (current == null) {
-			Attendance created = attendanceRepository.save(
-					Attendance.respond(round, memberRepository.getReferenceById(memberId), status, now));
-			return Optional.of(new AttendanceChange(created.getId(), round.getId(), memberId, null, status));
-		}
-		AttendanceStatus before = current.getStatus();
-		if (before == status) {
-			return Optional.empty();
-		}
-		current.changeStatus(status, now);
-		return Optional.of(new AttendanceChange(current.getId(), round.getId(), memberId, before, status));
 	}
 
 	/**
