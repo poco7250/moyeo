@@ -12,6 +12,7 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.boot.test.context.TestComponent;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,6 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * GlobalExceptionHandler 검증용 테스트 전용 컨트롤러. 엔드포인트마다 특정 예외를 일으킨다.
  */
+// @TestComponent: 전체 컨텍스트(@SpringBootTest)의 컴포넌트 스캔에서 빠지고, 쓰는 @WebMvcTest에서만 @Import로 올린다
+@TestComponent
 @RestController
 @RequestMapping("/test/exceptions")
 @RequiredArgsConstructor

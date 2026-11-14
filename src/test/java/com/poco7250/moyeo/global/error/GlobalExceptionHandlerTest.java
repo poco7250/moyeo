@@ -21,7 +21,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 // 시큐리티 기본 체인 대신 실제 SecurityConfig를 쓰고, 인증 통과 상태(@WithMockUser)에서 예외 응답만 검증한다
 @WebMvcTest(controllers = ExceptionTestController.class)
-@Import(SecurityTestConfig.class)
+@Import({SecurityTestConfig.class, ExceptionTestController.class})
 @WithMockUser
 class GlobalExceptionHandlerTest {
 

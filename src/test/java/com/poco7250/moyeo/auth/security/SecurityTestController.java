@@ -1,6 +1,7 @@
 package com.poco7250.moyeo.auth.security;
 
 import com.poco7250.moyeo.global.common.ApiResponse;
+import org.springframework.boot.test.context.TestComponent;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -8,6 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * SecurityIntegrationTest용 테스트 전용 컨트롤러. 인증 필요 경로와 공개 경로를 하나씩 둔다.
  */
+// @TestComponent: 전체 컨텍스트(@SpringBootTest)의 컴포넌트 스캔에서 빠지고, 쓰는 @WebMvcTest에서만 @Import로 올린다
+@TestComponent
 @RestController
 class SecurityTestController {
 
