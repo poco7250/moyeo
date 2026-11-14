@@ -77,6 +77,9 @@ public class Round extends BaseTimeEntity {
 	@JoinColumn(name = "confirmed_candidate_id")
 	private PlaceCandidate confirmedCandidate;
 
+	// 호스트가 마지막으로 실제 참석자를 확정한 시각(PRD M-7). 다시 확정하면 갱신된다
+	private LocalDateTime attendanceConfirmedAt;
+
 	@Version
 	private Long version;
 
@@ -185,6 +188,13 @@ public class Round extends BaseTimeEntity {
 		if (now.isAfter(placeVoteDeadline)) {
 			throw new BusinessException(ErrorCode.PLACE_VOTE_DEADLINE_PASSED);
 		}
+	}
+
+	/**
+	 * 실제 참석자를 확정한 시각을 기록한다(다시 확정하면 덮어쓴다).
+	 */
+	public void markAttendanceConfirmed(LocalDateTime now) {
+		this.attendanceConfirmedAt = now;
 	}
 
 	private void markConfirmed(PlaceCandidate candidate) {

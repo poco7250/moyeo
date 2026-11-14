@@ -168,7 +168,8 @@ class AttendanceControllerTest {
 		BoardMember na = new BoardMember(2L, "나", null);
 		given(attendanceBoardService.getBoard(10L, 8L)).willReturn(new AttendanceBoardResponse(
 				LocalDateTime.of(2026, 12, 19, 18, 0), false,
-				List.of(new RoundBoard(101L, 1, "밥", List.of(ga), List.of(), List.of(), List.of(na)))));
+				List.of(new RoundBoard(101L, 1, "밥", List.of(ga), List.of(), List.of(), List.of(na), List.of(1L),
+						null))));
 
 		mockMvc.perform(get("/api/meetings/10/attendance-board").cookie(accessCookie(8L)))
 				.andExpect(status().isOk())

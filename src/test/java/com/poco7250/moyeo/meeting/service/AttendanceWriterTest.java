@@ -277,7 +277,8 @@ class AttendanceWriterTest {
 
 	private AttendanceWriter writer(LocalDateTime now) {
 		return new AttendanceWriter(meetingAccessChecker, groupMemberRepository, roundRepository,
-				attendanceRepository, memberRepository, attendanceSettlementHandler, eventPublisher,
+				attendanceRepository, new AttendanceUpserter(attendanceRepository, memberRepository),
+				attendanceSettlementHandler, eventPublisher,
 				TestClocks.fixed(now));
 	}
 

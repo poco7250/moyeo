@@ -79,10 +79,9 @@ public class AttendanceBoardService {
 	 */
 	private List<RoundBoard> roundBoards(Meeting meeting, List<GroupMember> members) {
 		List<Round> rounds = roundRepository.findAllByMeetingIdOrderBySeq(meeting.getId());
-		Map<Long, Map<Long, AttendanceStatus>> statusByRound = groupByRound(
-				attendanceRepository.findAllByMeetingId(meeting.getId()));
+		Map<Long, Map<Long, Attendance>> byRound = groupByRound(attendanceRepository.findAllByMeetingId(meeting.getId()));
 		return rounds.stream()
-				.map(r -> toRoundBoard(r, members, statusByRound.getOrDefault(r.getId(), Map.of())))
+				.map(r -> toRoundBoard(r, members, byRound.getOrDefault(r.getId(), Map.of())))
 				.toList();
 	}
 
@@ -108,33 +107,36 @@ public class AttendanceBoardService {
 	}
 
 	/**
-	 * 응답을 차수 id → (회원 id → 상태)로 묶는다.
+	 * 응답을 차수 id → (회원 id → 응답)으로 묶는다.
 	 */
-	private Map<Long, Map<Long, AttendanceStatus>> groupByRound(List<Attendance> attendances) {
-		Map<Long, Map<Long, AttendanceStatus>> result = new HashMap<>();
+	private Map<Long, Map<Long, Attendance>> groupByRound(List<Attendance> attendances) {
+		Map<Long, Map<Long, Attendance>> result = new HashMap<>();
 		for (Attendance a : attendances) {
-			result.computeIfAbsent(a.getRound().getId(), k -> new HashMap<>())
-					.put(a.getMember().getId(), a.getStatus());
+			result.computeIfAbsent(a.getRound().getId(), k -> new HashMap<>()).put(a.getMember().getId(), a);
 		}
 		return result;
 	}
 
 	/**
-	 * 그룹 멤버를 가입 순서 그대로 응답 상태별로 나눈다. 응답이 없으면 미응답이다.
+	 * 그룹 멤버를 가입 순서 그대로 응답 상태별로 나눈다. 응답이 없으면 미응답이다. 체크인한 멤버 id도 가입 순으로 담는다.
 	 */
-	static RoundBoard toRoundBoard(Round round, List<GroupMember> members, Map<Long, AttendanceStatus> statuses) {
+	static RoundBoard toRoundBoard(Round round, List<GroupMember> members, Map<Long, Attendance> responses) {
 		Map<AttendanceStatus, List<BoardMember>> byStatus = members.stream()
-				.filter(m -> statuses.containsKey(m.getMember().getId()))
-				.collect(Collectors.groupingBy(m -> statuses.get(m.getMember().getId()),
+				.filter(m -> responses.containsKey(m.getMember().getId()))
+				.collect(Collectors.groupingBy(m -> responses.get(m.getMember().getId()).getStatus(),
 						Collectors.mapping(BoardMember::from, Collectors.toList())));
 		List<BoardMember> noResponse = members.stream()
-				.filter(m -> !statuses.containsKey(m.getMember().getId()))
+				.filter(m -> !responses.containsKey(m.getMember().getId()))
 				.map(BoardMember::from)
+				.toList();
+		List<Long> checkedIn = members.stream()
+				.map(m -> m.getMember().getId())
+				.filter(id -> responses.containsKey(id) && responses.get(id).isCheckedIn())
 				.toList();
 		return new RoundBoard(round.getId(), round.getSeq(), round.getName(),
 				byStatus.getOrDefault(AttendanceStatus.ATTEND, List.of()),
 				byStatus.getOrDefault(AttendanceStatus.ABSENT, List.of()),
 				byStatus.getOrDefault(AttendanceStatus.UNDECIDED, List.of()),
-				noResponse);
+				noResponse, checkedIn, round.getAttendanceConfirmedAt());
 	}
 }

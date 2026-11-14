@@ -70,6 +70,28 @@ public class Attendance extends BaseTimeEntity {
 	}
 
 	/**
+	 * 응답 없이 현장에 와서 체크인한 멤버의 행을 만든다. 상태는 미정(UNDECIDED)이라 확정 전까지 정산에 영향이 없다.
+	 */
+	public static Attendance checkInWithoutResponse(Round round, Member member, LocalDateTime now) {
+		Attendance attendance = new Attendance(round, member, AttendanceStatus.UNDECIDED, now);
+		attendance.checkedIn = true;
+		return attendance;
+	}
+
+	/**
+	 * 체크인 여부를 바꾼다. 응답 상태는 그대로다(실제 참석자 확정 때 반영).
+	 *
+	 * @return 값이 실제로 바뀌었으면 true
+	 */
+	public boolean changeCheckIn(boolean checkedIn) {
+		if (this.checkedIn == checkedIn) {
+			return false;
+		}
+		this.checkedIn = checkedIn;
+		return true;
+	}
+
+	/**
 	 * 응답을 바꾸고 응답 시각을 갱신한다.
 	 */
 	public void changeStatus(AttendanceStatus status, LocalDateTime now) {
