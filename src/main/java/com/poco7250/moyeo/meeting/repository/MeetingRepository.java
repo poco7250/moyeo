@@ -1,6 +1,7 @@
 package com.poco7250.moyeo.meeting.repository;
 
 import com.poco7250.moyeo.meeting.domain.Meeting;
+import com.poco7250.moyeo.meeting.domain.MeetingDateStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +24,11 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 	 * 공유 토큰으로 모임을 찾는다(비로그인 OG 경로).
 	 */
 	Optional<Meeting> findByShareToken(String shareToken);
+
+	/**
+	 * 그룹의 날짜 상태별 모임을 최근 생성 순으로 조회한다(날짜 투표 중인 모임 목록용).
+	 */
+	List<Meeting> findAllByGroupIdAndDateStatusOrderByCreatedAtDescIdDesc(Long groupId, MeetingDateStatus dateStatus);
 
 	/**
 	 * 그룹의 다가오는 모임(시작 시각이 기준 시각 이후, 같으면 포함)을 가까운 순으로 조회한다.

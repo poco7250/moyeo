@@ -2,9 +2,13 @@ package com.poco7250.moyeo.meeting.domain;
 
 import com.poco7250.moyeo.global.common.BaseTimeEntity;
 import com.poco7250.moyeo.global.common.RandomTokens;
+import com.poco7250.moyeo.global.error.BusinessException;
+import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.group.domain.Group;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -13,6 +17,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.AccessLevel;
@@ -22,6 +27,7 @@ import lombok.NoArgsConstructor;
 /**
  * 그룹 안의 모임. 차수(Round)·정산(Settlement)이 모임에 붙는다.
  * 호스트는 모임을 만든 사람으로 고정되며(PRD D4) 위임하지 않는다.
+ * 날짜가 미정이면 날짜 투표(VOTING) 상태로 만들어 startAt을 비워 두고, 호스트가 후보를 확정하면 채운다(PRD M-5).
  */
 @Getter
 @Entity
@@ -40,8 +46,12 @@ public class Meeting extends BaseTimeEntity {
 	@Column(nullable = false, length = 100)
 	private String title;
 
-	@Column(nullable = false)
+	// 날짜 투표 중(VOTING)이면 비어 있고, 확정(CONFIRMED)되면 항상 있다
 	private LocalDateTime startAt;
+
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 20)
+	private MeetingDateStatus dateStatus;
 
 	@Column(length = 1000)
 	private String memo;
@@ -57,11 +67,16 @@ public class Meeting extends BaseTimeEntity {
 	@Column(name = "share_token", nullable = false, updatable = false, length = RandomTokens.LENGTH)
 	private String shareToken;
 
+	// 날짜 확정이 동시에 들어오면 한쪽만 반영한다
+	@Version
+	private Long version;
+
 	private Meeting(Group group, String title, LocalDateTime startAt, String memo,
 			LocalDateTime responseDeadline, Long hostMemberId) {
 		this.group = group;
 		this.title = title;
 		this.startAt = startAt;
+		this.dateStatus = startAt == null ? MeetingDateStatus.VOTING : MeetingDateStatus.CONFIRMED;
 		this.memo = memo;
 		this.responseDeadline = responseDeadline;
 		this.hostMemberId = hostMemberId;
@@ -69,11 +84,57 @@ public class Meeting extends BaseTimeEntity {
 	}
 
 	/**
-	 * 새 모임을 만든다. 만든 회원이 호스트가 된다.
+	 * 날짜가 정해진 새 모임을 만든다. 만든 회원이 호스트가 된다.
+	 *
+	 * @throws IllegalArgumentException 시작 시각이 없으면(날짜 미정은 createWithDateVote로 만든다)
 	 */
 	public static Meeting create(Group group, String title, LocalDateTime startAt, String memo,
 			LocalDateTime responseDeadline, Long hostMemberId) {
+		if (startAt == null) {
+			throw new IllegalArgumentException("날짜가 정해진 모임은 시작 시각이 필요합니다");
+		}
 		return new Meeting(group, title, startAt, memo, responseDeadline, hostMemberId);
+	}
+
+	/**
+	 * 날짜 미정인 새 모임을 날짜 투표 상태로 만든다. 후보는 MeetingDateCandidate로 따로 저장한다.
+	 */
+	public static Meeting createWithDateVote(Group group, String title, String memo, LocalDateTime responseDeadline,
+			Long hostMemberId) {
+		return new Meeting(group, title, null, memo, responseDeadline, hostMemberId);
+	}
+
+	/**
+	 * 날짜 투표 중인지 확인한다.
+	 */
+	public boolean isDateVoting() {
+		return dateStatus == MeetingDateStatus.VOTING;
+	}
+
+	/**
+	 * 날짜 투표 중이 아니면 막는다(후보 추가·투표·확정 앞에서 호출).
+	 *
+	 * @throws BusinessException 날짜가 이미 확정됐으면 MEETING_DATE_NOT_VOTING
+	 */
+	public void requireDateVoting() {
+		if (!isDateVoting()) {
+			throw new BusinessException(ErrorCode.MEETING_DATE_NOT_VOTING);
+		}
+	}
+
+	/**
+	 * 고른 후보의 시각으로 날짜를 확정한다(VOTING → CONFIRMED).
+	 *
+	 * @throws BusinessException 날짜 투표 중이 아니면 MEETING_DATE_NOT_VOTING
+	 * @throws IllegalArgumentException 다른 모임의 후보면(호출 쪽 버그 방어)
+	 */
+	public void confirmDate(MeetingDateCandidate candidate) {
+		requireDateVoting();
+		if (!Objects.equals(candidate.getMeeting().getId(), id)) {
+			throw new IllegalArgumentException("이 모임의 날짜 후보가 아닙니다");
+		}
+		this.startAt = candidate.getStartAt();
+		this.dateStatus = MeetingDateStatus.CONFIRMED;
 	}
 
 	/**

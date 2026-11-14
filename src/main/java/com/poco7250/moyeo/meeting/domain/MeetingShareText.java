@@ -13,6 +13,7 @@ import java.util.Locale;
 public final class MeetingShareText {
 
 	private static final String PLACE_UNDECIDED = "장소 미정";
+	private static final String DATE_VOTING = "날짜 투표 중";
 	private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("M월 d일(E) HH:mm", Locale.KOREAN);
 
 	private MeetingShareText() {
@@ -30,22 +31,25 @@ public final class MeetingShareText {
 	}
 
 	/**
-	 * OG 미리보기 설명을 만든다. 예: "토요일 모임 · 강남 OO식당 · 5/8명 참석"
+	 * OG 미리보기 설명을 만든다. 예: "토요일 모임 · 강남 OO식당 · 5/8명 참석".
+	 * 날짜 투표 중(startAt 없음)이면 요일 대신 "날짜 투표 중"을 넣는다.
 	 *
 	 * @param attendCount 1차 참석(ATTEND) 인원
 	 * @param memberCount 그룹 전체 멤버 수
 	 */
 	public static String ogDescription(LocalDateTime startAt, String firstPlaceLabel, long attendCount,
 			long memberCount) {
-		String weekday = startAt.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.KOREAN);
-		return "%s 모임 · %s · %d/%d명 참석".formatted(weekday, placeOrUndecided(firstPlaceLabel), attendCount, memberCount);
+		String when = startAt == null ? DATE_VOTING
+				: startAt.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.KOREAN) + " 모임";
+		return "%s · %s · %d/%d명 참석".formatted(when, placeOrUndecided(firstPlaceLabel), attendCount, memberCount);
 	}
 
 	/**
-	 * 단톡방에 붙여 넣을 카카오톡 공유 문구를 만든다.
+	 * 단톡방에 붙여 넣을 카카오톡 공유 문구를 만든다. 날짜 투표 중이면 날짜 자리에 "날짜 투표 중"을 넣는다.
 	 */
 	public static String kakaoText(String title, LocalDateTime startAt, String firstPlaceLabel, String url) {
-		return "[%s]\n%s\n장소: %s\n%s".formatted(title, startAt.format(DATE_TIME), placeOrUndecided(firstPlaceLabel), url);
+		String when = startAt == null ? DATE_VOTING : startAt.format(DATE_TIME);
+		return "[%s]\n%s\n장소: %s\n%s".formatted(title, when, placeOrUndecided(firstPlaceLabel), url);
 	}
 
 	private static String placeOrUndecided(String label) {

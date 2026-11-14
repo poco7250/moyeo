@@ -62,7 +62,7 @@ class MeetingServiceIntegrationTest {
 
 		MeetingDetailResponse response = meetingService.create(group.getId(), host.getId(),
 				new MeetingCreateRequest("연말 모임", LocalDateTime.of(2026, 12, 20, 18, 0), "메모", null,
-						RoundTemplate.MEAL_BOWLING, null));
+						RoundTemplate.MEAL_BOWLING, null, null));
 
 		assertThat(meetingRepository.findById(response.id()))
 				.hasValueSatisfying(meeting -> assertThat(meeting.getHostMemberId()).isEqualTo(host.getId()));

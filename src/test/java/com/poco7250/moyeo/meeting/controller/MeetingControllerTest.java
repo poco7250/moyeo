@@ -1,8 +1,10 @@
 package com.poco7250.moyeo.meeting.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -13,6 +15,7 @@ import com.poco7250.moyeo.auth.token.JwtTokenProvider;
 import com.poco7250.moyeo.auth.token.TokenCookieFactory;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
+import com.poco7250.moyeo.meeting.domain.MeetingDateStatus;
 import com.poco7250.moyeo.meeting.domain.PlaceStatus;
 import com.poco7250.moyeo.meeting.dto.ConfirmedPlaceResponse;
 import com.poco7250.moyeo.meeting.dto.GroupMeetingsResponse;
@@ -82,7 +85,7 @@ class MeetingControllerTest {
 	}
 
 	@Test
-	@DisplayName("제목·날짜가 없으면 400 INVALID_INPUT과 title·startAt 필드 에러를 준다")
+	@DisplayName("제목·날짜가 없으면 400 INVALID_INPUT과 title·dateSpecValid 필드 에러를 준다(날짜 또는 날짜 후보 중 하나 필요)")
 	void createWithoutTitleAndStartAt() throws Exception {
 		mockMvc.perform(post("/api/groups/1/meetings").cookie(accessCookie(7L))
 						.contentType(MediaType.APPLICATION_JSON)
@@ -91,7 +94,40 @@ class MeetingControllerTest {
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.error.code").value(ErrorCode.INVALID_INPUT.name()))
 				.andExpect(jsonPath("$.error.fieldErrors[?(@.field == 'title')]").exists())
-				.andExpect(jsonPath("$.error.fieldErrors[?(@.field == 'startAt')]").exists());
+				.andExpect(jsonPath("$.error.fieldErrors[?(@.field == 'dateSpecValid')]").exists());
+		verifyNoInteractions(meetingService);
+	}
+
+	@Test
+	@DisplayName("날짜 대신 날짜 후보만 보내면 날짜 투표 모임으로 만들도록 서비스에 넘긴다")
+	void createWithDateCandidates() throws Exception {
+		given(meetingService.create(eq(1L), eq(7L), any(MeetingCreateRequest.class))).willReturn(detail());
+
+		mockMvc.perform(post("/api/groups/1/meetings").cookie(accessCookie(7L))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"title\":\"연말 모임\",\"template\":\"MEAL_ONLY\","
+								+ "\"dateCandidates\":[\"2099-12-20T18:00:00\",\"2099-12-21T18:00:00\"]}"))
+				.andExpect(status().isCreated());
+
+		then(meetingService).should().create(eq(1L), eq(7L), argThat(request -> request.hasDateCandidates()
+				&& request.startAt() == null && request.dateCandidates().size() == 2));
+	}
+
+	@ParameterizedTest(name = "{2}")
+	@CsvSource(delimiter = '|', value = {
+			"\"startAt\":\"2099-12-20T18:00:00\",\"dateCandidates\":[\"2099-12-21T18:00:00\",\"2099-12-22T18:00:00\"]"
+					+ "|dateSpecValid|날짜와 후보 둘 다 있음",
+			"\"dateCandidates\":[\"2099-12-21T18:00:00\"]|dateCandidates|후보 1개",
+			"\"dateCandidates\":[\"2099-12-21T18:00:00\",\"2099-12-21T18:00:00\"]|dateCandidatesDistinct|같은 시각 두 번",
+			"\"dateCandidates\":[\"2000-01-01T18:00:00\",\"2099-12-21T18:00:00\"]|dateCandidates[0]|지난 시각"})
+	@DisplayName("날짜 후보가 규칙에 맞지 않으면 400 INVALID_INPUT과 해당 필드 에러")
+	void createWithInvalidDateCandidates(String dateJson, String field, String caseName) throws Exception {
+		mockMvc.perform(post("/api/groups/1/meetings").cookie(accessCookie(7L))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"title\":\"연말 모임\",\"template\":\"MEAL_ONLY\"," + dateJson + "}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error.code").value(ErrorCode.INVALID_INPUT.name()))
+				.andExpect(jsonPath("$.error.fieldErrors[?(@.field == '" + field + "')]").exists());
 		verifyNoInteractions(meetingService);
 	}
 
@@ -180,8 +216,9 @@ class MeetingControllerTest {
 	@DisplayName("그룹 모임 목록을 다가오는/지난으로 나눠 준다")
 	void groupMeetings() throws Exception {
 		given(meetingService.getGroupMeetings(1L, 7L)).willReturn(new GroupMeetingsResponse(
-				List.of(new MeetingSummaryResponse(10L, "연말 모임", START_AT, 7L)),
-				List.of(new MeetingSummaryResponse(9L, "가을 모임", START_AT.minusMonths(2), 7L))));
+				List.of(new MeetingSummaryResponse(10L, "연말 모임", START_AT, MeetingDateStatus.CONFIRMED, 7L)),
+				List.of(new MeetingSummaryResponse(9L, "가을 모임", START_AT.minusMonths(2), MeetingDateStatus.CONFIRMED,
+						7L))));
 
 		mockMvc.perform(get("/api/groups/1/meetings").cookie(accessCookie(7L)))
 				.andExpect(status().isOk())
@@ -194,7 +231,7 @@ class MeetingControllerTest {
 	}
 
 	private MeetingDetailResponse detail() {
-		return new MeetingDetailResponse(10L, 1L, "연말 모임", START_AT, "메모", null, 7L, true, "/share/meetings/token", "공유 문구",
+		return new MeetingDetailResponse(10L, 1L, "연말 모임", START_AT, MeetingDateStatus.CONFIRMED, "메모", null, 7L, true, "/share/meetings/token", "공유 문구",
 				List.of(new RoundResponse(100L, 1, "밥", PlaceStatus.CONFIRMED, null, false,
 								new ConfirmedPlaceResponse("강남 식당", "https://map.example.com/1")),
 						new RoundResponse(101L, 2, "볼링", PlaceStatus.UNDECIDED, null, false, null)));

@@ -44,6 +44,12 @@ public enum ErrorCode {
 	MEETING_NOT_FOUND(HttpStatus.NOT_FOUND, "모임을 찾을 수 없습니다."),
 	ROUND_NOT_FOUND(HttpStatus.NOT_FOUND, "차수를 찾을 수 없습니다."),
 
+	// 날짜 후보 투표(M-5)
+	MEETING_DATE_NOT_VOTING(HttpStatus.CONFLICT, "날짜 투표 중인 모임이 아닙니다."),
+	MEETING_DATE_CANDIDATE_NOT_FOUND(HttpStatus.NOT_FOUND, "날짜 후보를 찾을 수 없습니다."),
+	MEETING_DATE_CANDIDATE_DUPLICATED(HttpStatus.CONFLICT, "같은 시각의 날짜 후보가 이미 있습니다."),
+	MEETING_DATE_CANDIDATE_LIMIT(HttpStatus.CONFLICT, "날짜 후보는 10개까지 둘 수 있습니다."),
+
 	// 참석
 	ATTENDANCE_DEADLINE_PASSED(HttpStatus.FORBIDDEN, "응답 마감 시간이 지났습니다. 호스트에게 수정을 요청해 주세요."),
 	// 늦참·1차만 같은 단축 옵션은 차수가 2개 이상일 때만 의미가 있다

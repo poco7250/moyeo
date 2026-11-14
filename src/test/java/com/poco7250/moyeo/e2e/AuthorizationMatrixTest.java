@@ -19,8 +19,10 @@ import com.poco7250.moyeo.group.repository.InviteLinkRepository;
 import com.poco7250.moyeo.meeting.domain.Attendance;
 import com.poco7250.moyeo.meeting.domain.AttendanceStatus;
 import com.poco7250.moyeo.meeting.domain.Meeting;
+import com.poco7250.moyeo.meeting.domain.MeetingDateCandidate;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
+import com.poco7250.moyeo.meeting.repository.MeetingDateCandidateRepository;
 import com.poco7250.moyeo.meeting.repository.MeetingRepository;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.member.domain.Member;
@@ -130,6 +132,14 @@ class AuthorizationMatrixTest {
 			new Endpoint(HttpMethod.PUT, "/api/meetings/{meetingId}/attendances/{memberId}", Access.HOST,
 					ROUNDS_BODY),
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/attendance-board", Access.MEMBER),
+			// 날짜 후보 투표
+			new Endpoint(HttpMethod.POST, "/api/meetings/{meetingId}/date-candidates", Access.HOST,
+					"{\"startAt\":\"2099-12-21T18:00:00\"}"),
+			new Endpoint(HttpMethod.PUT, "/api/meetings/{meetingId}/date-votes/me", Access.MEMBER,
+					"{\"availableCandidateIds\":[]}"),
+			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/date-votes", Access.MEMBER),
+			new Endpoint(HttpMethod.POST, "/api/meetings/{meetingId}/date/confirm", Access.HOST,
+					"{\"candidateId\":{dateCandidateId}}"),
 			// 장소
 			new Endpoint(HttpMethod.POST, "/api/rounds/{roundId}/candidates", Access.MEMBER, "{\"label\":\"볼링장\"}"),
 			endpoint(HttpMethod.PUT, "/api/rounds/{roundId}/candidates/{candidateId}/vote", Access.MEMBER),
@@ -197,6 +207,9 @@ class AuthorizationMatrixTest {
 
 	@Autowired
 	RoundRepository roundRepository;
+
+	@Autowired
+	MeetingDateCandidateRepository meetingDateCandidateRepository;
 
 	@Autowired
 	AttendanceRepository attendanceRepository;
@@ -369,6 +382,8 @@ class AuthorizationMatrixTest {
 		fixture.put("meetingId", meeting.getId().toString());
 		fixture.put("shareToken", meeting.getShareToken());
 		fixture.put("roundId", round.getId().toString());
+		fixture.put("dateCandidateId", meetingDateCandidateRepository.save(MeetingDateCandidate.propose(meeting,
+				LocalDateTime.of(2099, 12, 21, 18, 0))).getId().toString());
 		fixture.put("candidateId", placeCandidateRepository.save(PlaceCandidate.propose(round,
 				Place.of("볼링장", null, null), plainMember)).getId().toString());
 		fixture.put("expenseId", expenseRepository.save(Expense.create(round, hostMember, 50_000L, "볼링"))
