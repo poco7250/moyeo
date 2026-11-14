@@ -28,7 +28,7 @@ import org.springframework.test.web.servlet.ResultActions;
  * 실제 SecurityConfig 체인으로 쿠키 인증·401 JSON·공개 경로·@LoginMember 주입을 검증한다.
  */
 @WebMvcTest(controllers = SecurityTestController.class)
-@Import(SecurityTestConfig.class)
+@Import({SecurityTestConfig.class, SecurityTestController.class})
 class SecurityIntegrationTest {
 
 	private static final String ME_URL = "/test/security/me";
