@@ -134,6 +134,7 @@ class AuthorizationMatrixTest {
 			new Endpoint(HttpMethod.POST, "/api/groups/{groupId}/meetings", Access.MEMBER,
 					"{\"title\":\"점검 모임\",\"startAt\":\"2099-12-20T18:00:00\",\"template\":\"MEAL_BOWLING\"}"),
 			endpoint(HttpMethod.GET, "/api/groups/{groupId}/meetings", Access.MEMBER),
+			endpoint(HttpMethod.GET, "/api/groups/{groupId}/history", Access.MEMBER),
 			// 모임·참석
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}", Access.MEMBER),
 			new Endpoint(HttpMethod.PUT, "/api/meetings/{meetingId}/attendances/me", Access.MEMBER, ROUNDS_BODY),

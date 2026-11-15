@@ -1,6 +1,7 @@
 package com.poco7250.moyeo.settlement.repository;
 
 import com.poco7250.moyeo.settlement.domain.Expense;
+import com.poco7250.moyeo.settlement.dto.MeetingExpenseTotal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -32,4 +33,11 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 	 */
 	@Query("select distinct e.round.id from Expense e where e.round.id in :roundIds")
 	Set<Long> findRoundIdsWithExpense(@Param("roundIds") Collection<Long> roundIds);
+
+	/**
+	 * 여러 모임의 지출 합계를 모임별로 조회한다(모임 히스토리). 지출이 없는 모임은 결과에 없다.
+	 */
+	@Query("select new com.poco7250.moyeo.settlement.dto.MeetingExpenseTotal(e.round.meeting.id, sum(e.amount)) "
+			+ "from Expense e where e.round.meeting.id in :meetingIds group by e.round.meeting.id")
+	List<MeetingExpenseTotal> sumAmountByMeetingIdIn(@Param("meetingIds") Collection<Long> meetingIds);
 }
