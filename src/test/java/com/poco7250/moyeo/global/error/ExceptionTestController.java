@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
  * GlobalExceptionHandler 검증용 테스트 전용 컨트롤러. 엔드포인트마다 특정 예외를 일으킨다.
@@ -73,6 +74,14 @@ class ExceptionTestController {
 	@GetMapping("/integrity")
 	ApiResponse<Void> integrity() {
 		throw new DataIntegrityViolationException("Duplicate entry");
+	}
+
+	/**
+	 * 업로드 크기 제한 초과 예외를 던진다.
+	 */
+	@GetMapping("/upload-too-large")
+	ApiResponse<Void> uploadTooLarge() {
+		throw new MaxUploadSizeExceededException(10L * 1024 * 1024);
 	}
 
 	/**

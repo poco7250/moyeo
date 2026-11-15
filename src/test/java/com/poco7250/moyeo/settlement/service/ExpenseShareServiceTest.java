@@ -60,6 +60,9 @@ class ExpenseShareServiceTest {
 	@Mock
 	ChangeLogRecorder changeLogRecorder;
 
+	@Mock
+	ExpenseReceiptService expenseReceiptService;
+
 	@InjectMocks
 	ExpenseShareService expenseShareService;
 

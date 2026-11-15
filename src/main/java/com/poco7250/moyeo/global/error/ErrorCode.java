@@ -16,6 +16,7 @@ public enum ErrorCode {
 	UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
 	RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
 	METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "지원하지 않는 HTTP 메서드입니다."),
+	UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "지원하지 않는 요청 형식입니다."),
 	DUPLICATE_RESOURCE(HttpStatus.CONFLICT, "이미 존재하는 데이터입니다."),
 	CONCURRENT_MODIFICATION(HttpStatus.CONFLICT, "다른 요청과 충돌했습니다. 다시 시도해 주세요."),
 	INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다."),
@@ -75,6 +76,11 @@ public enum ErrorCode {
 	EXPENSE_NOT_FOUND(HttpStatus.NOT_FOUND, "지출을 찾을 수 없습니다."),
 	// 벌칙 조건의 대상 지출이 게임과 다른 모임의 지출
 	EXPENSE_NOT_IN_MEETING(HttpStatus.BAD_REQUEST, "이 모임에 등록된 지출만 고를 수 있습니다."),
+	// 영수증 사진(S-1 확장): 형식은 파일 앞부분 바이트로 판별한다
+	RECEIPT_INVALID_TYPE(HttpStatus.BAD_REQUEST, "영수증 사진은 JPEG·PNG·WEBP 이미지만 올릴 수 있습니다."),
+	RECEIPT_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "영수증 사진은 10MB까지 올릴 수 있습니다."),
+	RECEIPT_NOT_FOUND(HttpStatus.NOT_FOUND, "영수증 사진이 없습니다."),
+	RECEIPT_STORAGE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "영수증 사진을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."),
 	SETTLEMENT_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "이미 확정된 정산입니다."),
 	WARNING_UNCONFIRMED(HttpStatus.CONFLICT, "정산 경고를 확인한 뒤 다시 확정해 주세요."),
 	// 조건 미설정(ASSIGNED) 금액형 벌칙이 남아 확정할 수 없음
