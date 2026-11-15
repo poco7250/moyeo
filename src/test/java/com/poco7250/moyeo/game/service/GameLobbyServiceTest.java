@@ -160,13 +160,45 @@ class GameLobbyServiceTest {
 	}
 
 	@Test
-	@DisplayName("룰렛은 아직 만들 수 없다")
-	void createRejectsRoulette() {
+	@DisplayName("룰렛도 사다리처럼 게임 방을 만들 수 있다")
+	void createRoulette() {
 		givenRoundAccess();
+		givenAttending(List.of(2L, 3L), member(2L), member(3L));
+		given(gameSessionRepository.save(any())).willAnswer(invocation -> {
+			GameSession game = invocation.getArgument(0);
+			ReflectionTestUtils.setField(game, "id", GAME_ID);
+			return game;
+		});
 
-		assertRejected(() -> service.create(ROUND_ID, ACTOR_ID, request(GameType.ROULETTE, List.of(2L, 3L))),
-				ErrorCode.GAME_TYPE_NOT_SUPPORTED);
-		verifyNoInteractions(gameSessionRepository);
+		service.create(ROUND_ID, ACTOR_ID, request(GameType.ROULETTE, List.of(2L, 3L)));
+
+		ArgumentCaptor<GameSession> gameCaptor = ArgumentCaptor.forClass(GameSession.class);
+		verify(gameSessionRepository).save(gameCaptor.capture());
+		assertThat(gameCaptor.getValue().getType()).isEqualTo(GameType.ROULETTE);
+		assertThat(gameCaptor.getValue().getPenaltyCount()).isEqualTo(1);
+	}
+
+	@Test
+	@DisplayName("순서 정하기를 시작하면 seed로 정한 순서대로 전원에게 1번부터 순번을 저장하고 벌칙자는 없다")
+	void startOrderSavesOrderNumbers() {
+		GameSession game = GameSession.create(round, GameType.ORDER, ACTOR_ID, PenaltyKind.NONE, null, 0);
+		ReflectionTestUtils.setField(game, "id", GAME_ID);
+		givenOperator(game);
+		given(gameParticipantRepository.findAllByGameSessionIdOrderByIdAsc(GAME_ID))
+				.willReturn(List.of(participant(game, 1L), participant(game, 2L), participant(game, 3L)));
+		given(gameSeedGenerator.next()).willReturn(42L);
+
+		service.start(GAME_ID, ACTOR_ID);
+
+		assertThat(game.getStatus()).isEqualTo(GameStatus.REVEALED);
+		verify(gameResultRepository).saveAll(resultsCaptor.capture());
+		assertThat(resultsCaptor.getValue())
+				.allSatisfy(result -> assertThat(result.getOutcome()).isEqualTo(GameResult.OUTCOME_ORDERED))
+				.extracting(result -> result.getMember().getId())
+				.containsExactlyElementsOf(GameDrawer.order(List.of(1L, 2L, 3L), 42L));
+		assertThat(resultsCaptor.getValue()).extracting(GameResult::getOrderNo).containsExactly(1, 2, 3);
+		verify(penaltyAssigner).onRevealed(eq(game), eq(ACTOR_ID), penalizedCaptor.capture());
+		assertThat(penalizedCaptor.getValue()).isEmpty();
 	}
 
 	@Test

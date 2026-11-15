@@ -28,6 +28,8 @@ import jakarta.servlet.http.Cookie;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.ParameterizedTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -53,7 +55,7 @@ class GameControllerTest {
 			GameStatus.WAITING, MEMBER_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, 300L, 300L, null, PARTICIPANTS, null);
 	private static final GameStateResponse REVEALED = new GameStateResponse(300L, 100L, GameType.LADDER,
 			GameStatus.REVEALED, MEMBER_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, 300L, null, null, PARTICIPANTS,
-			new GameResultResponse(42L, List.of(9L)));
+			GameResultResponse.penalty(42L, List.of(9L)));
 
 	@Autowired
 	MockMvc mockMvc;
@@ -184,6 +186,44 @@ class GameControllerTest {
 		assertInvalid(body("null", "[8, 9]", "0"), "penaltyCountValid");
 	}
 
+	@ParameterizedTest
+	@ValueSource(strings = {"MONEY", "ACTION"})
+	@DisplayName("순서 정하기를 벌칙 있는 게임으로 만들면 400이다")
+	void orderWithPenaltyKind(String penaltyKind) throws Exception {
+		assertInvalid(orderBody(penaltyKind, "null"), "orderPenaltyNone");
+	}
+
+	@Test
+	@DisplayName("순서 정하기에 벌칙자 수를 넣으면 400이다")
+	void orderWithPenaltyCount() throws Exception {
+		assertInvalid(orderBody("NONE", "1"), "orderPenaltyNone");
+	}
+
+	@Test
+	@DisplayName("순서 정하기는 벌칙 없이, 벌칙자 수 없이 만들 수 있다")
+	void orderCreated() throws Exception {
+		given(gameLobbyService.create(eq(100L), eq(MEMBER_ID), any())).willReturn(WAITING);
+
+		create(orderBody("NONE", "null")).andExpect(status().isCreated());
+	}
+
+	@Test
+	@DisplayName("순서 정하기를 시작하면 1번부터 차례로 놓인 회원 id와 seed를 돌려준다")
+	void orderStartResponse() throws Exception {
+		GameStateResponse ordered = new GameStateResponse(300L, 100L, GameType.ORDER, GameStatus.REVEALED,
+				MEMBER_ID, PenaltyKind.NONE, null, 0, 300L, null, null, PARTICIPANTS,
+				GameResultResponse.order(42L, List.of(9L, 8L)));
+		given(gameLobbyService.start(300L, MEMBER_ID)).willReturn(ordered);
+
+		action("start")
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.type").value("ORDER"))
+				.andExpect(jsonPath("$.data.result.seed").value(42))
+				.andExpect(jsonPath("$.data.result.penaltyMemberIds").isEmpty())
+				.andExpect(jsonPath("$.data.result.orderedMemberIds[0]").value(9))
+				.andExpect(jsonPath("$.data.result.orderedMemberIds[1]").value(8));
+	}
+
 	@Test
 	@DisplayName("시작하면 결과와 seed를 돌려준다")
 	void startResponse() throws Exception {
@@ -295,6 +335,12 @@ class GameControllerTest {
 				{"type": "LADDER", "penaltyKind": "MONEY", "penaltyNote": %s,
 				 "participantMemberIds": %s, "penaltyCount": %s}
 				""".formatted(note, memberIds, penaltyCount);
+	}
+
+	private String orderBody(String penaltyKind, String penaltyCount) {
+		return """
+				{"type": "ORDER", "penaltyKind": "%s", "participantMemberIds": [8, 9], "penaltyCount": %s}
+				""".formatted(penaltyKind, penaltyCount);
 	}
 
 	private Cookie loginCookie() {

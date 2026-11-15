@@ -4,6 +4,7 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 
+import com.poco7250.moyeo.game.domain.GameResult;
 import com.poco7250.moyeo.game.domain.GameSession;
 import com.poco7250.moyeo.group.domain.GroupMember;
 import com.poco7250.moyeo.history.dto.GameHistoryResponse;
@@ -32,6 +33,7 @@ final class MeetingHistoryAssembler {
 	private final Map<Long, List<Long>> attendeesByRound;
 	private final Map<Long, List<GameSession>> gamesByRound;
 	private final Map<Long, List<Long>> penalizedByGame;
+	private final Map<Long, List<Long>> orderedByGame;
 
 	MeetingHistoryAssembler(MeetingHistorySource source) {
 		this.source = source;
@@ -41,6 +43,9 @@ final class MeetingHistoryAssembler {
 		this.gamesByRound = source.games().stream().collect(groupingBy(g -> g.getRound().getId()));
 		this.penalizedByGame = source.penalties().stream()
 				.collect(groupingBy(p -> p.getGameSession().getId(), mapping(p -> p.getMember().getId(), toList())));
+		this.orderedByGame = source.orderResults().stream()
+				.sorted(Comparator.comparing(GameResult::getOrderNo))
+				.collect(groupingBy(r -> r.getGameSession().getId(), mapping(r -> r.getMember().getId(), toList())));
 	}
 
 	/**
@@ -86,7 +91,15 @@ final class MeetingHistoryAssembler {
 
 	private GameHistoryResponse game(GameSession game) {
 		return new GameHistoryResponse(game.getId(), game.getType(), game.getPenaltyKind(), game.getPenaltyNote(),
-				game.getRevealedAt(), members(penalizedByGame.getOrDefault(game.getId(), List.of())));
+				game.getRevealedAt(), members(penalizedByGame.getOrDefault(game.getId(), List.of())),
+				orderedMembers(orderedByGame.getOrDefault(game.getId(), List.of())));
+	}
+
+	/**
+	 * 순번 순서를 그대로 두고 응답으로 바꾼다.
+	 */
+	private List<HistoryMemberResponse> orderedMembers(List<Long> memberIds) {
+		return memberIds.stream().map(id -> HistoryMemberResponse.of(id, source.groupMembers().get(id))).toList();
 	}
 
 	/**

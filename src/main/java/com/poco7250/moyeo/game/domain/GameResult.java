@@ -30,6 +30,9 @@ public class GameResult extends BaseTimeEntity {
 	/** 벌칙을 피한 참가자의 결과 */
 	public static final String OUTCOME_SAFE = "SAFE";
 
+	/** 순서 정하기 게임에서 순서를 받은 참가자의 결과 */
+	public static final String OUTCOME_ORDERED = "ORDERED";
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
@@ -45,16 +48,29 @@ public class GameResult extends BaseTimeEntity {
 	@Column(nullable = false, length = 50)
 	private String outcome;
 
-	private GameResult(GameSession gameSession, Member member, String outcome) {
+	// 순서 정하기 게임의 순번(1부터). 그 외 게임은 null. rank는 MySQL 예약어라 피한다
+	private Integer orderNo;
+
+	private GameResult(GameSession gameSession, Member member, String outcome, Integer orderNo) {
 		this.gameSession = gameSession;
 		this.member = member;
 		this.outcome = outcome;
+		this.orderNo = orderNo;
 	}
 
 	/**
 	 * 참가자의 게임 결과를 만든다.
 	 */
 	public static GameResult create(GameSession gameSession, Member member, String outcome) {
-		return new GameResult(gameSession, member, outcome);
+		return new GameResult(gameSession, member, outcome, null);
+	}
+
+	/**
+	 * 순서 정하기 게임에서 참가자가 받은 순번 결과를 만든다.
+	 *
+	 * @param orderNo 1부터 시작하는 순번
+	 */
+	public static GameResult ordered(GameSession gameSession, Member member, int orderNo) {
+		return new GameResult(gameSession, member, OUTCOME_ORDERED, orderNo);
 	}
 }

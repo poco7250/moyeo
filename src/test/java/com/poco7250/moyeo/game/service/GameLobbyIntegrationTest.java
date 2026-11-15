@@ -77,6 +77,9 @@ class GameLobbyIntegrationTest {
 	GameQueryService gameQueryService;
 
 	@Autowired
+	GameRerunService gameRerunService;
+
+	@Autowired
 	PenaltyAssigner penaltyAssigner;
 
 	@Autowired
@@ -153,6 +156,9 @@ class GameLobbyIntegrationTest {
 		jdbcTemplate.update("delete from penalty where game_session_id in (" + gameIds + ")");
 		jdbcTemplate.update("delete from game_result where game_session_id in (" + gameIds + ")");
 		jdbcTemplate.update("delete from game_participant where game_session_id in (" + gameIds + ")");
+		// 다시 돌린 회차가 원 회차를 가리키므로 참조를 먼저 비운다
+		jdbcTemplate.update("update game_session set rerun_of_id = null, canceled_rerun_of_id = null where round_id = ?",
+				round.getId());
 		jdbcTemplate.update("delete from game_session where round_id = ?", round.getId());
 		jdbcTemplate.update("delete from attendance where round_id = ?", round.getId());
 		settlementRepository.deleteById(settlement.getId());
@@ -179,6 +185,55 @@ class GameLobbyIntegrationTest {
 		RealtimeMessage message = new RealtimeMessage(GameStateChangedEvent.TYPE, started);
 		verify(messagingTemplate).convertAndSend("/topic/games/" + created.gameId(), (Object) message);
 		verify(messagingTemplate).convertAndSend("/topic/meetings/" + meeting.getId(), (Object) message);
+	}
+
+	@Test
+	@DisplayName("순서 정하기는 공개 전엔 순서·seed가 없고, 시작하면 seed로 재현되는 전원의 순서가 나오며 벌칙은 없다")
+	void orderCreateAndStart() {
+		List<Long> memberIds = List.of(host.getId(), second.getId(), third.getId());
+		GameStateResponse created = gameLobbyService.create(round.getId(), host.getId(),
+				new GameCreateRequest(GameType.ORDER, PenaltyKind.NONE, "볼링 레인 순서", memberIds, null));
+		assertThat(created.penaltyCount()).isZero();
+		assertThat(gameQueryService.getState(created.gameId(), absent.getId()).result()).isNull();
+
+		GameStateResponse started = gameLobbyService.start(created.gameId(), host.getId());
+
+		assertThat(started.status()).isEqualTo(GameStatus.REVEALED);
+		assertThat(started.result().penaltyMemberIds()).isEmpty();
+		assertThat(started.result().orderedMemberIds())
+				.isEqualTo(GameDrawer.order(memberIds, started.result().seed()));
+		assertThat(gameQueryService.getState(created.gameId(), absent.getId())).isEqualTo(started);
+		assertThat(penaltyStatuses(created.gameId())).isEmpty();
+	}
+
+	@Test
+	@DisplayName("순서 정하기를 다시 돌리면 새 회차가 순서 정하기로 복제되고 원 회차 순서는 그대로다")
+	void orderRerun() {
+		List<Long> memberIds = List.of(host.getId(), second.getId(), third.getId());
+		GameStateResponse original = gameLobbyService.start(gameLobbyService.create(round.getId(), host.getId(),
+				new GameCreateRequest(GameType.ORDER, PenaltyKind.NONE, null, memberIds, null)).gameId(), host.getId());
+
+		GameStateResponse rerun = gameRerunService.request(original.gameId(), host.getId());
+		GameStateResponse rerunStarted = gameLobbyService.start(rerun.gameId(), host.getId());
+
+		assertThat(rerun.type()).isEqualTo(GameType.ORDER);
+		assertThat(rerunStarted.result().orderedMemberIds())
+				.isEqualTo(GameDrawer.order(memberIds, rerunStarted.result().seed()));
+		assertThat(gameQueryService.getState(original.gameId(), host.getId()).result())
+				.isEqualTo(original.result());
+	}
+
+	@Test
+	@DisplayName("룰렛은 사다리처럼 시작하면 벌칙자가 정해지고 벌칙이 생긴다")
+	void rouletteStart() {
+		GameStateResponse created = gameLobbyService.create(round.getId(), host.getId(),
+				new GameCreateRequest(GameType.ROULETTE, PenaltyKind.ACTION, null, List.of(second.getId(), third.getId()), null));
+
+		GameStateResponse started = gameLobbyService.start(created.gameId(), host.getId());
+
+		assertThat(started.result().penaltyMemberIds()).hasSize(1).isSubsetOf(second.getId(), third.getId());
+		assertThat(started.result().orderedMemberIds()).isNull();
+		assertThat(penaltyStatuses(created.gameId())).containsExactly("ASSIGNED");
 	}
 
 	@Test
