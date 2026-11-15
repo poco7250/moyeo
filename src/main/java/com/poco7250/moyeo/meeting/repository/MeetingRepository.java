@@ -5,6 +5,8 @@ import com.poco7250.moyeo.meeting.domain.MeetingDateStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -39,4 +41,9 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 	 * 그룹의 지난 모임(시작 시각이 기준 시각 이전)을 최근 순으로 조회한다.
 	 */
 	List<Meeting> findAllByGroupIdAndStartAtLessThanOrderByStartAtDesc(Long groupId, LocalDateTime now);
+
+	/**
+	 * 그룹의 지난 모임(시작 시각이 기준 시각 이전) 한 페이지를 조회한다(모임 히스토리). 정렬은 Pageable로 준다.
+	 */
+	Slice<Meeting> findAllByGroupIdAndStartAtLessThan(Long groupId, LocalDateTime now, Pageable pageable);
 }

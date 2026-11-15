@@ -1,6 +1,7 @@
 package com.poco7250.moyeo.game.repository;
 
 import com.poco7250.moyeo.game.domain.GameSession;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -38,4 +39,12 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
 			+ "com.poco7250.moyeo.game.domain.GameStatus.PLAYING) "
 			+ "order by g.id")
 	List<GameSession> findAllMoneyInProgressByMeetingId(@Param("meetingId") Long meetingId);
+
+	/**
+	 * 여러 차수의 결과 공개된 게임(REVEALED·CLOSED, 다시 돌린 회차 포함)을 id 순으로 조회한다(모임 히스토리).
+	 */
+	@Query("select g from GameSession g where g.round.id in :roundIds "
+			+ "and g.status in (com.poco7250.moyeo.game.domain.GameStatus.REVEALED, "
+			+ "com.poco7250.moyeo.game.domain.GameStatus.CLOSED) order by g.id")
+	List<GameSession> findAllRevealedByRoundIdIn(@Param("roundIds") Collection<Long> roundIds);
 }

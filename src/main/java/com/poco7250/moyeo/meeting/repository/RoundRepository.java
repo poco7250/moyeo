@@ -2,6 +2,7 @@ package com.poco7250.moyeo.meeting.repository;
 
 import com.poco7250.moyeo.meeting.domain.Round;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -23,6 +24,13 @@ public interface RoundRepository extends JpaRepository<Round, Long> {
 	@Query("select r from Round r left join fetch r.confirmedCandidate "
 			+ "where r.meeting.id = :meetingId order by r.seq")
 	List<Round> findAllWithConfirmedPlaceByMeetingId(@Param("meetingId") Long meetingId);
+
+	/**
+	 * 여러 모임의 차수를 확정 장소 후보와 함께 모임 → 순서(seq)대로 조회한다(모임 히스토리, N+1 방지).
+	 */
+	@Query("select r from Round r left join fetch r.confirmedCandidate "
+			+ "where r.meeting.id in :meetingIds order by r.meeting.id, r.seq")
+	List<Round> findAllWithConfirmedPlaceByMeetingIdIn(@Param("meetingIds") Collection<Long> meetingIds);
 
 	/**
 	 * 마감이 지났고 아직 마감 처리하지 않은 투표 차수의 id를 조회한다. 마감 정각은 아직 열려 있어 제외한다.
