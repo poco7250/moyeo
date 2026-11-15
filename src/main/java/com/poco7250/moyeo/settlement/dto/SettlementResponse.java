@@ -1,5 +1,6 @@
 package com.poco7250.moyeo.settlement.dto;
 
+import com.poco7250.moyeo.group.dto.PaymentInfoResponse;
 import com.poco7250.moyeo.settlement.calc.SettlementResult;
 import com.poco7250.moyeo.settlement.domain.RevisionMemberShare;
 import com.poco7250.moyeo.settlement.domain.Settlement;
@@ -15,6 +16,7 @@ import java.util.List;
  * @param warnings        미리보기의 계산 경고. 확정된 리비전에는 경고 내용을 저장하지 않아 빈 목록이다
  * @param penalties       벌칙 반영 내역(PRD S-4). 정산 상태와 상관없이 현재 벌칙 상태와 현재 계산 부담액이다
  * @param revisionChange  재확정 응답에만 싣는 직전 확정 리비전 대비 변동액 안내. 그 외에는 null
+ * @param payees          송금 안내 받는 사람 중 송금 정보(계좌·링크)를 저장한 멤버(PRD S-7). 회원 id 순
  */
 public record SettlementResponse(
 		SettlementStatus status,
@@ -24,10 +26,11 @@ public record SettlementResponse(
 		List<SettlementTransferResponse> transfers,
 		List<SettlementWarningResponse> warnings,
 		List<SettlementPenaltyResponse> penalties,
-		RevisionChangeResponse revisionChange) {
+		RevisionChangeResponse revisionChange,
+		List<PaymentInfoResponse> payees) {
 
 	/**
-	 * 미확정 정산의 현재 계산값으로 미리보기 응답을 만든다.
+	 * 미확정 정산의 현재 계산값으로 미리보기 응답을 만든다. 송금 정보는 {@link #withPayees}로 붙인다.
 	 */
 	public static SettlementResponse preview(SettlementResult result, List<SettlementPenaltyResponse> penalties) {
 		return new SettlementResponse(SettlementStatus.DRAFT, null, true,
@@ -35,7 +38,8 @@ public record SettlementResponse(
 				result.transfers().stream().map(SettlementTransferResponse::from).toList(),
 				result.warnings().stream().map(SettlementWarningResponse::from).toList(),
 				penalties,
-				null);
+				null,
+				List.of());
 	}
 
 	/**
@@ -57,6 +61,15 @@ public record SettlementResponse(
 				transfers.stream().map(SettlementTransferResponse::from).toList(),
 				List.of(),
 				penalties,
-				revisionChange);
+				revisionChange,
+				List.of());
+	}
+
+	/**
+	 * 송금 안내 받는 사람의 송금 정보를 붙인 응답을 돌려준다.
+	 */
+	public SettlementResponse withPayees(List<PaymentInfoResponse> payees) {
+		return new SettlementResponse(status, basisRevisionNo, preview, members, transfers, warnings, penalties,
+				revisionChange, payees);
 	}
 }

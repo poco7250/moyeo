@@ -2,6 +2,7 @@ package com.poco7250.moyeo.settlement.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -37,6 +38,8 @@ import com.poco7250.moyeo.settlement.repository.RevisionMemberShareRepository;
 import com.poco7250.moyeo.settlement.repository.SettlementRepository;
 import com.poco7250.moyeo.settlement.repository.SettlementRevisionRepository;
 import com.poco7250.moyeo.settlement.repository.TransferRepository;
+import com.poco7250.moyeo.group.domain.Group;
+import com.poco7250.moyeo.meeting.domain.Meeting;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +86,9 @@ class SettlementQueryServiceTest {
 	@Mock
 	TransferRepository transferRepository;
 
+	@Mock
+	SettlementPayeeAttacher payeeAttacher;
+
 	@InjectMocks
 	SettlementQueryService service;
 
@@ -94,6 +100,12 @@ class SettlementQueryServiceTest {
 		ReflectionTestUtils.setField(settlement, "id", SETTLEMENT_ID);
 		// 인가·정산 조회에서 먼저 실패하는 경우엔 계산까지 가지 않으므로 lenient
 		lenient().when(meetingPenaltyLoader.load(MEETING_ID)).thenReturn(NO_PENALTIES);
+		Group group = Group.create("대학 동기");
+		ReflectionTestUtils.setField(group, "id", 70L);
+		lenient().when(meetingAccessChecker.requireMember(MEETING_ID, MEMBER_ID))
+				.thenReturn(Meeting.create(group, "연말 모임", LocalDateTime.of(2026, 12, 20, 18, 0), null, null, MEMBER_ID));
+		// 송금 정보 붙이기는 SettlementPayeeAttacher 테스트·통합 테스트가 본다. 여기선 응답을 그대로 돌려준다
+		lenient().when(payeeAttacher.attach(any(), any())).thenAnswer(invocation -> invocation.getArgument(1));
 		lenient().when(inputAssembler.assemble(MEETING_ID, NO_PENALTIES)).thenReturn(new SettlementInput(List.of()));
 	}
 
@@ -110,7 +122,7 @@ class SettlementQueryServiceTest {
 				List.of(new SettlementMemberResponse(1L, 10_000L, 10_000L),
 						new SettlementMemberResponse(2L, 10_000L, -10_000L)),
 				List.of(new SettlementTransferResponse(2L, 1L, 10_000L)),
-				List.of(), List.of(), null));
+				List.of(), List.of(), null, List.of()));
 		verifyNoInteractions(revisionRepository, memberShareRepository, transferRepository);
 	}
 
@@ -148,7 +160,7 @@ class SettlementQueryServiceTest {
 				List.of(new SettlementMemberResponse(1L, 10_000L, 10_000L),
 						new SettlementMemberResponse(2L, 10_000L, -10_000L)),
 				List.of(new SettlementTransferResponse(2L, 1L, 10_000L)),
-				List.of(), List.of(), null));
+				List.of(), List.of(), null, List.of()));
 	}
 
 	@Test

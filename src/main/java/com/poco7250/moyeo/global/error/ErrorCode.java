@@ -39,6 +39,7 @@ public enum ErrorCode {
 	// 그룹
 	NOT_GROUP_MEMBER(HttpStatus.FORBIDDEN, "그룹 멤버만 이용할 수 있습니다."),
 	GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다."),
+	PAYMENT_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, "저장된 송금 정보가 없습니다."),
 
 	// 모임
 	NOT_MEETING_HOST(HttpStatus.FORBIDDEN, "모임 호스트만 할 수 있습니다."),

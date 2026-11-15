@@ -123,6 +123,9 @@ class SettlementConfirmServiceTest {
 	GroupMemberRepository groupMemberRepository;
 
 	@Mock
+	SettlementPayeeAttacher payeeAttacher;
+
+	@Mock
 	ApplicationEventPublisher eventPublisher;
 
 	@Captor
@@ -147,7 +150,9 @@ class SettlementConfirmServiceTest {
 				new PenaltyChargeRecorder(penaltyChargeRepository),
 				new RevisionChangeAssembler(revisionRepository, memberShareRepository, groupMemberRepository),
 				settlementRepository, revisionRepository, memberShareRepository, transferRepository, memberRepository,
-				eventPublisher, TestClocks.fixed(NOW));
+				payeeAttacher, eventPublisher, TestClocks.fixed(NOW));
+		// 송금 정보 붙이기는 통합 테스트가 본다. 여기선 응답을 그대로 돌려준다
+		lenient().when(payeeAttacher.attach(any(), any())).thenAnswer(invocation -> invocation.getArgument(1));
 		settlement = Settlement.createDraft(null);
 		Group group = Group.create("대학 동기");
 		ReflectionTestUtils.setField(group, "id", GROUP_ID);
@@ -200,7 +205,7 @@ class SettlementConfirmServiceTest {
 						new SettlementMemberResponse(3L, 10_000L, -10_000L)),
 				List.of(new SettlementTransferResponse(2L, 1L, 10_000L),
 						new SettlementTransferResponse(3L, 1L, 10_000L)),
-				List.of(), List.of(), null));
+				List.of(), List.of(), null, List.of()));
 	}
 
 	@Test

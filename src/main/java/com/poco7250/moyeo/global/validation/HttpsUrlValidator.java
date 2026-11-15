@@ -1,6 +1,5 @@
-package com.poco7250.moyeo.place.validation;
+package com.poco7250.moyeo.global.validation;
 
-import com.poco7250.moyeo.place.domain.Place;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import java.net.URI;
@@ -21,7 +20,7 @@ public class HttpsUrlValidator implements ConstraintValidator<HttpsUrl, String> 
 		if (value == null) {
 			return true;
 		}
-		if (value.length() > Place.MAP_URL_MAX_LENGTH) {
+		if (value.length() > HttpsUrl.MAX_LENGTH) {
 			return false;
 		}
 		try {

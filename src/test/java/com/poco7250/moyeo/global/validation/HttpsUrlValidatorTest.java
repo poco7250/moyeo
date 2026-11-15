@@ -1,4 +1,4 @@
-package com.poco7250.moyeo.place.validation;
+package com.poco7250.moyeo.global.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
