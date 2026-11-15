@@ -21,9 +21,19 @@ public final class GameDrawer {
 	 * @return 벌칙자 회원 id
 	 */
 	public static Set<Long> draw(Collection<Long> memberIds, int penaltyCount, long seed) {
+		return Set.copyOf(order(memberIds, seed).subList(0, penaltyCount));
+	}
+
+	/**
+	 * 참가자 전원의 순서를 정한다. 입력 순서에 영향받지 않도록 회원 id로 정렬한 뒤 섞는다.
+	 * 벌칙자 추첨은 이 순서의 앞에서부터 고른다.
+	 *
+	 * @return 1번부터 차례로 놓인 회원 id
+	 */
+	public static List<Long> order(Collection<Long> memberIds, long seed) {
 		List<Long> shuffled = new ArrayList<>(memberIds);
 		Collections.sort(shuffled);
 		Collections.shuffle(shuffled, new Random(seed));
-		return Set.copyOf(shuffled.subList(0, penaltyCount));
+		return List.copyOf(shuffled);
 	}
 }

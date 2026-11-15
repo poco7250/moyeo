@@ -10,7 +10,8 @@ import java.util.List;
  *
  * @param gameId 그 회차의 게임 id
  * @param penalized 벌칙자(무효 벌칙 제외)
+ * @param ordered 순서 정하기 게임에서 1번부터 차례로 놓인 참가자. 그 외 게임이면 빈 목록
  */
 public record GameHistoryResponse(Long gameId, GameType type, PenaltyKind penaltyKind, String penaltyNote,
-		LocalDateTime revealedAt, List<HistoryMemberResponse> penalized) {
+		LocalDateTime revealedAt, List<HistoryMemberResponse> penalized, List<HistoryMemberResponse> ordered) {
 }

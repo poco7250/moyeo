@@ -4,7 +4,6 @@ import com.poco7250.moyeo.game.domain.GameParticipant;
 import com.poco7250.moyeo.game.domain.GameResult;
 import com.poco7250.moyeo.game.domain.GameSession;
 import com.poco7250.moyeo.game.domain.GameStatus;
-import com.poco7250.moyeo.game.domain.GameType;
 import com.poco7250.moyeo.game.domain.PenaltyKind;
 import com.poco7250.moyeo.game.dto.GameChangeSnapshot;
 import com.poco7250.moyeo.game.dto.GameCreateRequest;
@@ -27,7 +26,11 @@ import com.poco7250.moyeo.settlement.service.SettlementGuard;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -58,11 +61,10 @@ public class GameLobbyService {
 	/**
 	 * 고른 차수 참석자로 게임 방을 만든다. 만든 회원이 진행자가 된다.
 	 *
-	 * @throws BusinessException 지원하지 않는 종류면 GAME_TYPE_NOT_SUPPORTED, 참석자가 아닌 회원이 있으면 GAME_PARTICIPANT_NOT_ATTENDING
+	 * @throws BusinessException 참석자가 아닌 회원이 있으면 GAME_PARTICIPANT_NOT_ATTENDING
 	 */
 	public GameStateResponse create(Long roundId, Long memberId, GameCreateRequest request) {
 		Round round = meetingAccessChecker.requireRoundMember(roundId, memberId);
-		requireSupported(request.type());
 		List<Member> members = findAttendingMembers(roundId, request.participantMemberIds());
 		GameSession game = gameSessionRepository.save(GameSession.create(round, request.type(), memberId,
 				request.penaltyKind(), request.penaltyNote(), request.resolvedPenaltyCount()));
@@ -116,12 +118,6 @@ public class GameLobbyService {
 		return publishStateChanged(game);
 	}
 
-	private void requireSupported(GameType type) {
-		if (type == GameType.ROULETTE) {
-			throw new BusinessException(ErrorCode.GAME_TYPE_NOT_SUPPORTED);
-		}
-	}
-
 	private List<Member> findAttendingMembers(Long roundId, List<Long> memberIds) {
 		List<Member> members = attendanceRepository.findAttendingMembers(roundId, memberIds);
 		if (members.size() != memberIds.size()) {
@@ -131,12 +127,34 @@ public class GameLobbyService {
 	}
 
 	/**
-	 * 추첨 결과를 참가자 전원에 대해 저장하고 벌칙자로 뽑힌 회원을 돌려준다.
+	 * 추첨 결과를 참가자 전원에 대해 저장하고 벌칙자로 뽑힌 회원을 돌려준다. 순서 정하기 게임은 벌칙자가 없다.
 	 */
 	private List<Member> saveResults(GameSession game, long seed) {
 		List<GameParticipant> participants = gameParticipantRepository.findAllByGameSessionIdOrderByIdAsc(game.getId());
 		List<Long> memberIds = participants.stream().map(participant -> participant.getMember().getId()).toList();
-		Set<Long> penalized = GameDrawer.draw(memberIds, game.getPenaltyCount(), seed);
+		if (game.getType().isOrder()) {
+			saveOrderResults(game, participants, GameDrawer.order(memberIds, seed));
+			return List.of();
+		}
+		return savePenaltyResults(game, participants, GameDrawer.draw(memberIds, game.getPenaltyCount(), seed));
+	}
+
+	/**
+	 * 정해진 순서대로 참가자마다 1번부터 순번 결과를 저장한다.
+	 */
+	private void saveOrderResults(GameSession game, List<GameParticipant> participants, List<Long> order) {
+		Map<Long, Member> membersById = participants.stream()
+				.map(GameParticipant::getMember)
+				.collect(Collectors.toMap(Member::getId, Function.identity()));
+		gameResultRepository.saveAll(IntStream.range(0, order.size())
+				.mapToObj(i -> GameResult.ordered(game, membersById.get(order.get(i)), i + 1))
+				.toList());
+	}
+
+	/**
+	 * 참가자마다 꽝·통과 결과를 저장하고 벌칙자로 뽑힌 회원을 돌려준다.
+	 */
+	private List<Member> savePenaltyResults(GameSession game, List<GameParticipant> participants, Set<Long> penalized) {
 		gameResultRepository.saveAll(participants.stream()
 				.map(participant -> GameResult.create(game, participant.getMember(),
 						penalized.contains(participant.getMember().getId())

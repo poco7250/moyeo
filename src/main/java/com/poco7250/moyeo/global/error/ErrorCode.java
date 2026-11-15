@@ -97,7 +97,6 @@ public enum ErrorCode {
 	GAME_NOT_RERUNNABLE(HttpStatus.CONFLICT, "다시 돌릴 수 없는 게임입니다."),
 	RERUN_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 다시 돌리기가 요청된 게임입니다."),
 	GAME_PARTICIPANT_NOT_ATTENDING(HttpStatus.BAD_REQUEST, "차수 참석자만 게임 참가자로 고를 수 있습니다."),
-	GAME_TYPE_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "아직 지원하지 않는 게임 종류입니다."),
 
 	// 벌칙
 	// 벌칙 상태 전이 표에 없는 전이(예: 무효가 된 벌칙에 조건 설정)

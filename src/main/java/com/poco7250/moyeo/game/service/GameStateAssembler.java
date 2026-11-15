@@ -48,11 +48,16 @@ public class GameStateAssembler {
 		if (!game.isRevealed()) {
 			return null;
 		}
+		if (game.getType().isOrder()) {
+			return GameResultResponse.order(game.getSeed(), gameResultRepository
+					.findAllByGameSessionIdAndOutcomeOrderByOrderNoAsc(game.getId(), GameResult.OUTCOME_ORDERED)
+					.stream().map(result -> result.getMember().getId()).toList());
+		}
 		List<Long> penaltyMemberIds = gameResultRepository
 				.findAllByGameSessionIdAndOutcome(game.getId(), GameResult.OUTCOME_PENALTY).stream()
 				.map(result -> result.getMember().getId())
 				.sorted()
 				.toList();
-		return new GameResultResponse(game.getSeed(), penaltyMemberIds);
+		return GameResultResponse.penalty(game.getSeed(), penaltyMemberIds);
 	}
 }

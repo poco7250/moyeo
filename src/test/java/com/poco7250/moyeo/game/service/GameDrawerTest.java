@@ -36,6 +36,22 @@ class GameDrawerTest {
 	}
 
 	@Test
+	@DisplayName("순서 정하기는 참가자 전원을 한 번씩 담고, 같은 seed면 입력 순서와 상관없이 같은 순서다")
+	void orderReproducible() {
+		List<Long> order = GameDrawer.order(MEMBER_IDS, 7L);
+
+		assertThat(order).containsExactlyInAnyOrderElementsOf(MEMBER_IDS);
+		assertThat(GameDrawer.order(List.of(5L, 3L, 1L, 4L, 2L), 7L)).isEqualTo(order);
+	}
+
+	@Test
+	@DisplayName("벌칙자는 같은 seed로 정한 순서의 앞에서부터 뽑힌다")
+	void drawTakesFrontOfOrder() {
+		assertThat(GameDrawer.draw(MEMBER_IDS, 2, 7L))
+				.isEqualTo(Set.copyOf(GameDrawer.order(MEMBER_IDS, 7L).subList(0, 2)));
+	}
+
+	@Test
 	@DisplayName("seed가 달라지면 다른 사람도 뽑힌다")
 	void seedChangesResult() {
 		long distinctResults = java.util.stream.LongStream.range(0, 50)

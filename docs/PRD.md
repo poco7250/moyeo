@@ -175,7 +175,7 @@
 | R-0 | **게임 방**: 진행자가 그 차수 참석자(`ATTEND`) 중 일부 또는 전부를 참가자로 골라 게임 생성 → 진행자 또는 호스트가 시작하면 서버가 즉시 벌칙자를 뽑아 공개하고 참가자 전원에게 알림. 입장·준비 단계 없음 | P0 |
 | R-1 | **사다리 타기**: 시작 즉시 나온 벌칙자 결과를 사다리 연출로 표시. 공개 응답의 `seed`로 모두의 폰에서 같은 애니메이션 재생 | P0 |
 | R-2 | **꽝뽑기(제비뽑기)**: 시작 즉시 나온 벌칙자 결과를 카드 뽑기 연출로 표시. 사용자가 카드를 고르는 입력은 없음 | P0 |
-| R-3 | 룰렛 / 랜덤 순서 정하기(볼링 레인 순서, 보드게임 선) | P1 |
+| R-3 | **룰렛 / 랜덤 순서 정하기**(볼링 레인 순서, 보드게임 선): 룰렛(`ROULETTE`)은 사다리·꽝뽑기처럼 벌칙자를 뽑고, 순서 정하기(`ORDER`)는 참가자 전원의 순서(1~N번)를 정하며 벌칙이 없다(2026-11-15) | P1 |
 | R-4 | **벌칙 프리셋**: 게임 생성 시 벌칙 종류(금액형 / 행동형 "다음 모임 장소 정하기·예약"(P-9 연동) / 없음) + 안내 문구(선택, 예: "꼴찌가 2차 30%", 계산에 안 쓰임). 금액 조건 입력(R-9) 시 고정 금액 / 비율 / 전액 프리셋 제공(4.5 벌칙 정산 규칙 참고) | P0 |
 | R-5 | **게임 결과 → 정산 연동**: 결과 공개 시 벌칙자 확정(`Penalty` `ASSIGNED`), 호스트가 조건을 설정(R-9)하면 대상 지출 정산에 자동 반영, 지출 변경 시 자동 재계산. 다시 돌리기(진행자·호스트만, 원 회차 설정 복제 — E3) | P0 |
 | R-6 | ~~볼링 점수 입력 → 순위 산출 → 꼴찌/하위 N명 자동 벌칙~~ **제외(2026-11-15)** — 볼링은 앱 밖에서 하므로 점수 입력을 두지 않는다 | 제외 |
@@ -228,6 +228,15 @@
 | R-8 | Given 연결이 끊긴 참가자 / When 재접속하면 / Then REST로 현재 게임 상태(공개 전이면 결과 제외, 공개 후면 벌칙자 포함)를 받아 화면을 복구한다. |
 | R-9 | Given 벌칙자 민수·영희가 `ASSIGNED`인 금액형 게임, 2차 지출 "볼링" 87,650원 등록됨 / When 호스트가 `RATIO 30%`·대상 지출 "볼링"으로 조건을 설정하면 / Then `PenaltyRule` 1건이 저장되고 두 벌칙이 `APPLIED`가 되며, 정산 계산 시 각자 26,300원이 부과된다(예 5-a). `targetExpense`가 없으면 400, 존재하지 않는 지출이면 404, 다른 모임의 지출이면 400, 비율이 1~100 정수가 아니면 400, 고정 금액이 1 이상 정수가 아니거나 1억 원을 넘으면 400, 호스트(모임 생성자)가 아니면 403(`NOT_MEETING_HOST`), 게임 `penaltyKind`가 `MONEY`가 아니거나 결과 공개 전(`WAITING`/`PLAYING`/`CANCELED`)이면 409, 대상 벌칙이 `VOIDED`면 409를 받는다. 게임이 `CLOSED`여도 `REVEALED`와 똑같이 처리된다. When "금액 벌칙 없음"을 고르면 / Then 그 게임의 비무효 벌칙 전원이 동시에 `WAIVED`가 되고 `waivedBy`·`waivedAt`이 기록되며 정산에 반영되지 않는다. Given 벌칙이 `APPLIED`인 게임 / When 호스트가 "금액 벌칙 없음"을 고르면 / Then 한 트랜잭션에서 `PenaltyRule`이 삭제되고 전원 `WAIVED`가 되며 `ChangeLog`가 2건(규칙 해제, 면제) 남는다(E2). Given 벌칙이 `WAIVED`인 게임 / When 호스트가 조건을 설정하면 / Then 한 트랜잭션에서 면제가 취소(`waivedBy`·`waivedAt` 비움)되고 `PenaltyRule`이 생성되어 전원 `APPLIED`가 되며 `ChangeLog`가 2건(면제 취소, 규칙 설정) 남는다(E2). 조건 설정·변경·해제·면제·면제 취소는 모두 `ChangeLog`에 전/후 값과 함께 기록되고, 정산이 `CONFIRMED`면 같은 트랜잭션에서 `REOPENED`가 된다. |
 | R-10 | Given 진행자가 만든 `WAITING`/`PLAYING` 게임 / When 진행자 또는 호스트가 취소하면 / Then 상태가 `CANCELED`가 되어 브로드캐스트되고 `Penalty`는 생성되지 않는다. 그 외 멤버가 취소하면 403(`NOT_GAME_OPERATOR`), `REVEALED`/`CLOSED` 게임이면 409(`GAME_NOT_CANCELABLE`). Given 다시 돌린 회차(`WAITING`) / When 취소하면 / Then 원 회차 `Penalty`·`PenaltyRule`은 바뀌지 않고, 원 회차에 다시 돌리기를 새로 요청할 수 있다. 취소와 결과 공개가 동시에 오면 `GameSession.version`으로 하나만 성공한다. |
+
+
+> 설계 포인트: **룰렛·순서 정하기(R-3, 2026-11-15 결정).** 둘 다 기존 게임 방 흐름(생성 → 시작 즉시 추첨·공개 → 종료/취소, 다시 돌리기, 상태 조회, 실시간, 히스토리)을 그대로 쓴다. 룰렛은 사다리·꽝뽑기와 같고 화면 연출(돌림판)만 다르다. 순서 정하기는 `penaltyKind = NONE`만 되고 벌칙자 수(`penaltyCount`)를 입력하지 않는다(위반 400 `orderPenaltyNone`, 저장값 0). 시작하면 같은 `seed`로 참가자(`memberId` 정렬)를 섞은 순서 전체가 결과이고(벌칙자 추첨은 이 순서의 앞 `penaltyCount`명과 같다), 참가자마다 `GameResult`(`outcome = ORDERED`, `orderNo` 1~N)가 저장된다. 공개 응답은 `result.orderedMemberIds`(1번부터, 그 외 종류는 `null`)와 빈 `penaltyMemberIds`, 히스토리(H-1)는 게임별 `ordered`로 순서를 보여 준다.
+
+**수용 기준 (P1)**
+
+| ID | Given / When / Then |
+|---|---|
+| R-3 | Given 차수 참석자 2명 이상 / When 그룹 멤버가 룰렛 게임을 만들고 진행자가 시작하면 / Then 사다리와 똑같이 벌칙자가 정해져 공개되고 `penaltyKind`가 `NONE`이 아니면 `Penalty`가 생긴다. When 순서 정하기를 `penaltyKind = NONE`, 벌칙자 수 없이 만들고 시작하면 / Then 공개 전 응답에는 순서·`seed`가 없고, 공개 후 모든 참가자가 같은 `seed`와 그 `seed`로 재현되는 전원의 순서를 받으며 `Penalty`는 생기지 않는다. 순서 정하기를 `MONEY`/`ACTION`으로 만들거나 벌칙자 수를 넣으면 400이고 게임은 만들어지지 않는다. 다시 돌리면 새 회차도 순서 정하기로 복제되고 원 회차 순서는 그대로 남는다. |
 
 ### 4.5 정산
 
@@ -570,7 +579,7 @@ Member(kakaoId) ─┬─< GroupMember(nickname, emoji, role) >── Group ─<
                  │                                                 │     ※ (round, member) 유니크
                  │                                                 ├─< Expense (payer, amount(1~1억), memo)
                  │                                                 │     └─< ExpenseShare (member, amount, weight, excluded)
-                 │                                                 └─< GameSession (type: LADDER/DRAW/ROULETTE/BOWLING,
+                 │                                                 └─< GameSession (type: LADDER/DRAW/ROULETTE/ORDER,
                  │                                                       │           status: WAITING/PLAYING/REVEALED/CLOSED/CANCELED,
                  │                                                       │           createdBy(진행자, 다시 돌린 회차는 요청자 — E3),
                  │                                                       │           penaltyKind: MONEY/ACTION/NONE, penaltyNote?(≤100자, 계산 미사용),
@@ -580,7 +589,7 @@ Member(kakaoId) ─┬─< GroupMember(nickname, emoji, role) >── Group ─<
                  │                                                       │   ※ rerunOf 유니크(NULL 허용, 취소 시 비우고 canceledRerunOf에 기록)
                  │                                                       │   ※ 다시 돌린 회차: type·penaltyKind·penaltyNote·참가자 목록 원 회차 복제, 변경 불가
                  │                                                       ├─< GameParticipant (member) ※ 생성 시 고른 차수 참석자, (gameSession, member) 유니크
-                 │                                                       ├─< GameResult (member, outcome: PENALTY/SAFE, rank/score)
+                 │                                                       ├─< GameResult (member, outcome: PENALTY/SAFE/ORDERED, orderNo?(순서 정하기 1~N))
                  │                                                       ├─< Penalty (벌칙자, 결과 공개 시 생성:
                  │                                                       │     member, status: ASSIGNED/APPLIED/WAIVED/VOIDED,
                  │                                                       │     waivedBy?, waivedAt?, version)
@@ -746,6 +755,7 @@ Member(kakaoId) ─┬─< GroupMember(nickname, emoji, role) >── Group ─<
 | 영수증 사진 (S-1 확장, 2026-11-15) | **지출당 1장(교체·삭제), 그룹 멤버 누구나, JPEG·PNG·WEBP·10MB, 금액 비영향(`REOPENED`·`ChangeLog` 없음, 실시간 알림만), 저장소 인터페이스 + 로컬 디스크** | 4.5 S-1 설계 포인트·P1 수용 기준, 7장 `ExpenseReceipt` |
 | 송금 정보·송금 안내 (G-5·S-7, 오픈 이슈 3 종결, 2026-11-15) | **G-5를 v0.2로 당겨 S-7과 함께 구현. 그룹 멤버별 계좌·토스·카카오페이 링크 저장, 링크는 본인이 붙여 넣은 https 링크만(서버 딥링크 생성 없음), 다른 멤버 정보는 현재 정산 송금 안내 받는 사람(`payees`)으로만 노출, 계좌번호 AES-256-GCM 암호화** | 4.1 G-5, 4.5 S-7 설계 포인트·P1 수용 기준, 7장 `GroupMemberPayment`, 8장 v0.2/v0.3, 9장 계좌 노출 |
 | 모임 히스토리 (H-1, 2026-11-15) | **그룹 단위 목록 API 1개(페이지). 지난 모임(`startAt` 이전, 날짜 투표 중 제외)마다 차수별 확정 장소·참석(`ATTEND`) 응답자, 현재 지출 합계 + 정산 상태·리비전, 결과 공개된 게임의 원 회차별 마지막 회차와 벌칙자. 조회 전용** | 4.6 H-1 설계 포인트·P1 수용 기준 |
+| 룰렛·순서 정하기 (R-3, 2026-11-15) | **룰렛 = 사다리·꽝뽑기와 같은 벌칙자 뽑기(연출만 다름), 순서 정하기(`ORDER`) = 참가자 전원 순서, 벌칙 없음(`NONE` 강제·벌칙자 수 미입력). 둘 다 기존 게임 방 흐름 재사용, 순서는 같은 `seed` 셔플로 재현** | 4.4 R-3 설계 포인트·P1 수용 기준, 7장 `GameSession.type`·`GameResult.orderNo` |
 
 ### 오픈 이슈
 

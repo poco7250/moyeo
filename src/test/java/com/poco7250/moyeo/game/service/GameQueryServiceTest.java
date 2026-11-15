@@ -50,7 +50,7 @@ class GameQueryServiceTest {
 	@DisplayName("그룹 멤버면 게임의 현재 상태를 돌려준다")
 	void getState() {
 		GameSession game = mock(GameSession.class);
-		GameStateResponse state = state(300L, GameStatus.REVEALED, new GameResultResponse(42L, List.of(9L)));
+		GameStateResponse state = state(300L, GameStatus.REVEALED, GameResultResponse.penalty(42L, List.of(9L)));
 		given(gameAccessChecker.requireMember(300L, MEMBER_ID)).willReturn(game);
 		given(gameStateAssembler.assemble(game)).willReturn(state);
 
@@ -75,7 +75,7 @@ class GameQueryServiceTest {
 		GameSession latest = mock(GameSession.class);
 		GameSession oldest = mock(GameSession.class);
 		GameStateResponse latestState = state(301L, GameStatus.WAITING, null);
-		GameStateResponse oldestState = state(300L, GameStatus.CLOSED, new GameResultResponse(42L, List.of(9L)));
+		GameStateResponse oldestState = state(300L, GameStatus.CLOSED, GameResultResponse.penalty(42L, List.of(9L)));
 		given(gameSessionRepository.findAllByRoundIdOrderByIdDesc(ROUND_ID)).willReturn(List.of(latest, oldest));
 		given(gameStateAssembler.assemble(latest)).willReturn(latestState);
 		given(gameStateAssembler.assemble(oldest)).willReturn(oldestState);

@@ -3,9 +3,11 @@ package com.poco7250.moyeo.history.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.poco7250.moyeo.game.domain.GameResult;
 import com.poco7250.moyeo.game.domain.GameSession;
 import com.poco7250.moyeo.game.domain.GameType;
 import com.poco7250.moyeo.game.domain.PenaltyKind;
+import com.poco7250.moyeo.game.repository.GameResultRepository;
 import com.poco7250.moyeo.game.repository.GameSessionRepository;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
@@ -98,6 +100,9 @@ class MeetingHistoryIntegrationTest {
 	@Autowired
 	PenaltyRepository penaltyRepository;
 
+	@Autowired
+	GameResultRepository gameResultRepository;
+
 	private Group group;
 	private Member host;
 	private Member minsu;
@@ -146,6 +151,28 @@ class MeetingHistoryIntegrationTest {
 		assertThat(second.games()).extracting(GameHistoryResponse::gameId).containsExactly(rerun.getId());
 		assertThat(second.games().get(0).penalized()).extracting(HistoryMemberResponse::nickname)
 				.containsExactly("영희");
+		assertThat(second.games().get(0).ordered()).isEmpty();
+	}
+
+	@Test
+	@DisplayName("순서 정하기 게임은 벌칙자 없이 1번부터 차례로 놓인 참가자를 돌려준다")
+	void orderGame() {
+		Meeting meeting = savePastMeeting("6월 모임", LocalDateTime.of(2020, 6, 1, 18, 0));
+		Round bowling = roundRepository.save(Round.create(meeting, 1, "볼링"));
+		GameSession order = gameSessionRepository.save(
+				GameSession.create(bowling, GameType.ORDER, host.getId(), PenaltyKind.NONE, "레인 순서", 0));
+		order.markAsRoot();
+		order.start();
+		order.reveal(RESPONDED_AT);
+		gameResultRepository.saveAll(List.of(GameResult.ordered(order, minsu, 2),
+				GameResult.ordered(order, younghee, 1), GameResult.ordered(order, host, 3)));
+
+		GameHistoryResponse game = meetingHistoryService.list(group.getId(), minsu.getId(), 0, 20)
+				.items().get(0).rounds().get(0).games().get(0);
+
+		assertThat(game.type()).isEqualTo(GameType.ORDER);
+		assertThat(game.penalized()).isEmpty();
+		assertThat(game.ordered()).extracting(HistoryMemberResponse::nickname).containsExactly("영희", "민수", "호스트");
 	}
 
 	@Test
