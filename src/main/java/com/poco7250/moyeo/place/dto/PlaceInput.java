@@ -1,7 +1,7 @@
 package com.poco7250.moyeo.place.dto;
 
 import com.poco7250.moyeo.place.domain.Place;
-import com.poco7250.moyeo.place.validation.HttpsUrl;
+import com.poco7250.moyeo.global.validation.HttpsUrl;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 

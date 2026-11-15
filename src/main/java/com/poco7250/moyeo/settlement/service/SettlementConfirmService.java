@@ -48,6 +48,7 @@ public class SettlementConfirmService {
 	private final RevisionMemberShareRepository memberShareRepository;
 	private final TransferRepository transferRepository;
 	private final MemberRepository memberRepository;
+	private final SettlementPayeeAttacher payeeAttacher;
 	private final ApplicationEventPublisher eventPublisher;
 	private final Clock clock;
 
@@ -86,7 +87,8 @@ public class SettlementConfirmService {
 			eventPublisher.publishEvent(new SettlementReconfirmedEvent(meetingId,
 					SettlementReconfirmedResponse.of(revisionNo, hostId, revisionChange, response.transfers())));
 		}
-		return response;
+		// 송금 정보(계좌)는 호스트 응답에만 붙이고 위 실시간 이벤트에는 싣지 않는다
+		return payeeAttacher.attach(meeting.getGroup().getId(), response);
 	}
 
 	private List<RevisionMemberShare> saveMemberShares(SettlementRevision revision, SettlementResult result) {

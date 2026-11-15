@@ -3,6 +3,7 @@ package com.poco7250.moyeo.settlement.service;
 import com.poco7250.moyeo.global.auth.MeetingAccessChecker;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
+import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.settlement.calc.SettlementCalculator;
 import com.poco7250.moyeo.settlement.calc.SettlementResult;
 import com.poco7250.moyeo.settlement.domain.Settlement;
@@ -33,6 +34,7 @@ public class SettlementQueryService {
 	private final SettlementRevisionRepository revisionRepository;
 	private final RevisionMemberShareRepository memberShareRepository;
 	private final TransferRepository transferRepository;
+	private final SettlementPayeeAttacher payeeAttacher;
 
 	/**
 	 * 모임의 정산을 조회한다.
@@ -41,17 +43,17 @@ public class SettlementQueryService {
 	 */
 	@Transactional(readOnly = true)
 	public SettlementResponse get(Long meetingId, Long memberId) {
-		meetingAccessChecker.requireMember(meetingId, memberId);
+		Meeting meeting = meetingAccessChecker.requireMember(meetingId, memberId);
 		Settlement settlement = settlementRepository.findByMeetingId(meetingId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.MEETING_NOT_FOUND));
 		// 벌칙 반영 내역은 확정 이후에도 현재 상태로 보여주므로 상태와 상관없이 현재 계산을 한다
 		MeetingPenalties penalties = meetingPenaltyLoader.load(meetingId);
 		SettlementResult result = SettlementCalculator.calculate(inputAssembler.assemble(meetingId, penalties));
 		List<SettlementPenaltyResponse> penaltyItems = penalties.toResponses(result.penaltyCharges());
-		if (settlement.getStatus() == SettlementStatus.DRAFT) {
-			return SettlementResponse.preview(result, penaltyItems);
-		}
-		return savedRevision(settlement, penaltyItems);
+		SettlementResponse response = settlement.getStatus() == SettlementStatus.DRAFT
+				? SettlementResponse.preview(result, penaltyItems)
+				: savedRevision(settlement, penaltyItems);
+		return payeeAttacher.attach(meeting.getGroup().getId(), response);
 	}
 
 	private SettlementResponse savedRevision(Settlement settlement, List<SettlementPenaltyResponse> penaltyItems) {

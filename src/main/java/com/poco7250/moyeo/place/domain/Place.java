@@ -1,5 +1,6 @@
 package com.poco7250.moyeo.place.domain;
 
+import com.poco7250.moyeo.global.validation.HttpsUrl;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
@@ -20,7 +21,7 @@ public class Place {
 
 	public static final int LABEL_MAX_LENGTH = 50;
 	public static final int ADDRESS_MAX_LENGTH = 200;
-	public static final int MAP_URL_MAX_LENGTH = 2048;
+	public static final int MAP_URL_MAX_LENGTH = HttpsUrl.MAX_LENGTH;
 
 	// 표시 이름(필수)
 	@Column(nullable = false, length = LABEL_MAX_LENGTH)

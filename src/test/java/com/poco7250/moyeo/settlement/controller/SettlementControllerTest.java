@@ -68,11 +68,11 @@ class SettlementControllerTest {
 					new SettlementMemberResponse(9L, 10_000L, -10_000L)),
 			List.of(new SettlementTransferResponse(9L, 8L, 10_000L)),
 			List.of(new SettlementWarningResponse(SettlementWarningType.NO_SHARE_TARGET, 31L)),
-			List.of(PENALTY_APPLIED, PENALTY_ASSIGNED), null);
+			List.of(PENALTY_APPLIED, PENALTY_ASSIGNED), null, List.of());
 	private static final SettlementResponse CONFIRMED = new SettlementResponse(SettlementStatus.CONFIRMED, 1, false,
 			List.of(new SettlementMemberResponse(8L, 10_000L, 10_000L)),
 			List.of(new SettlementTransferResponse(9L, 8L, 10_000L)),
-			List.of(), List.of(), null);
+			List.of(), List.of(), null, List.of());
 
 	@Autowired
 	MockMvc mockMvc;
@@ -161,7 +161,7 @@ class SettlementControllerTest {
 				new RevisionChangeResponse(1, List.of(
 						new NetBalanceChangeResponse(8L, 10_000L, 15_000L, 5_000L),
 						new NetBalanceChangeResponse(9L, -10_000L, -15_000L, -5_000L)),
-						RevisionChangeResponse.NOTICE, "정산이 수정됐어요(리비전 2): …"));
+						RevisionChangeResponse.NOTICE, "정산이 수정됐어요(리비전 2): …"), List.of());
 		given(settlementConfirmService.confirm(10L, 8L, false)).willReturn(reconfirmed);
 
 		mockMvc.perform(post("/api/meetings/10/settlement/confirm").cookie(accessCookie()))

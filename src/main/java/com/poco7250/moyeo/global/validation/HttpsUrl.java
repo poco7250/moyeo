@@ -1,4 +1,4 @@
-package com.poco7250.moyeo.place.validation;
+package com.poco7250.moyeo.global.validation;
 
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.PARAMETER;
@@ -20,6 +20,9 @@ import java.lang.annotation.Target;
 @Retention(RUNTIME)
 @Constraint(validatedBy = HttpsUrlValidator.class)
 public @interface HttpsUrl {
+
+	/** 허용하는 최대 길이. 링크를 저장하는 컬럼 길이도 이 값을 쓴다 */
+	int MAX_LENGTH = 2048;
 
 	String message() default "https로 시작하는 2,048자 이하 링크만 입력할 수 있습니다.";
 
