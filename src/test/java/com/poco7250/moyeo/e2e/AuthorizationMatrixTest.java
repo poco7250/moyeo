@@ -168,6 +168,8 @@ class AuthorizationMatrixTest {
 					"{\"candidateId\":{candidateId}}"),
 			new Endpoint(HttpMethod.POST, "/api/rounds/{roundId}/place/voting", Access.HOST,
 					"{\"placeVoteDeadline\":\"2099-12-19T18:00:00\"}"),
+			endpoint(HttpMethod.POST, "/api/rounds/{roundId}/place/roulette", Access.HOST),
+			endpoint(HttpMethod.GET, "/api/rounds/{roundId}/place/roulettes", Access.MEMBER),
 			// 지출·정산
 			new Endpoint(HttpMethod.POST, "/api/rounds/{roundId}/expenses", Access.MEMBER, EXPENSE_BODY),
 			new Endpoint(HttpMethod.PUT, "/api/expenses/{expenseId}", Access.MEMBER, EXPENSE_BODY),
