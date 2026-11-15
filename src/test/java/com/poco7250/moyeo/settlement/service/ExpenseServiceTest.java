@@ -82,6 +82,9 @@ class ExpenseServiceTest {
 	@Mock
 	ApplicationEventPublisher eventPublisher;
 
+	@Mock
+	ExpenseReceiptService expenseReceiptService;
+
 	@InjectMocks
 	ExpenseService expenseService;
 
@@ -114,7 +117,7 @@ class ExpenseServiceTest {
 		ExpenseResponse response = expenseService.create(ROUND_ID, ACTOR_ID,
 				new ExpenseRequest(100_000L, PAYER_ID, "  볼링  "));
 
-		assertThat(response).isEqualTo(new ExpenseResponse(EXPENSE_ID, ROUND_ID, PAYER_ID, 100_000L, "볼링", List.of()));
+		assertThat(response).isEqualTo(new ExpenseResponse(EXPENSE_ID, ROUND_ID, PAYER_ID, 100_000L, "볼링", List.of(), null));
 		InOrder order = inOrder(settlementGuard, expenseRepository, changeLogRecorder);
 		order.verify(settlementGuard).lockForAmountChange(MEETING_ID);
 		order.verify(expenseRepository).save(any(Expense.class));

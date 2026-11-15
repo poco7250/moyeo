@@ -33,6 +33,7 @@ public class ExpenseShareService {
 	private final GroupMemberRepository groupMemberRepository;
 	private final SettlementGuard settlementGuard;
 	private final ChangeLogRecorder changeLogRecorder;
+	private final ExpenseReceiptService expenseReceiptService;
 
 	/**
 	 * 지출의 분배 조정을 요청 목록으로 전체 교체한다.
@@ -52,7 +53,7 @@ public class ExpenseShareService {
 				List.of(new SettlementChangeSummary(ChangeLogEntityType.EXPENSE_SHARE, expense.getId(), ChangeType.UPDATE)));
 		changeLogRecorder.record(meeting.getId(), memberId, ChangeLogEntityType.EXPENSE_SHARE, expense.getId(),
 				ChangeType.UPDATE, before, ExpenseSharesSnapshot.from(expense));
-		return ExpenseResponse.from(expense);
+		return ExpenseResponse.of(expense, expenseReceiptService.findResponse(expense.getId()));
 	}
 
 	private Map<Long, Member> findTargets(Long groupId, List<ExpenseShareItem> items) {

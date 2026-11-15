@@ -10,8 +10,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -82,14 +83,16 @@ public final class E2eClient {
 
 	/**
 	 * API를 부르고 성공·실패와 상관없이 응답을 돌려준다. session이 null이면 쿠키 없이 부른다.
-	 * body가 String이면 이미 만든 JSON으로 보고 그대로 보낸다.
+	 * body가 String이면 이미 만든 JSON으로 보고 그대로 보내고, MockMultipartFile이면 multipart 파트로 보낸다.
 	 */
 	public Exchange call(HttpMethod method, String uri, Cookie session, Object body) {
-		MockHttpServletRequestBuilder request = MockMvcRequestBuilders.request(method, uri);
+		AbstractMockHttpServletRequestBuilder<?> request = body instanceof MockMultipartFile file
+				? MockMvcRequestBuilders.multipart(method, uri).file(file)
+				: MockMvcRequestBuilders.request(method, uri);
 		if (session != null) {
 			request.cookie(session);
 		}
-		if (body != null) {
+		if (body != null && !(body instanceof MockMultipartFile)) {
 			String json = body instanceof String raw ? raw : jsonMapper.writeValueAsString(body);
 			request.contentType(MediaType.APPLICATION_JSON).content(json);
 		}
@@ -109,7 +112,7 @@ public final class E2eClient {
 		}
 	}
 
-	private MockHttpServletResponse perform(MockHttpServletRequestBuilder request) {
+	private MockHttpServletResponse perform(AbstractMockHttpServletRequestBuilder<?> request) {
 		try {
 			return mockMvc.perform(request).andReturn().getResponse();
 		} catch (Exception e) {

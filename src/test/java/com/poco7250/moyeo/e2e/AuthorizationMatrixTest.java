@@ -59,6 +59,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
@@ -79,6 +80,9 @@ class AuthorizationMatrixTest {
 	private static final Pattern PLACEHOLDER = Pattern.compile("\\{(\\w+)}");
 	private static final String ROUNDS_BODY = "{\"rounds\":[{\"roundId\":{roundId},\"status\":\"ATTEND\"}]}";
 	private static final String EXPENSE_BODY = "{\"amount\":1000,\"payerId\":{hostId},\"memo\":\"점검\"}";
+	// 이 표시가 body면 JSON 대신 영수증 사진 multipart 파트를 보낸다
+	private static final String RECEIPT_FILE = "<receipt-file>";
+	private static final byte[] JPEG_BYTES = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0x10};
 
 	/** 접근 등급 */
 	enum Access {
@@ -165,6 +169,9 @@ class AuthorizationMatrixTest {
 			endpoint(HttpMethod.DELETE, "/api/expenses/{expenseId}", Access.MEMBER),
 			new Endpoint(HttpMethod.PUT, "/api/expenses/{expenseId}/shares", Access.MEMBER, "{\"shares\":[]}"),
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/expenses", Access.MEMBER),
+			new Endpoint(HttpMethod.PUT, "/api/expenses/{expenseId}/receipt", Access.MEMBER, RECEIPT_FILE),
+			endpoint(HttpMethod.DELETE, "/api/expenses/{expenseId}/receipt", Access.MEMBER),
+			endpoint(HttpMethod.GET, "/api/expenses/{expenseId}/receipt", Access.MEMBER),
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/settlement", Access.MEMBER),
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/settlement/revisions", Access.MEMBER),
 			new Endpoint(HttpMethod.POST, "/api/meetings/{meetingId}/settlement/confirm", Access.HOST,
@@ -359,7 +366,9 @@ class AuthorizationMatrixTest {
 	}
 
 	private Exchange call(Endpoint endpoint, Cookie session) {
-		String body = endpoint.body() == null ? null : resolve(endpoint.body());
+		Object body = RECEIPT_FILE.equals(endpoint.body())
+				? new MockMultipartFile("file", "receipt.jpg", "image/jpeg", JPEG_BYTES)
+				: endpoint.body() == null ? null : resolve(endpoint.body());
 		return client.call(endpoint.method(), resolve(endpoint.path()), session, body);
 	}
 

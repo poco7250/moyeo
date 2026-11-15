@@ -93,6 +93,14 @@ class GlobalExceptionHandlerTest {
 	}
 
 	@Test
+	void 업로드_크기_제한을_넘으면_413_RECEIPT_TOO_LARGE_JSON을_준다() throws Exception {
+		mockMvc.perform(get(BASE_URL + "/upload-too-large"))
+				.andExpect(status().isContentTooLarge())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.error.code").value("RECEIPT_TOO_LARGE"));
+	}
+
+	@Test
 	void 낙관적_락_충돌이면_409_CONCURRENT_MODIFICATION_JSON을_준다() throws Exception {
 		mockMvc.perform(get(BASE_URL + "/lock"))
 				.andExpect(status().isConflict())

@@ -36,6 +36,9 @@ out/
 ### VS Code ###
 .vscode/
 
+### Local data (영수증 사진 로컬 저장소) ###
+/data/
+
 ### Local config ###
 application-local.properties
 .claude/settings.local.json

@@ -50,7 +50,7 @@ class ExpenseControllerTest {
 
 	private static final String VALID_BODY = "{\"amount\":100000,\"payerId\":8,\"memo\":\"볼링\"}";
 	private static final ExpenseResponse RESPONSE = new ExpenseResponse(
-			30L, 20L, 8L, 100_000L, "볼링", List.of(new ExpenseShareResponse(9L, null, null, true)));
+			30L, 20L, 8L, 100_000L, "볼링", List.of(new ExpenseShareResponse(9L, null, null, true)), null);
 
 	@Autowired
 	MockMvc mockMvc;

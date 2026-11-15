@@ -12,6 +12,7 @@ import com.poco7250.moyeo.settlement.domain.ChangeLogEntityType;
 import com.poco7250.moyeo.settlement.domain.ChangeType;
 import com.poco7250.moyeo.settlement.domain.Expense;
 import com.poco7250.moyeo.settlement.dto.ExpenseDeleteResponse;
+import com.poco7250.moyeo.settlement.dto.ExpenseReceiptResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseRequest;
 import com.poco7250.moyeo.settlement.dto.ExpenseResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseSnapshot;
@@ -19,6 +20,7 @@ import com.poco7250.moyeo.settlement.dto.SettlementChangeSummary;
 import com.poco7250.moyeo.settlement.repository.ExpenseRepository;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -40,6 +42,7 @@ public class ExpenseService {
 	private final SettlementGuard settlementGuard;
 	private final ChangeLogRecorder changeLogRecorder;
 	private final TargetExpenseRuleDetacher targetExpenseRuleDetacher;
+	private final ExpenseReceiptService expenseReceiptService;
 	private final ApplicationEventPublisher eventPublisher;
 
 	/**
@@ -56,7 +59,7 @@ public class ExpenseService {
 		Expense expense = expenseRepository.save(
 				Expense.create(round, payer, request.amount(), normalizeMemo(request.memo())));
 		recordChange(meeting, memberId, expense, ChangeType.CREATE, null, ExpenseSnapshot.from(expense));
-		return ExpenseResponse.from(expense);
+		return ExpenseResponse.of(expense, null);
 	}
 
 	/**
@@ -74,7 +77,7 @@ public class ExpenseService {
 		ExpenseSnapshot before = ExpenseSnapshot.from(expense);
 		expense.update(payer, request.amount(), normalizeMemo(request.memo()));
 		recordChange(meeting, memberId, expense, ChangeType.UPDATE, before, ExpenseSnapshot.from(expense));
-		return ExpenseResponse.from(expense);
+		return ExpenseResponse.of(expense, expenseReceiptService.findResponse(expense.getId()));
 	}
 
 	/**
@@ -92,6 +95,8 @@ public class ExpenseService {
 		ExpenseSnapshot before = ExpenseSnapshot.from(expense);
 		// 조건이 지출을 FK로 가리키므로 조건 삭제가 지출 삭제보다 먼저 쓰기 대기열에 들어가야 한다
 		List<DetachedRule> detached = targetExpenseRuleDetacher.detach(expense.getId());
+		// 영수증 행도 지출을 FK로 가리키므로 먼저 지운다(파일은 커밋 뒤)
+		expenseReceiptService.removeWithExpense(expense.getId());
 		expenseRepository.delete(expense);
 		recordDeletion(meetingId, memberId, expense.getId(), before, detached);
 
@@ -111,8 +116,11 @@ public class ExpenseService {
 	@Transactional(readOnly = true)
 	public List<ExpenseResponse> list(Long meetingId, Long memberId) {
 		meetingAccessChecker.requireMember(meetingId, memberId);
-		return expenseRepository.findAllWithSharesByMeetingId(meetingId).stream()
-				.map(ExpenseResponse::from)
+		List<Expense> expenses = expenseRepository.findAllWithSharesByMeetingId(meetingId);
+		Map<Long, ExpenseReceiptResponse> receipts = expenseReceiptService.findResponses(
+				expenses.stream().map(Expense::getId).toList());
+		return expenses.stream()
+				.map(expense -> ExpenseResponse.of(expense, receipts.get(expense.getId())))
 				.toList();
 	}
 

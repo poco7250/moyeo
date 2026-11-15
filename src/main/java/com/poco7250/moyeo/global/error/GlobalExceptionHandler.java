@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.method.ParameterValidationResult;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -19,6 +20,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
@@ -90,6 +94,24 @@ public class GlobalExceptionHandler {
 	}
 
 	/**
+	 * 업로드 크기 제한(spring.servlet.multipart.max-file-size) 초과를 413으로 응답한다.
+	 * 지금 multipart를 받는 API는 영수증 사진뿐이라 그 에러 코드를 쓴다.
+	 */
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException e) {
+		return toResponse(ErrorCode.RECEIPT_TOO_LARGE);
+	}
+
+	/**
+	 * multipart 파트 누락이나 multipart가 아닌 요청을 400으로 응답한다.
+	 */
+	@ExceptionHandler({MissingServletRequestPartException.class, MultipartException.class})
+	public ResponseEntity<ApiResponse<Void>> handleBadMultipart(Exception e) {
+		log.warn("multipart 요청 오류: {}", e.getClass().getSimpleName());
+		return toResponse(ErrorCode.INVALID_INPUT);
+	}
+
+	/**
 	 * 매핑되지 않은 URL 요청을 404로 응답한다.
 	 */
 	@ExceptionHandler(NoResourceFoundException.class)
@@ -103,6 +125,14 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
 	public ResponseEntity<ApiResponse<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
 		return toResponse(ErrorCode.METHOD_NOT_ALLOWED);
+	}
+
+	/**
+	 * API가 받지 않는 Content-Type 요청(예: multipart API에 JSON)을 415로 응답한다.
+	 */
+	@ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+	public ResponseEntity<ApiResponse<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException e) {
+		return toResponse(ErrorCode.UNSUPPORTED_MEDIA_TYPE);
 	}
 
 	/**
