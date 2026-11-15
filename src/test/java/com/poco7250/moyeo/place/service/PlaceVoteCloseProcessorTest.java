@@ -54,7 +54,8 @@ class PlaceVoteCloseProcessorTest {
 
 	@BeforeEach
 	void setUp() {
-		processor = new PlaceVoteCloseProcessor(roundRepository, placeCandidateRepository, placeVoteRepository,
+		processor = new PlaceVoteCloseProcessor(roundRepository,
+				new RoundVoteDecider(placeCandidateRepository, placeVoteRepository),
 				new RoundPlaceSnapshot(placeCandidateRepository, eventPublisher), eventPublisher,
 				TestClocks.fixed(NOW));
 		round = PlaceServiceFixture.round();

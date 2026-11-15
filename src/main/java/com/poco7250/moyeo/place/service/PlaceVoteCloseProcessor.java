@@ -2,16 +2,9 @@ package com.poco7250.moyeo.place.service;
 
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
-import com.poco7250.moyeo.place.domain.PlaceCandidate;
-import com.poco7250.moyeo.place.domain.VoteTally;
 import com.poco7250.moyeo.place.dto.PlaceDecisionRequiredResponse;
-import com.poco7250.moyeo.place.repository.PlaceCandidateRepository;
-import com.poco7250.moyeo.place.repository.PlaceVoteRepository;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
@@ -25,8 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PlaceVoteCloseProcessor {
 
 	private final RoundRepository roundRepository;
-	private final PlaceCandidateRepository placeCandidateRepository;
-	private final PlaceVoteRepository placeVoteRepository;
+	private final RoundVoteDecider roundVoteDecider;
 	private final RoundPlaceSnapshot roundPlaceSnapshot;
 	private final ApplicationEventPublisher eventPublisher;
 	private final Clock clock;
@@ -44,28 +36,14 @@ public class PlaceVoteCloseProcessor {
 	}
 
 	private void applyDecision(Round round, LocalDateTime now) {
-		List<PlaceCandidate> candidates = placeCandidateRepository.findAllByRoundIdOrderById(round.getId());
-		VoteTally.Decision decision = VoteTally.decide(
-				candidates.stream().map(PlaceCandidate::getId).toList(), countVotes(round.getId()));
-		if (decision.hasWinner()) {
-			round.confirm(findWinner(candidates, decision.winnerId()));
+		RoundVoteDecider.Result result = roundVoteDecider.decide(round.getId());
+		if (result.decision().hasWinner()) {
+			round.confirm(result.winner());
 			roundPlaceSnapshot.publish(round);
 			return;
 		}
 		round.markVoteClosed(now);
 		eventPublisher.publishEvent(new PlaceDecisionRequiredEvent(round.getMeeting().getId(),
-				new PlaceDecisionRequiredResponse(round.getId(), decision.tiedCandidateIds())));
-	}
-
-	private Map<Long, Long> countVotes(Long roundId) {
-		return placeVoteRepository.findAllByRoundId(roundId).stream()
-				.collect(Collectors.groupingBy(vote -> vote.getCandidate().getId(), Collectors.counting()));
-	}
-
-	private PlaceCandidate findWinner(List<PlaceCandidate> candidates, Long winnerId) {
-		return candidates.stream()
-				.filter(candidate -> candidate.getId().equals(winnerId))
-				.findFirst()
-				.orElseThrow();
+				new PlaceDecisionRequiredResponse(round.getId(), result.decision().tiedCandidateIds())));
 	}
 }

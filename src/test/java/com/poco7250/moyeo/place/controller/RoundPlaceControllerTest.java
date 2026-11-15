@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -17,8 +18,11 @@ import com.poco7250.moyeo.meeting.domain.PlaceStatus;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.place.dto.CandidateResponse;
 import com.poco7250.moyeo.place.dto.PlaceInput;
+import com.poco7250.moyeo.place.dto.PlaceRouletteResponse;
+import com.poco7250.moyeo.place.dto.PlaceRouletteResultResponse;
 import com.poco7250.moyeo.place.dto.RoundPlaceResponse;
 import com.poco7250.moyeo.place.service.PlaceCandidateService;
+import com.poco7250.moyeo.place.service.PlaceRouletteService;
 import com.poco7250.moyeo.place.service.RoundPlaceService;
 import com.poco7250.moyeo.support.SecurityTestConfig;
 import jakarta.servlet.http.Cookie;
@@ -51,6 +55,10 @@ class RoundPlaceControllerTest {
 	private static final String CONFIRM_URL = "/api/rounds/100/place/confirm-direct";
 	private static final String MANUAL_CONFIRM_URL = "/api/rounds/100/place/confirm";
 	private static final String VOTING_URL = "/api/rounds/100/place/voting";
+	private static final String ROULETTE_URL = "/api/rounds/100/place/roulette";
+	private static final String ROULETTES_URL = "/api/rounds/100/place/roulettes";
+	private static final PlaceRouletteResponse ROULETTE = new PlaceRouletteResponse(900L, 100L, 12345L,
+			List.of(501L, 500L), 501L, 7L, LocalDateTime.of(2026, 12, 19, 18, 1));
 	private static final String VALID_PLACE = "{\"label\":\"강남 볼링\",\"manualAddress\":\"강남대로 1\"}";
 	private static final CandidateResponse CANDIDATE = new CandidateResponse(500L, "강남 볼링", "강남대로 1", null,
 			"https://map.kakao.com/link/search/%EA%B0%95%EB%82%A8%EB%8C%80%EB%A1%9C%201", 8L);
@@ -66,6 +74,9 @@ class RoundPlaceControllerTest {
 
 	@MockitoBean
 	RoundPlaceService roundPlaceService;
+
+	@MockitoBean
+	PlaceRouletteService placeRouletteService;
 
 	@Test
 	@DisplayName("후보 추가에 성공하면 201과 후보(지도 링크 포함)를 준다")
@@ -267,6 +278,73 @@ class RoundPlaceControllerTest {
 		mockMvc.perform(postJson(CANDIDATES_URL, VALID_PLACE).cookie(accessCookie(9L)))
 				.andExpect(status().isForbidden())
 				.andExpect(jsonPath("$.error.code").value(ErrorCode.NOT_GROUP_MEMBER.name()));
+	}
+
+	@Test
+	@DisplayName("룰렛을 돌리면 확정된 장소 상태와 룰렛 기록(seed·추첨 순서·당첨 후보)을 준다")
+	void spinRoulette() throws Exception {
+		RoundPlaceResponse place = new RoundPlaceResponse(100L, PlaceStatus.CONFIRMED, null, false, 501L, List.of());
+		given(placeRouletteService.spin(100L, 7L)).willReturn(new PlaceRouletteResultResponse(place, ROULETTE));
+
+		mockMvc.perform(post(ROULETTE_URL).cookie(accessCookie(7L)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.place.placeStatus").value("CONFIRMED"))
+				.andExpect(jsonPath("$.data.place.confirmedCandidateId").value(501))
+				.andExpect(jsonPath("$.data.roulette.seed").value(12345))
+				.andExpect(jsonPath("$.data.roulette.candidateIds[0]").value(501))
+				.andExpect(jsonPath("$.data.roulette.candidateIds[1]").value(500))
+				.andExpect(jsonPath("$.data.roulette.winnerCandidateId").value(501))
+				.andExpect(jsonPath("$.data.roulette.spunByMemberId").value(7));
+	}
+
+	static Stream<Arguments> rouletteErrors() {
+		return Stream.of(
+				Arguments.of(ErrorCode.NOT_MEETING_HOST, 403),
+				Arguments.of(ErrorCode.ROUND_PLACE_INVALID_TRANSITION, 409),
+				Arguments.of(ErrorCode.PLACE_ROULETTE_NOT_ENOUGH_CANDIDATES, 409));
+	}
+
+	@ParameterizedTest
+	@MethodSource("rouletteErrors")
+	@DisplayName("룰렛 서비스 예외는 상태 코드·에러 코드로 그대로 전달된다")
+	void spinRouletteErrors(ErrorCode errorCode, int status) throws Exception {
+		given(placeRouletteService.spin(100L, 8L)).willThrow(new BusinessException(errorCode));
+
+		mockMvc.perform(post(ROULETTE_URL).cookie(accessCookie(8L)))
+				.andExpect(status().is(status))
+				.andExpect(jsonPath("$.error.code").value(errorCode.name()));
+	}
+
+	@Test
+	@DisplayName("룰렛이 수동 확정과 충돌하면 409 CONCURRENT_MODIFICATION")
+	void spinRouletteConflict() throws Exception {
+		given(placeRouletteService.spin(100L, 7L))
+				.willThrow(new ObjectOptimisticLockingFailureException(Round.class, 100L));
+
+		mockMvc.perform(post(ROULETTE_URL).cookie(accessCookie(7L)))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.error.code").value(ErrorCode.CONCURRENT_MODIFICATION.name()));
+	}
+
+	@Test
+	@DisplayName("룰렛 기록을 최근 순 목록으로 준다")
+	void getRoulettes() throws Exception {
+		given(placeRouletteService.getHistory(100L, 8L)).willReturn(List.of(ROULETTE));
+
+		mockMvc.perform(get(ROULETTES_URL).cookie(accessCookie(8L)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data[0].id").value(900))
+				.andExpect(jsonPath("$.data[0].roundId").value(100))
+				.andExpect(jsonPath("$.data[0].spunAt").value("2026-12-19T18:01:00"));
+	}
+
+	@Test
+	@DisplayName("비로그인 룰렛 돌리기·기록 조회는 401")
+	void rouletteUnauthenticated() throws Exception {
+		mockMvc.perform(post(ROULETTE_URL)).andExpect(status().isUnauthorized());
+		mockMvc.perform(get(ROULETTES_URL)).andExpect(status().isUnauthorized());
+		verifyNoInteractions(placeRouletteService);
 	}
 
 	private static MockHttpServletRequestBuilder postJson(String url, String body) {
