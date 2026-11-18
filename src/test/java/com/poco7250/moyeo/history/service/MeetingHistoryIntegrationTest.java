@@ -184,15 +184,15 @@ class MeetingHistoryIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("차수별 보드게임 기록을 기록 순으로 게임명·순위(동순위 포함)·멤버와 함께 돌려준다")
+	@DisplayName("차수별 보드게임 기록을 기록 순으로 게임명·순위(동순위 포함)·멤버·꼴등과 함께 돌려준다")
 	void boardGames() {
 		Meeting meeting = savePastMeeting("7월 모임", LocalDateTime.of(2020, 7, 1, 18, 0));
 		Round boardGame = roundRepository.save(Round.create(meeting, 1, "보드게임"));
 		BoardGameRecord splendor = boardGameRecordRepository.save(BoardGameRecord.create(boardGame, "스플렌더",
 				host.getId(), List.of(BoardGameRank.of(younghee.getId(), 2), BoardGameRank.of(minsu.getId(), 1),
-						BoardGameRank.of(host.getId(), 1))));
+						BoardGameRank.of(host.getId(), 1)), younghee.getId()));
 		BoardGameRecord catan = boardGameRecordRepository.save(BoardGameRecord.create(boardGame, "카탄",
-				minsu.getId(), List.of(BoardGameRank.of(minsu.getId(), 2), BoardGameRank.of(younghee.getId(), 1))));
+				minsu.getId(), List.of(BoardGameRank.of(minsu.getId(), 2), BoardGameRank.of(younghee.getId(), 1)), minsu.getId()));
 
 		RoundHistoryResponse round = meetingHistoryService.list(group.getId(), minsu.getId(), 0, 20)
 				.items().get(0).rounds().get(0);
@@ -203,6 +203,7 @@ class MeetingHistoryIntegrationTest {
 		assertThat(first.gameName()).isEqualTo("스플렌더");
 		assertThat(first.ranks()).extracting(BoardGameRankHistoryResponse::rank).containsExactly(1, 1, 2);
 		assertThat(first.ranks()).extracting(r -> r.member().nickname()).containsExactly("호스트", "민수", "영희");
+		assertThat(first.loser().nickname()).isEqualTo("영희");
 		assertThat(round.games()).isEmpty();
 	}
 

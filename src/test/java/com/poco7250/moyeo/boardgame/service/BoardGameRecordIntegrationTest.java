@@ -215,7 +215,8 @@ class BoardGameRecordIntegrationTest {
 		return new BoardGameRankRequest(member.getId(), rank);
 	}
 
+	// 꼴등은 마지막으로 넘긴 참가자
 	private static BoardGameRecordRequest request(String gameName, BoardGameRankRequest... ranks) {
-		return new BoardGameRecordRequest(gameName, List.of(ranks));
+		return new BoardGameRecordRequest(gameName, List.of(ranks), ranks[ranks.length - 1].memberId());
 	}
 }

@@ -38,4 +38,9 @@ public interface RoundRepository extends JpaRepository<Round, Long> {
 	@Query("select r.id from Round r where r.placeStatus = com.poco7250.moyeo.meeting.domain.PlaceStatus.VOTING "
 			+ "and r.placeVoteDeadline < :now and r.placeVoteClosedAt is null")
 	List<Long> findVoteClosableIds(@Param("now") LocalDateTime now);
+
+	/**
+	 * 여러 모임의 차수를 조회한다(명예의 전당). 장소는 쓰지 않아 fetch join하지 않는다.
+	 */
+	List<Round> findAllByMeetingIdIn(Collection<Long> meetingIds);
 }

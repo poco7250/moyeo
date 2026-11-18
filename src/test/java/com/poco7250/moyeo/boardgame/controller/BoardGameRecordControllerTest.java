@@ -51,10 +51,10 @@ class BoardGameRecordControllerTest {
 	private static final String ROUND_URL = "/api/rounds/100/board-games";
 	private static final String RECORD_URL = "/api/board-games/300";
 	private static final String VALID_BODY =
-			"{\"gameName\":\"스플렌더\",\"ranks\":[{\"memberId\":8,\"rank\":1},{\"memberId\":9,\"rank\":1}]}";
+			"{\"gameName\":\"스플렌더\",\"ranks\":[{\"memberId\":8,\"rank\":1},{\"memberId\":9,\"rank\":1}],\"loserMemberId\":9}";
 	private static final LocalDateTime AT = LocalDateTime.of(2026, 12, 20, 21, 0);
 	private static final BoardGameRecordResponse RECORD = new BoardGameRecordResponse(300L, 100L, "스플렌더",
-			List.of(new BoardGameRankResponse(8L, 1), new BoardGameRankResponse(9L, 1)), 8L, AT, AT);
+			List.of(new BoardGameRankResponse(8L, 1), new BoardGameRankResponse(9L, 1)), 9L, 8L, AT, AT);
 
 	@Autowired
 	MockMvc mockMvc;
@@ -77,10 +77,11 @@ class BoardGameRecordControllerTest {
 				.andExpect(jsonPath("$.data.gameName").value("스플렌더"))
 				.andExpect(jsonPath("$.data.ranks[1].memberId").value(9))
 				.andExpect(jsonPath("$.data.ranks[1].rank").value(1))
+				.andExpect(jsonPath("$.data.loserMemberId").value(9))
 				.andExpect(jsonPath("$.data.recordedByMemberId").value(8))
 				.andExpect(jsonPath("$.data.createdAt").value("2026-12-20T21:00:00"));
 		verify(boardGameRecordService).create(100L, 8L, new BoardGameRecordRequest("스플렌더",
-				List.of(new BoardGameRankRequest(8L, 1), new BoardGameRankRequest(9L, 1))));
+				List.of(new BoardGameRankRequest(8L, 1), new BoardGameRankRequest(9L, 1)), 9L));
 	}
 
 	@Test
@@ -117,9 +118,12 @@ class BoardGameRecordControllerTest {
 			"{\"gameName\":\"카탄\",\"ranks\":[{\"memberId\":8,\"rank\":1},{\"memberId\":8,\"rank\":2}]}|membersDistinct",
 			"{\"gameName\":\"카탄\",\"ranks\":[{\"memberId\":8,\"rank\":0},{\"memberId\":9,\"rank\":1}]}|ranks[0].rank",
 			"{\"gameName\":\"카탄\",\"ranks\":[{\"memberId\":8,\"rank\":3},{\"memberId\":9,\"rank\":1}]}|rankWithinCount",
-			"{\"gameName\":\"카탄\",\"ranks\":[{\"rank\":1},{\"memberId\":9,\"rank\":1}]}|ranks[0].memberId"
+			"{\"gameName\":\"카탄\",\"ranks\":[{\"rank\":1},{\"memberId\":9,\"rank\":1}]}|ranks[0].memberId",
+			"{\"gameName\":\"카탄\",\"ranks\":[{\"memberId\":8,\"rank\":1},{\"memberId\":9,\"rank\":2}]}|loserMemberId",
+			"{\"gameName\":\"카탄\",\"ranks\":[{\"memberId\":8,\"rank\":1},{\"memberId\":9,\"rank\":2}],"
+					+ "\"loserMemberId\":10}|loserParticipant"
 	})
-	@DisplayName("게임명·참가자 수·중복 회원·순위 범위를 어기면 400 INVALID_INPUT이고 서비스를 호출하지 않는다")
+	@DisplayName("게임명·참가자 수·중복 회원·순위 범위·꼴등(누락·참가자 아님)을 어기면 400 INVALID_INPUT이고 서비스를 호출하지 않는다")
 	void invalidRequest(String body, String field) throws Exception {
 		mockMvc.perform(json(post(ROUND_URL), body).cookie(accessCookie(8L)))
 				.andExpect(status().isBadRequest())

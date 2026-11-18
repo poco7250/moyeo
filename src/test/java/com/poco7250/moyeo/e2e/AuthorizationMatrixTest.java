@@ -83,7 +83,8 @@ class AuthorizationMatrixTest {
 	private static final Pattern PLACEHOLDER = Pattern.compile("\\{(\\w+)}");
 	private static final String ROUNDS_BODY = "{\"rounds\":[{\"roundId\":{roundId},\"status\":\"ATTEND\"}]}";
 	private static final String BOARD_GAME_BODY =
-			"{\"gameName\":\"점검\",\"ranks\":[{\"memberId\":{hostId},\"rank\":1},{\"memberId\":{memberId},\"rank\":2}]}";
+			"{\"gameName\":\"점검\",\"ranks\":[{\"memberId\":{hostId},\"rank\":1},{\"memberId\":{memberId},\"rank\":2}],"
+					+ "\"loserMemberId\":{memberId}}";
 	private static final String EXPENSE_BODY = "{\"amount\":1000,\"payerId\":{hostId},\"memo\":\"점검\"}";
 	// 이 표시가 body면 JSON 대신 영수증 사진 multipart 파트를 보낸다
 	private static final String RECEIPT_FILE = "<receipt-file>";
@@ -142,6 +143,7 @@ class AuthorizationMatrixTest {
 					"{\"title\":\"점검 모임\",\"startAt\":\"2099-12-20T18:00:00\",\"template\":\"MEAL_BOWLING\"}"),
 			endpoint(HttpMethod.GET, "/api/groups/{groupId}/meetings", Access.MEMBER),
 			endpoint(HttpMethod.GET, "/api/groups/{groupId}/history", Access.MEMBER),
+			endpoint(HttpMethod.GET, "/api/groups/{groupId}/hall-of-fame", Access.MEMBER),
 			// 모임·참석
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}", Access.MEMBER),
 			new Endpoint(HttpMethod.PUT, "/api/meetings/{meetingId}/attendances/me", Access.MEMBER, ROUNDS_BODY),
@@ -447,7 +449,7 @@ class AuthorizationMatrixTest {
 		// 호스트가 기록해 둬 일반 멤버는 기록한 사람도 호스트도 아니다
 		fixture.put("boardGameId", boardGameRecordService.create(round.getId(), hostMember.getId(),
 				new BoardGameRecordRequest("점검", List.of(new BoardGameRankRequest(hostMember.getId(), 1),
-						new BoardGameRankRequest(plainMember.getId(), 2)))).id().toString());
+						new BoardGameRankRequest(plainMember.getId(), 2)), plainMember.getId())).id().toString());
 	}
 
 	private static Stream<String> signatures(RequestMappingInfo info) {

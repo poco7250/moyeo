@@ -46,4 +46,13 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 	 * 그룹의 지난 모임(시작 시각이 기준 시각 이전) 한 페이지를 조회한다(모임 히스토리). 정렬은 Pageable로 준다.
 	 */
 	Slice<Meeting> findAllByGroupIdAndStartAtLessThan(Long groupId, LocalDateTime now, Pageable pageable);
+
+	/**
+	 * 그룹의 모임 중 시작 시각이 [from, to) 안에 있는 것을 최근 순(같은 시각이면 나중에 만든 모임 먼저)으로 조회한다
+	 * (명예의 전당). 날짜 투표 중인 모임은 시작 시각이 없어 빠진다.
+	 */
+	@Query("select m from Meeting m where m.group.id = :groupId and m.startAt >= :from and m.startAt < :to "
+			+ "order by m.startAt desc, m.id desc")
+	List<Meeting> findAllByGroupIdAndStartAtInRange(@Param("groupId") Long groupId,
+			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

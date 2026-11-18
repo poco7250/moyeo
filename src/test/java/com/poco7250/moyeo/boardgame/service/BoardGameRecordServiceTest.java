@@ -80,7 +80,7 @@ class BoardGameRecordServiceTest {
 
 	private static BoardGameRecordRequest request(String gameName) {
 		return new BoardGameRecordRequest(gameName,
-				List.of(new BoardGameRankRequest(OTHER_ID, 2), new BoardGameRankRequest(RECORDER_ID, 1)));
+				List.of(new BoardGameRankRequest(OTHER_ID, 2), new BoardGameRankRequest(RECORDER_ID, 1)), OTHER_ID);
 	}
 
 	private void givenAttending(int count) {
@@ -90,7 +90,7 @@ class BoardGameRecordServiceTest {
 
 	private BoardGameRecord givenSavedRecord() {
 		BoardGameRecord record = BoardGameRecord.create(round, "스플렌더", RECORDER_ID,
-				List.of(BoardGameRank.of(RECORDER_ID, 1), BoardGameRank.of(OTHER_ID, 2)));
+				List.of(BoardGameRank.of(RECORDER_ID, 1), BoardGameRank.of(OTHER_ID, 2)), OTHER_ID);
 		ReflectionTestUtils.setField(record, "id", RECORD_ID);
 		given(boardGameRecordRepository.findById(RECORD_ID)).willReturn(Optional.of(record));
 		given(meetingAccessChecker.requireMember(eq(MEETING_ID), anyLong())).willReturn(meeting);

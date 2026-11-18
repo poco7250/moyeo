@@ -23,7 +23,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 차수에서 한 보드게임 승패 기록(PRD R-7). 게임명과 참가자 전원의 순위만 남기고 벌칙·정산과는 무관하다.
+ * 차수에서 한 보드게임 승패 기록(PRD R-7). 게임명·참가자 전원의 순위·꼴등(전액 부담자)을 남기고 벌칙·정산과는 무관하다.
  */
 @Getter
 @Entity
@@ -51,27 +51,36 @@ public class BoardGameRecord extends BaseTimeEntity {
 	@OrderColumn(name = "display_order")
 	private List<BoardGameRank> ranks = new ArrayList<>();
 
+	// 꼴등(전액 부담자) 회원 id. 순위와 별개로 지정한다. 꼴등 지정 도입(2026-11-18) 전 기록은 null
+	private Long loserMemberId;
+
 	@Version
 	private Long version;
 
-	private BoardGameRecord(Round round, String gameName, Long recordedBy, List<BoardGameRank> ranks) {
+	private BoardGameRecord(Round round, String gameName, Long recordedBy, List<BoardGameRank> ranks,
+			Long loserMemberId) {
 		this.round = round;
 		this.recordedBy = recordedBy;
-		apply(gameName, ranks);
+		apply(gameName, ranks, loserMemberId);
 	}
 
 	/**
 	 * 새 보드게임 기록을 만든다.
+	 *
+	 * @throws IllegalArgumentException 꼴등이 참가자가 아니면(요청 DTO가 먼저 막으므로 호출 쪽 버그)
 	 */
-	public static BoardGameRecord create(Round round, String gameName, Long recordedBy, List<BoardGameRank> ranks) {
-		return new BoardGameRecord(round, gameName, recordedBy, ranks);
+	public static BoardGameRecord create(Round round, String gameName, Long recordedBy, List<BoardGameRank> ranks,
+			Long loserMemberId) {
+		return new BoardGameRecord(round, gameName, recordedBy, ranks, loserMemberId);
 	}
 
 	/**
-	 * 게임명과 순위 목록을 통째로 바꾼다.
+	 * 게임명·순위 목록·꼴등을 통째로 바꾼다.
+	 *
+	 * @throws IllegalArgumentException 꼴등이 참가자가 아니면(요청 DTO가 먼저 막으므로 호출 쪽 버그)
 	 */
-	public void update(String gameName, List<BoardGameRank> ranks) {
-		apply(gameName, ranks);
+	public void update(String gameName, List<BoardGameRank> ranks, Long loserMemberId) {
+		apply(gameName, ranks, loserMemberId);
 	}
 
 	/**
@@ -81,7 +90,11 @@ public class BoardGameRecord extends BaseTimeEntity {
 		return Objects.equals(recordedBy, memberId) || meeting.isHost(memberId);
 	}
 
-	private void apply(String gameName, List<BoardGameRank> ranks) {
+	private void apply(String gameName, List<BoardGameRank> ranks, Long loserMemberId) {
+		if (ranks.stream().noneMatch(rank -> rank.getMemberId().equals(loserMemberId))) {
+			throw new IllegalArgumentException("꼴등은 참가자 중 한 명이어야 합니다: " + loserMemberId);
+		}
+		this.loserMemberId = loserMemberId;
 		this.gameName = gameName.strip();
 		this.ranks.clear();
 		this.ranks.addAll(ranks.stream().sorted(BoardGameRank.DISPLAY_ORDER).toList());
