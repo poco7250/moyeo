@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.poco7250.moyeo.auth.token.JwtTokenProvider;
 import com.poco7250.moyeo.auth.token.TokenCookieFactory;
+import com.poco7250.moyeo.boardgame.dto.BoardGameRankRequest;
+import com.poco7250.moyeo.boardgame.dto.BoardGameRecordRequest;
+import com.poco7250.moyeo.boardgame.service.BoardGameRecordService;
 import com.poco7250.moyeo.e2e.E2eClient.Exchange;
 import com.poco7250.moyeo.game.domain.GameType;
 import com.poco7250.moyeo.game.domain.PenaltyKind;
@@ -79,6 +82,8 @@ class AuthorizationMatrixTest {
 
 	private static final Pattern PLACEHOLDER = Pattern.compile("\\{(\\w+)}");
 	private static final String ROUNDS_BODY = "{\"rounds\":[{\"roundId\":{roundId},\"status\":\"ATTEND\"}]}";
+	private static final String BOARD_GAME_BODY =
+			"{\"gameName\":\"점검\",\"ranks\":[{\"memberId\":{hostId},\"rank\":1},{\"memberId\":{memberId},\"rank\":2}]}";
 	private static final String EXPENSE_BODY = "{\"amount\":1000,\"payerId\":{hostId},\"memo\":\"점검\"}";
 	// 이 표시가 body면 JSON 대신 영수증 사진 multipart 파트를 보낸다
 	private static final String RECEIPT_FILE = "<receipt-file>";
@@ -95,7 +100,9 @@ class AuthorizationMatrixTest {
 		/** 모임 호스트만(비호스트 멤버 403 NOT_MEETING_HOST) */
 		HOST,
 		/** 게임 진행자 또는 호스트만(그 외 멤버 403 NOT_GAME_OPERATOR) */
-		OPERATOR
+		OPERATOR,
+		/** 보드게임 기록한 사람 또는 호스트만(그 외 멤버 403 NOT_BOARD_GAME_RECORDER) */
+		RECORDER
 	}
 
 	/** 점검표 한 줄. path·body의 {이름}은 픽스처 값으로 바꿔 부른다 */
@@ -197,7 +204,12 @@ class AuthorizationMatrixTest {
 					"{\"moneyType\":\"FULL\",\"targetExpenseId\":{expenseId}}"),
 			endpoint(HttpMethod.DELETE, "/api/games/{gameId}/penalty-rule", Access.HOST),
 			endpoint(HttpMethod.POST, "/api/games/{gameId}/penalty-waiver", Access.HOST),
-			endpoint(HttpMethod.DELETE, "/api/games/{gameId}/penalty-waiver", Access.HOST));
+			endpoint(HttpMethod.DELETE, "/api/games/{gameId}/penalty-waiver", Access.HOST),
+			// 보드게임 기록
+			endpoint(HttpMethod.GET, "/api/rounds/{roundId}/board-games", Access.MEMBER),
+			new Endpoint(HttpMethod.POST, "/api/rounds/{roundId}/board-games", Access.MEMBER, BOARD_GAME_BODY),
+			new Endpoint(HttpMethod.PUT, "/api/board-games/{boardGameId}", Access.RECORDER, BOARD_GAME_BODY),
+			endpoint(HttpMethod.DELETE, "/api/board-games/{boardGameId}", Access.RECORDER));
 
 	@Autowired
 	MockMvc mockMvc;
@@ -247,6 +259,9 @@ class AuthorizationMatrixTest {
 
 	@Autowired
 	GameLobbyService gameLobbyService;
+
+	@Autowired
+	BoardGameRecordService boardGameRecordService;
 
 	@Autowired
 	JdbcTemplate jdbcTemplate;
@@ -342,6 +357,16 @@ class AuthorizationMatrixTest {
 	}
 
 	@ParameterizedTest(name = "{0}")
+	@MethodSource("recorderEndpoints")
+	@DisplayName("보드게임 기록 수정·삭제는 기록한 사람도 호스트도 아닌 멤버면 403 NOT_BOARD_GAME_RECORDER다")
+	void nonRecorderRejected(Endpoint endpoint) {
+		Exchange response = call(endpoint, member);
+
+		assertThat(response.status()).isEqualTo(403);
+		assertThat(response.errorCode()).isEqualTo("NOT_BOARD_GAME_RECORDER");
+	}
+
+	@ParameterizedTest(name = "{0}")
 	@MethodSource("operatorEndpoints")
 	@DisplayName("진행자 전용 API는 진행자도 호스트도 아닌 멤버면 403 NOT_GAME_OPERATOR다")
 	void nonOperatorRejected(Endpoint endpoint) {
@@ -360,12 +385,16 @@ class AuthorizationMatrixTest {
 	}
 
 	Stream<Endpoint> groupResourceEndpoints() {
-		Set<Access> groupResources = Set.of(Access.MEMBER, Access.HOST, Access.OPERATOR);
+		Set<Access> groupResources = Set.of(Access.MEMBER, Access.HOST, Access.OPERATOR, Access.RECORDER);
 		return ENDPOINTS.stream().filter(e -> groupResources.contains(e.access()));
 	}
 
 	Stream<Endpoint> hostEndpoints() {
 		return ENDPOINTS.stream().filter(e -> e.access() == Access.HOST);
+	}
+
+	Stream<Endpoint> recorderEndpoints() {
+		return ENDPOINTS.stream().filter(e -> e.access() == Access.RECORDER);
 	}
 
 	Stream<Endpoint> operatorEndpoints() {
@@ -415,6 +444,10 @@ class AuthorizationMatrixTest {
 		fixture.put("gameId", gameLobbyService.create(round.getId(), hostMember.getId(), new GameCreateRequest(
 				GameType.LADDER, PenaltyKind.MONEY, null, List.of(hostMember.getId(), plainMember.getId()), null))
 				.gameId().toString());
+		// 호스트가 기록해 둬 일반 멤버는 기록한 사람도 호스트도 아니다
+		fixture.put("boardGameId", boardGameRecordService.create(round.getId(), hostMember.getId(),
+				new BoardGameRecordRequest("점검", List.of(new BoardGameRankRequest(hostMember.getId(), 1),
+						new BoardGameRankRequest(plainMember.getId(), 2)))).id().toString());
 	}
 
 	private static Stream<String> signatures(RequestMappingInfo info) {

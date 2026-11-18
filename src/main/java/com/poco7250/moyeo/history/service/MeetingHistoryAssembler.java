@@ -4,9 +4,12 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 
+import com.poco7250.moyeo.boardgame.domain.BoardGameRecord;
 import com.poco7250.moyeo.game.domain.GameResult;
 import com.poco7250.moyeo.game.domain.GameSession;
 import com.poco7250.moyeo.group.domain.GroupMember;
+import com.poco7250.moyeo.history.dto.BoardGameHistoryResponse;
+import com.poco7250.moyeo.history.dto.BoardGameRankHistoryResponse;
 import com.poco7250.moyeo.history.dto.GameHistoryResponse;
 import com.poco7250.moyeo.history.dto.HistoryMemberResponse;
 import com.poco7250.moyeo.history.dto.MeetingHistoryResponse;
@@ -34,6 +37,7 @@ final class MeetingHistoryAssembler {
 	private final Map<Long, List<GameSession>> gamesByRound;
 	private final Map<Long, List<Long>> penalizedByGame;
 	private final Map<Long, List<Long>> orderedByGame;
+	private final Map<Long, List<BoardGameRecord>> boardGamesByRound;
 
 	MeetingHistoryAssembler(MeetingHistorySource source) {
 		this.source = source;
@@ -46,6 +50,7 @@ final class MeetingHistoryAssembler {
 		this.orderedByGame = source.orderResults().stream()
 				.sorted(Comparator.comparing(GameResult::getOrderNo))
 				.collect(groupingBy(r -> r.getGameSession().getId(), mapping(r -> r.getMember().getId(), toList())));
+		this.boardGamesByRound = source.boardGames().stream().collect(groupingBy(b -> b.getRound().getId()));
 	}
 
 	/**
@@ -86,7 +91,15 @@ final class MeetingHistoryAssembler {
 				.map(this::game).toList();
 		return new RoundHistoryResponse(round.getId(), round.getSeq(), round.getName(),
 				ConfirmedPlaceResponse.from(round.confirmedPlace()),
-				members(attendeesByRound.getOrDefault(round.getId(), List.of())), games);
+				members(attendeesByRound.getOrDefault(round.getId(), List.of())), games,
+				boardGamesByRound.getOrDefault(round.getId(), List.of()).stream().map(this::boardGame).toList());
+	}
+
+	private BoardGameHistoryResponse boardGame(BoardGameRecord record) {
+		return new BoardGameHistoryResponse(record.getId(), record.getGameName(), record.getRanks().stream()
+				.map(rank -> new BoardGameRankHistoryResponse(rank.getRankNo(),
+						HistoryMemberResponse.of(rank.getMemberId(), source.groupMembers().get(rank.getMemberId()))))
+				.toList());
 	}
 
 	private GameHistoryResponse game(GameSession game) {

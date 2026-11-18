@@ -100,6 +100,9 @@ public enum ErrorCode {
 	RERUN_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 다시 돌리기가 요청된 게임입니다."),
 	GAME_PARTICIPANT_NOT_ATTENDING(HttpStatus.BAD_REQUEST, "차수 참석자만 게임 참가자로 고를 수 있습니다."),
 
+	// 보드게임 기록
+	NOT_BOARD_GAME_RECORDER(HttpStatus.FORBIDDEN, "기록한 사람이나 모임 호스트만 할 수 있습니다."),
+
 	// 벌칙
 	// 벌칙 상태 전이 표에 없는 전이(예: 무효가 된 벌칙에 조건 설정)
 	PENALTY_NOT_CONFIGURABLE(HttpStatus.CONFLICT, "지금 상태에서는 벌칙 조건을 바꿀 수 없습니다."),

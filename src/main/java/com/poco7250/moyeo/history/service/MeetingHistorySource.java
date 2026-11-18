@@ -1,5 +1,6 @@
 package com.poco7250.moyeo.history.service;
 
+import com.poco7250.moyeo.boardgame.domain.BoardGameRecord;
 import com.poco7250.moyeo.game.domain.GameResult;
 import com.poco7250.moyeo.game.domain.GameSession;
 import com.poco7250.moyeo.group.domain.GroupMember;
@@ -20,9 +21,10 @@ import java.util.Map;
  * @param games 결과 공개된 게임 중 원 회차별 마지막 회차
  * @param penalties 그 게임들의 무효가 아닌 벌칙
  * @param orderResults 그 게임 중 순서 정하기 게임의 순번 결과
+ * @param boardGames 차수들의 보드게임 기록(순위 포함, 기록 순)
  * @param groupMembers 회원 id → 그룹 멤버십
  */
 record MeetingHistorySource(List<Round> rounds, List<Attendance> attendances, Map<Long, Long> expenseTotals,
 		Map<Long, Settlement> settlements, List<GameSession> games, List<Penalty> penalties,
-		List<GameResult> orderResults, Map<Long, GroupMember> groupMembers) {
+		List<GameResult> orderResults, List<BoardGameRecord> boardGames, Map<Long, GroupMember> groupMembers) {
 }
