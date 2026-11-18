@@ -39,7 +39,8 @@ public class BoardGameRecordService {
 		Round round = meetingAccessChecker.requireRoundMember(roundId, memberId);
 		requireAttending(roundId, request.memberIds());
 		BoardGameRecord record = boardGameRecordRepository.saveAndFlush(
-				BoardGameRecord.create(round, request.gameName(), memberId, request.toRanks()));
+				BoardGameRecord.create(round, request.gameName(), memberId, request.toRanks(),
+						request.loserMemberId()));
 		return publishChanged(round.getMeeting().getId(), record);
 	}
 
@@ -65,7 +66,7 @@ public class BoardGameRecordService {
 	public BoardGameRecordResponse update(Long recordId, Long memberId, BoardGameRecordRequest request) {
 		BoardGameRecord record = requireEditable(recordId, memberId);
 		requireAttending(record.getRound().getId(), request.memberIds());
-		record.update(request.gameName(), request.toRanks());
+		record.update(request.gameName(), request.toRanks(), request.loserMemberId());
 		// 낙관적 락 충돌과 수정 시각을 이 요청 안에서 확정한다
 		boardGameRecordRepository.flush();
 		return publishChanged(record.getRound().getMeeting().getId(), record);

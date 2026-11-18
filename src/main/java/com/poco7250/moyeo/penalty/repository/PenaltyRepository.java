@@ -35,4 +35,11 @@ public interface PenaltyRepository extends JpaRepository<Penalty, Long> {
 			+ "and g.penaltyKind = com.poco7250.moyeo.game.domain.PenaltyKind.MONEY "
 			+ "order by g.applyOrderAt, g.rootSessionId, p.id")
 	List<Penalty> findAllActiveMoneyByMeetingId(@Param("meetingId") Long meetingId);
+
+	/**
+	 * 여러 차수의 게임 벌칙 중 무효가 아닌 것을 id 순으로 조회한다(명예의 전당). 회원은 id만 쓰므로 fetch join하지 않는다.
+	 */
+	@Query("select p from Penalty p where p.gameSession.round.id in :roundIds "
+			+ "and p.status <> com.poco7250.moyeo.penalty.domain.PenaltyStatus.VOIDED order by p.id")
+	List<Penalty> findAllActiveByRoundIdIn(@Param("roundIds") Collection<Long> roundIds);
 }

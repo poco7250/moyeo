@@ -96,10 +96,12 @@ final class MeetingHistoryAssembler {
 	}
 
 	private BoardGameHistoryResponse boardGame(BoardGameRecord record) {
+		Long loserId = record.getLoserMemberId();
 		return new BoardGameHistoryResponse(record.getId(), record.getGameName(), record.getRanks().stream()
 				.map(rank -> new BoardGameRankHistoryResponse(rank.getRankNo(),
 						HistoryMemberResponse.of(rank.getMemberId(), source.groupMembers().get(rank.getMemberId()))))
-				.toList());
+				.toList(),
+				loserId == null ? null : HistoryMemberResponse.of(loserId, source.groupMembers().get(loserId)));
 	}
 
 	private GameHistoryResponse game(GameSession game) {

@@ -14,10 +14,20 @@ import java.util.Objects;
  * 보드게임 기록 생성·수정 요청. 참가자는 차수 참석자 중에서 고르고 전원에게 순위를 준다.
  *
  * @param ranks 참가자별 순위(2~50명)
+ * @param loserMemberId 꼴등(전액 부담자). 참가자 중 한 명이고 순위와는 별개다
  */
 public record BoardGameRecordRequest(
 		@NotBlank @Size(max = 50) String gameName,
-		@NotNull @Size(min = 2, max = 50) List<@NotNull @Valid BoardGameRankRequest> ranks) {
+		@NotNull @Size(min = 2, max = 50) List<@NotNull @Valid BoardGameRankRequest> ranks,
+		@NotNull Long loserMemberId) {
+
+	/**
+	 * 꼴등이 참가자 중 한 명인지 검사한다(필드 에러 이름: loserParticipant).
+	 */
+	@AssertTrue(message = "꼴등은 참가자 중에서 골라야 합니다.")
+	public boolean isLoserParticipant() {
+		return ranks == null || loserMemberId == null || memberIds().contains(loserMemberId);
+	}
 
 	/**
 	 * 같은 회원을 두 번 넣지 않았는지 검사한다(필드 에러 이름: membersDistinct).
