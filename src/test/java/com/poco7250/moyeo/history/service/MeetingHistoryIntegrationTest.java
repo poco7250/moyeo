@@ -3,6 +3,9 @@ package com.poco7250.moyeo.history.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.poco7250.moyeo.boardgame.domain.BoardGameRank;
+import com.poco7250.moyeo.boardgame.domain.BoardGameRecord;
+import com.poco7250.moyeo.boardgame.repository.BoardGameRecordRepository;
 import com.poco7250.moyeo.game.domain.GameResult;
 import com.poco7250.moyeo.game.domain.GameSession;
 import com.poco7250.moyeo.game.domain.GameType;
@@ -16,6 +19,8 @@ import com.poco7250.moyeo.group.domain.GroupMember;
 import com.poco7250.moyeo.group.domain.GroupRole;
 import com.poco7250.moyeo.group.repository.GroupMemberRepository;
 import com.poco7250.moyeo.group.repository.GroupRepository;
+import com.poco7250.moyeo.history.dto.BoardGameHistoryResponse;
+import com.poco7250.moyeo.history.dto.BoardGameRankHistoryResponse;
 import com.poco7250.moyeo.history.dto.GameHistoryResponse;
 import com.poco7250.moyeo.history.dto.HistoryMemberResponse;
 import com.poco7250.moyeo.history.dto.MeetingHistoryPageResponse;
@@ -103,6 +108,9 @@ class MeetingHistoryIntegrationTest {
 	@Autowired
 	GameResultRepository gameResultRepository;
 
+	@Autowired
+	BoardGameRecordRepository boardGameRecordRepository;
+
 	private Group group;
 	private Member host;
 	private Member minsu;
@@ -173,6 +181,29 @@ class MeetingHistoryIntegrationTest {
 		assertThat(game.type()).isEqualTo(GameType.ORDER);
 		assertThat(game.penalized()).isEmpty();
 		assertThat(game.ordered()).extracting(HistoryMemberResponse::nickname).containsExactly("영희", "민수", "호스트");
+	}
+
+	@Test
+	@DisplayName("차수별 보드게임 기록을 기록 순으로 게임명·순위(동순위 포함)·멤버와 함께 돌려준다")
+	void boardGames() {
+		Meeting meeting = savePastMeeting("7월 모임", LocalDateTime.of(2020, 7, 1, 18, 0));
+		Round boardGame = roundRepository.save(Round.create(meeting, 1, "보드게임"));
+		BoardGameRecord splendor = boardGameRecordRepository.save(BoardGameRecord.create(boardGame, "스플렌더",
+				host.getId(), List.of(BoardGameRank.of(younghee.getId(), 2), BoardGameRank.of(minsu.getId(), 1),
+						BoardGameRank.of(host.getId(), 1))));
+		BoardGameRecord catan = boardGameRecordRepository.save(BoardGameRecord.create(boardGame, "카탄",
+				minsu.getId(), List.of(BoardGameRank.of(minsu.getId(), 2), BoardGameRank.of(younghee.getId(), 1))));
+
+		RoundHistoryResponse round = meetingHistoryService.list(group.getId(), minsu.getId(), 0, 20)
+				.items().get(0).rounds().get(0);
+
+		assertThat(round.boardGames()).extracting(BoardGameHistoryResponse::recordId)
+				.containsExactly(splendor.getId(), catan.getId());
+		BoardGameHistoryResponse first = round.boardGames().get(0);
+		assertThat(first.gameName()).isEqualTo("스플렌더");
+		assertThat(first.ranks()).extracting(BoardGameRankHistoryResponse::rank).containsExactly(1, 1, 2);
+		assertThat(first.ranks()).extracting(r -> r.member().nickname()).containsExactly("호스트", "민수", "영희");
+		assertThat(round.games()).isEmpty();
 	}
 
 	@Test

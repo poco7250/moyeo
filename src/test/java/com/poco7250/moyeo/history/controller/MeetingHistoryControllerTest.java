@@ -12,6 +12,8 @@ import com.poco7250.moyeo.game.domain.GameType;
 import com.poco7250.moyeo.game.domain.PenaltyKind;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
+import com.poco7250.moyeo.history.dto.BoardGameHistoryResponse;
+import com.poco7250.moyeo.history.dto.BoardGameRankHistoryResponse;
 import com.poco7250.moyeo.history.dto.GameHistoryResponse;
 import com.poco7250.moyeo.history.dto.HistoryMemberResponse;
 import com.poco7250.moyeo.history.dto.MeetingHistoryPageResponse;
@@ -57,7 +59,8 @@ class MeetingHistoryControllerTest {
 		RoundHistoryResponse round = new RoundHistoryResponse(20L, 1, "볼링",
 				new ConfirmedPlaceResponse("강남 볼링장", "https://map.kakao.com/link/search/강남 볼링장"),
 				List.of(minsu), List.of(new GameHistoryResponse(30L, GameType.LADDER, PenaltyKind.MONEY, "꽝이 볼링비",
-						LocalDateTime.of(2026, 11, 1, 21, 0), List.of(minsu), List.of())));
+						LocalDateTime.of(2026, 11, 1, 21, 0), List.of(minsu), List.of())),
+				List.of(new BoardGameHistoryResponse(40L, "스플렌더", List.of(new BoardGameRankHistoryResponse(1, minsu)))));
 		given(meetingHistoryService.list(5L, 8L, 0, 20)).willReturn(new MeetingHistoryPageResponse(List.of(
 				new MeetingHistoryResponse(10L, "11월 모임", LocalDateTime.of(2026, 11, 1, 18, 0), 1, 87_650L,
 						SettlementStatus.CONFIRMED, 2, List.of(round))), 0, 20, true));
@@ -75,7 +78,10 @@ class MeetingHistoryControllerTest {
 				.andExpect(jsonPath("$.data.items[0].rounds[0].place.label").value("강남 볼링장"))
 				.andExpect(jsonPath("$.data.items[0].rounds[0].attendees[0].nickname").value("민수"))
 				.andExpect(jsonPath("$.data.items[0].rounds[0].games[0].type").value("LADDER"))
-				.andExpect(jsonPath("$.data.items[0].rounds[0].games[0].penalized[0].memberId").value(3));
+				.andExpect(jsonPath("$.data.items[0].rounds[0].games[0].penalized[0].memberId").value(3))
+				.andExpect(jsonPath("$.data.items[0].rounds[0].boardGames[0].gameName").value("스플렌더"))
+				.andExpect(jsonPath("$.data.items[0].rounds[0].boardGames[0].ranks[0].rank").value(1))
+				.andExpect(jsonPath("$.data.items[0].rounds[0].boardGames[0].ranks[0].member.nickname").value("민수"));
 	}
 
 	@Test

@@ -1,5 +1,8 @@
 package com.poco7250.moyeo.history.service;
 
+import com.poco7250.moyeo.boardgame.domain.BoardGameRank;
+import com.poco7250.moyeo.boardgame.domain.BoardGameRecord;
+import com.poco7250.moyeo.boardgame.repository.BoardGameRecordRepository;
 import com.poco7250.moyeo.game.domain.GameResult;
 import com.poco7250.moyeo.game.domain.GameSession;
 import com.poco7250.moyeo.game.repository.GameResultRepository;
@@ -58,6 +61,7 @@ public class MeetingHistoryService {
 	private final PenaltyRepository penaltyRepository;
 	private final GameResultRepository gameResultRepository;
 	private final GroupMemberRepository groupMemberRepository;
+	private final BoardGameRecordRepository boardGameRecordRepository;
 	private final Clock clock;
 
 	/**
@@ -89,8 +93,15 @@ public class MeetingHistoryService {
 		List<Penalty> penalties = games.isEmpty() ? List.of()
 				: penaltyRepository.findAllActiveByGameSessionIdIn(games.stream().map(GameSession::getId).toList());
 		List<GameResult> orderResults = orderResults(games);
+		List<BoardGameRecord> boardGames = roundIds.isEmpty() ? List.of()
+				: boardGameRecordRepository.findAllByRoundIdInOrderByIdAsc(roundIds);
+		Stream<Long> memberIds = Stream.of(attendances.stream().map(a -> a.getMember().getId()),
+				penalties.stream().map(p -> p.getMember().getId()),
+				orderResults.stream().map(r -> r.getMember().getId()),
+				boardGames.stream().flatMap(b -> b.getRanks().stream()).map(BoardGameRank::getMemberId))
+				.flatMap(Function.identity());
 		return new MeetingHistorySource(rounds, attendances, expenseTotals(meetingIds), settlements(meetingIds),
-				games, penalties, orderResults, groupMembers(groupId, attendances, penalties, orderResults));
+				games, penalties, orderResults, boardGames, groupMembers(groupId, memberIds));
 	}
 
 	private List<GameResult> orderResults(List<GameSession> games) {
@@ -109,12 +120,11 @@ public class MeetingHistoryService {
 				.collect(Collectors.toMap(s -> s.getMeeting().getId(), Function.identity()));
 	}
 
-	private Map<Long, GroupMember> groupMembers(Long groupId, List<Attendance> attendances, List<Penalty> penalties,
-			List<GameResult> orderResults) {
-		Set<Long> memberIds = Stream.of(attendances.stream().map(a -> a.getMember().getId()),
-				penalties.stream().map(p -> p.getMember().getId()),
-				orderResults.stream().map(r -> r.getMember().getId()))
-				.flatMap(Function.identity()).collect(Collectors.toSet());
+	/**
+	 * 히스토리에 나오는 회원들의 그룹 멤버십을 한 번에 읽는다.
+	 */
+	private Map<Long, GroupMember> groupMembers(Long groupId, Stream<Long> memberIdStream) {
+		Set<Long> memberIds = memberIdStream.collect(Collectors.toSet());
 		if (memberIds.isEmpty()) {
 			return Map.of();
 		}
