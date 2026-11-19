@@ -1,6 +1,7 @@
 package com.poco7250.moyeo.meeting.repository;
 
 import com.poco7250.moyeo.meeting.domain.Round;
+import com.poco7250.moyeo.place.dto.ConfirmedPlaceRow;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -43,4 +44,16 @@ public interface RoundRepository extends JpaRepository<Round, Long> {
 	 * 여러 모임의 차수를 조회한다(명예의 전당). 장소는 쓰지 않아 fetch join하지 않는다.
 	 */
 	List<Round> findAllByMeetingIdIn(Collection<Long> meetingIds);
+
+	/**
+	 * 그룹의 지난 모임(시작 시각이 기준 시각 이전)에서 장소가 확정된 차수의 장소를 최근 모임 → 차수 순으로 조회한다
+	 * (지난 장소 불러오기, P-8). 날짜 투표 중인 모임은 시작 시각이 없어 빠진다.
+	 */
+	@Query("select new com.poco7250.moyeo.place.dto.ConfirmedPlaceRow(c.place, m.startAt) "
+			+ "from Round r join r.confirmedCandidate c join r.meeting m "
+			+ "where m.group.id = :groupId and m.startAt < :now "
+			+ "and r.placeStatus = com.poco7250.moyeo.meeting.domain.PlaceStatus.CONFIRMED "
+			+ "order by m.startAt desc, m.id desc, r.seq asc")
+	List<ConfirmedPlaceRow> findAllConfirmedPlacesOfPastMeetings(@Param("groupId") Long groupId,
+			@Param("now") LocalDateTime now);
 }

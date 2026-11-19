@@ -31,7 +31,9 @@ import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.member.domain.Member;
 import com.poco7250.moyeo.member.repository.MemberRepository;
 import com.poco7250.moyeo.place.domain.Place;
+import com.poco7250.moyeo.place.domain.FavoritePlace;
 import com.poco7250.moyeo.place.domain.PlaceCandidate;
+import com.poco7250.moyeo.place.repository.FavoritePlaceRepository;
 import com.poco7250.moyeo.place.repository.PlaceCandidateRepository;
 import com.poco7250.moyeo.settlement.domain.Expense;
 import com.poco7250.moyeo.settlement.domain.Settlement;
@@ -144,6 +146,11 @@ class AuthorizationMatrixTest {
 			endpoint(HttpMethod.GET, "/api/groups/{groupId}/meetings", Access.MEMBER),
 			endpoint(HttpMethod.GET, "/api/groups/{groupId}/history", Access.MEMBER),
 			endpoint(HttpMethod.GET, "/api/groups/{groupId}/hall-of-fame", Access.MEMBER),
+			endpoint(HttpMethod.GET, "/api/groups/{groupId}/favorite-places", Access.MEMBER),
+			new Endpoint(HttpMethod.POST, "/api/groups/{groupId}/favorite-places", Access.MEMBER,
+					"{\"label\":\"볼링장\"}"),
+			endpoint(HttpMethod.DELETE, "/api/groups/{groupId}/favorite-places/{favoriteId}", Access.MEMBER),
+			endpoint(HttpMethod.GET, "/api/groups/{groupId}/recent-places", Access.MEMBER),
 			// 모임·참석
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}", Access.MEMBER),
 			new Endpoint(HttpMethod.PUT, "/api/meetings/{meetingId}/attendances/me", Access.MEMBER, ROUNDS_BODY),
@@ -252,6 +259,9 @@ class AuthorizationMatrixTest {
 
 	@Autowired
 	PlaceCandidateRepository placeCandidateRepository;
+
+	@Autowired
+	FavoritePlaceRepository favoritePlaceRepository;
 
 	@Autowired
 	ExpenseRepository expenseRepository;
@@ -439,6 +449,8 @@ class AuthorizationMatrixTest {
 		fixture.put("roundId", round.getId().toString());
 		fixture.put("dateCandidateId", meetingDateCandidateRepository.save(MeetingDateCandidate.propose(meeting,
 				LocalDateTime.of(2099, 12, 21, 18, 0))).getId().toString());
+		fixture.put("favoriteId", favoritePlaceRepository.save(FavoritePlace.save(group,
+				Place.of("단골 볼링장", null, null), plainMember)).getId().toString());
 		fixture.put("candidateId", placeCandidateRepository.save(PlaceCandidate.propose(round,
 				Place.of("볼링장", null, null), plainMember)).getId().toString());
 		fixture.put("expenseId", expenseRepository.save(Expense.create(round, hostMember, 50_000L, "볼링"))
