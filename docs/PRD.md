@@ -141,7 +141,7 @@
 | P-5 | 확정 장소 노출: 모임 상세·카톡 공유 문구·OG 미리보기에 사용자가 입력한 표시 이름(label) 반영, 지도 **URL 링크**(사용자가 넣은 지도 링크, 없으면 카카오맵 `/link/search/{검색어}`). 장소 ID·좌표가 없어 길찾기 전용 링크(`/link/to`)는 제공하지 않는다 | P0 |
 | P-6 | 동점 시 룰렛으로 결정(R-3 연동, 결과 이력 공개): 마감 후 호스트 선택 대기 중에 호스트가 동점 후보 사이에서 돌려 바로 확정(2026-11-15) | P1 |
 | P-7 | **2차 장소 추천**: 확정된 1차 장소 반경 N m 안의 볼링장·보드게임카페·술집을 카테고리 검색으로 후보 제안 (**보류** — 카카오 데이터 무저장 원칙상 1차 장소 좌표를 얻을 방법이 없어 v0.2 착수 시 재설계, 장소 도메인 규칙 참고) | P1 |
-| P-8 | 그룹 단골 장소 저장, 지난 모임 장소에서 바로 후보로 불러오기 | P1 |
+| P-8 | 그룹 단골 장소 저장, 지난 모임 장소에서 바로 후보로 불러오기(목록 API + 기존 후보 추가·바로 확정 API 재사용, 2026-11-19) | P1 |
 | P-9 | 행동형 벌칙 "다음 모임 장소 정하기" 당첨자에게 다음 모임 1차 장소 확정 권한 부여 | P2 |
 | P-10 | **중간 지점 추천**: 참석자가 출발지(동네 수준)를 선택 입력 → 중간 지점 근처 후보 제안 (**보류** — P-7과 같은 이유로 v1.0 착수 시 재설계) | P2 |
 
@@ -160,6 +160,8 @@
 
 > 설계 포인트: **장소 동점 룰렛(P-6, 2026-11-15 결정).** 투표 마감 처리로 **호스트 선택 대기**(마감이 지난 `VOTING`, `placeVoteClosedAt` 있음)가 된 차수에서만 **호스트**가 `POST /api/rounds/{roundId}/place/roulette`로 돌린다(수동 확정의 대안, 그 외 멤버 403 `NOT_MEETING_HOST`). 대상은 마감 처리와 같은 판정(`VoteTally`)의 **최다 득표 동점 후보**이고 전원 0표면 후보 전체다. 대상이 2개 미만(후보 1개·0개)이면 409 `PLACE_ROULETTE_NOT_ENOUGH_CANDIDATES`, 선택 대기가 아니면(마감 전 투표 중·확정·미정) 409 `ROUND_PLACE_INVALID_TRANSITION`. 서버가 새 `seed`로 게임 룰렛(R-3)과 같은 추첨(후보 id 정렬 → `Random(seed)` 셔플)을 해 첫 번째 후보로 **바로 `CONFIRMED`**하고, 기록 `PlaceRoulette`(seed·추첨 순서대로의 대상 후보·당첨 후보·돌린 사람·시각, 수정 없음)를 남긴다. 실시간은 모임 토픽 `PLACE_CHANGED`(확정 상태)와 `PLACE_ROULETTE_SPUN`(seed로 연출 재생). 기록은 그룹 멤버 누구나 `GET /api/rounds/{roundId}/place/roulettes`로 최근 순 조회하며, 재투표 뒤 다시 동점이 되어 돌리면 쌓인다. 장소 변경이라 정산·`ChangeLog`와 무관하다. 수동 확정·다른 룰렛과 겹치면 `Round.version` 낙관적 락으로 하나만 반영되고 진 쪽의 기록은 롤백된다.
 
+> 설계 포인트: **그룹 단골 장소·지난 장소 불러오기(P-8, 2026-11-19 결정).** 단골 장소(`FavoritePlace`)는 그룹 단위 목록이고 값은 후보와 같은 사용자 입력 `Place`(label·manualAddress·manualMapUrl, 검증도 같음)뿐이라 카카오 무저장 원칙과 충돌하지 않는다. 그룹 멤버 누구나 `POST /api/groups/{groupId}/favorite-places`로 저장(201)·`DELETE /api/groups/{groupId}/favorite-places/{id}`로 삭제(저장한 사람이 아니어도 가능)하고, `GET …/favorite-places`로 최근 저장 순 목록을 본다. label·주소·지도 링크가 **모두 같은**(앞뒤 공백 정리 뒤) 장소는 한 번만 저장되고 다시 저장하면 409 `FAVORITE_PLACE_DUPLICATED`, 그룹당 **50개**를 넘으면 409 `FAVORITE_PLACE_LIMIT`, 없거나 다른 그룹 단골 삭제는 404 `FAVORITE_PLACE_NOT_FOUND`(비멤버는 먼저 403). 동시 저장은 그룹 행 쓰기 잠금으로 한 줄로 세우고 기존 단골은 잠금 읽기로 읽어 개수·중복을 지킨다. **지난 장소** = `GET /api/groups/{groupId}/recent-places` — 히스토리와 같은 지난 모임(시작 시각이 지금 이전, 날짜 투표 중 제외)에서 **장소가 확정된(`CONFIRMED`) 차수**의 확정 장소를 같은 장소(세 값 모두 같음)끼리 합쳐, 가장 최근 사용 순으로 최대 **20개**를 `lastUsedAt`(가장 최근 모임 시작 시각)·`useCount`(확정된 차수 수)와 함께 준다(재투표 중 차수·다가오는 모임 제외, 새 테이블 없이 조회만). **불러오기**는 별도 쓰기 API 없이 프론트가 단골·지난 장소의 값을 입력칸에 채워 기존 후보 추가(`POST /api/rounds/{id}/candidates`)·바로 확정(`/place/confirm-direct`)을 호출한다 — 사용자 입력 데이터라 카카오 검색 결과와 달리 자동 채우기를 허용한다. 실시간 이벤트는 없다.
+
 **수용 기준 (P0)**
 
 | ID | Given / When / Then |
@@ -175,6 +177,7 @@
 | ID | Given / When / Then |
 |---|---|
 | P-6 | Given 마감 처리로 호스트 선택 대기가 된 차수, 후보 3개 중 2개가 2표씩 동점 / When 호스트가 룰렛을 돌리면 / Then 동점 2개만 대상으로 `seed` 추첨해 첫 번째 후보로 `CONFIRMED`되고, `seed`·추첨 순서·당첨 후보·돌린 사람·시각이 기록되며 `PLACE_CHANGED`·`PLACE_ROULETTE_SPUN`이 모임 토픽으로 나간다. 같은 `seed`·후보면 항상 같은 결과다. 전원 0표면 후보 전체가 대상이다. 후보가 1개뿐이면 409(`PLACE_ROULETTE_NOT_ENOUGH_CANDIDATES`), 마감 전 투표 중·확정·미정 차수면 409(`ROUND_PLACE_INVALID_TRANSITION`), 호스트가 아니면 403(`NOT_MEETING_HOST`)이고 아무것도 바뀌지 않는다. 재투표 뒤 다시 동점이라 돌리면 기록이 최근 순으로 2건이다. 룰렛과 수동 확정이 동시에 오면 하나만 반영되고 다른 쪽은 409이며, 룰렛이 지면 기록이 남지 않는다. 비멤버의 기록 조회는 403(`NOT_GROUP_MEMBER`). |
+| P-8 | Given 그룹 멤버 / When 단골 장소 "강남 볼링장"을 저장하면 / Then 201과 함께 그룹 단골 목록 맨 앞에 나오고, 저장하지 않은 다른 멤버도 지울 수 있다. 공백만 다르고 label·주소·지도 링크가 같은 장소를 다시 저장하면 409(`FAVORITE_PLACE_DUPLICATED`), 이미 50개면 409(`FAVORITE_PLACE_LIMIT`)이고 저장되지 않는다. 두 멤버가 같은 장소를 동시에 저장해도 1건만 남는다. 다른 그룹 단골을 내 그룹 경로로 지우면 404(`FAVORITE_PLACE_NOT_FOUND`), 비멤버의 조회·저장·삭제는 403(`NOT_GROUP_MEMBER`). Given 지난 모임 두 번에 같은 장소가 확정됨 / When 지난 장소를 조회하면 / Then 그 장소는 한 줄로 합쳐져 `useCount` 2·`lastUsedAt` = 더 최근 모임 시작 시각이고, 재투표 중 차수·다가오는 모임·날짜 투표 중 모임·다른 그룹 모임의 장소는 나오지 않는다. 지난 장소 값을 그대로 후보 추가 API에 넣으면 같은 label·주소·지도 링크의 후보가 생긴다. |
 
 ### 4.4 게임 & 벌칙
 
@@ -634,6 +637,7 @@ Member(kakaoId) ─┬─< GroupMember(nickname, emoji, role) >── Group ─<
 - "다시 돌리기"는 새 `GameSession`을 만들고 `rerunOf`로 이전 회차를 가리켜 재실행 이력을 보존한다(`rerunOf` 유니크라 회차당 후속 회차는 1개, 다시 돌리기는 항상 최신 회차에서만). 새 회차는 원 회차의 `applyOrderAt`·`rootSessionId`를 상속하고, `type`·`penaltyKind`·`penaltyNote`·참가자 목록을 복제(변경 불가)하며, `createdBy`는 요청자(원 회차 진행자 또는 호스트, E3)다. 다시 돌리기 가능 조건은 4.4 게임 상태 전이 표. **조건 상태 상속은 새 회차 결과 공개 시점**에 한다 — 원 회차에 `PenaltyRule`이 있으면 새 회차로 **이관**(`gameSession`만 변경, 복제 아님, `setBy`·`updatedAt` 유지)해 새 벌칙자를 바로 `APPLIED`, 면제였으면 `WAIVED`(`waivedBy`·`waivedAt` 상속), 미설정이면 `ASSIGNED`. 원 회차의 `Penalty`는 삭제하지 않고 `VOIDED`로 바꿔 이력을 보존하고, 원 회차의 규칙 이력은 `ChangeLog`(이관 기록)로 본다(기존 "원 회차 `PenaltyRule`도 이력용으로 남김"을 대체 — 지출 삭제 시 FK 문제 해소). 새 회차가 공개 전에 취소(R-10)되면 `rerunOf`를 비우고 `canceledRerunOf`에 원 회차를 남겨, 원 회차는 그대로 유효하고 다시 돌릴 수 있다.
 - 적용 순서는 저장 필드(기존 `PenaltyRule.applyOrder`)를 두지 않고 정렬 키 `(GameSession.applyOrderAt, rootSessionId)`로 규칙 순서를 파생한다(4.5 적용 순서). `applyOrderAt`은 `DATETIME(6)`(마이크로초)로 저장하고, 그래도 같으면 `rootSessionId`로 가른다. 같은 규칙 벌칙자는 균등 분할(D3)이며 `Penalty.id`는 초과분 차감 순서에만 쓴다. 결과 공개 시 `Penalty`를 `memberId` 오름차순으로 insert하므로 이 순서는 결정적이다(4차 m3).
 - `PlaceRoulette`(P-6, 2026-11-15)는 차수별 장소 동점 룰렛 기록이다. 대상 후보 id는 추첨 순서대로 컬렉션 테이블(`place_roulette_candidate`, 순서 컬럼)에 두고 첫 번째가 `winner`다. 수정하지 않는 기록이라 확정 상태는 여전히 `Round.confirmedCandidate`가 기준이고, 재투표해도 지우지 않는다.
+- `FavoritePlace`(P-8, 2026-11-19)는 그룹 단골 장소다(group·`Place` 임베디드·createdBy). 같은 장소 중복은 지도 링크가 길어(2,048자) 유니크 인덱스 대신 그룹 행 잠금 안에서 서비스가 막는다. 지난 장소는 따로 저장하지 않고 `Round.confirmedCandidate`에서 조회한다.
 - `BoardGameRecord`(R-7, 2026-11-18)는 차수별 보드게임 승패 기록이다. 순위는 컬렉션 테이블(`board_game_rank`: memberId·rankNo, 표시 순서 컬럼)에 순위 → 회원 id 순으로 두고, 수정은 통째 교체한다. 꼴등(`loserMemberId`, 2026-11-18)은 참가자 중 1명이고 순위와 별개다(꼴등 지정 전 기록은 null). 벌칙·정산과 연결하지 않는다.
 - `Meeting.hostMemberId`는 모임 생성자로 고정(D4). 권한 검사는 Service 계층에서 `meeting.isHost(memberId)`로 일원화한다.
 - `Settlement`는 모임당 1건으로 모임 생성 시 `DRAFT`로 만든다. 금액에 영향을 주는 쓰기·확정·재확정은 이 행의 `version`을 강제 증가시켜 직렬화한다(6장 락 표, 송금 체크는 E1로 폐지). 상태 전이는 4.5 정산 상태 전이 표.
@@ -778,6 +782,7 @@ Member(kakaoId) ─┬─< GroupMember(nickname, emoji, role) >── Group ─<
 | 룰렛·순서 정하기 (R-3, 2026-11-15) | **룰렛 = 사다리·꽝뽑기와 같은 벌칙자 뽑기(연출만 다름), 순서 정하기(`ORDER`) = 참가자 전원 순서, 벌칙 없음(`NONE` 강제·벌칙자 수 미입력). 둘 다 기존 게임 방 흐름 재사용, 순서는 같은 `seed` 셔플로 재현** | 4.4 R-3 설계 포인트·P1 수용 기준, 7장 `GameSession.type`·`GameResult.orderNo` |
 | 보드게임 승패 기록 (R-7, 2026-11-18) | **차수 단위, 참가자 = 그 차수 `ATTEND` 중 2~50명, 전원 순위(동순위 허용, 참가자 수 이하), 생성은 그룹 멤버 누구나·수정/삭제는 기록한 사람 또는 호스트, 벌칙·정산 연결 없음, 모임 토픽 실시간 + 히스토리(H-1) 포함. 그룹 통계는 H-2로 미룸** | 4.4 R-7 설계 포인트·P1 수용 기준, 4.6 H-1, 7장 `BoardGameRecord` |
 | 명예의 전당 (H-2, 2026-11-18) | **벌칙 당첨 횟수·금액(마지막 확정 리비전 `PenaltyCharge`) 순위, 보드게임 꼴등 순위, 날짜별 출석부만 둔다. 순위는 멤버 전원 경쟁 순위, 기간은 전체 + 연도 선택. 출석왕·지각왕은 두지 않는다. 보드게임 기록에 꼴등(전액 부담자)을 필수로 따로 지정하되 정산과는 연결하지 않는다** | 4.4 R-7, 4.6 H-2 설계 포인트·P1 수용 기준, 7장 `BoardGameRecord` |
+| 그룹 단골 장소 (P-8, 2026-11-19) | **그룹 단위 단골 목록(사용자 입력 `Place`만), 저장·삭제는 멤버 누구나, 같은 장소 중복 409·그룹당 50개. 지난 장소 = 지난 모임 확정 차수 장소를 같은 장소끼리 합쳐 최근 순 20개(조회만). 불러오기는 목록 API + 기존 후보 추가·바로 확정 API, 실시간 없음** | 4.3 P-8 설계 포인트·P1 수용 기준, 7장 `FavoritePlace` |
 | 장소 동점 룰렛 (P-6, 2026-11-15) | **호스트만, 마감 후 호스트 선택 대기 중에만, 대상 = 최다 득표 동점 후보(전원 0표면 전체, 2개 미만 409). 서버가 게임 룰렛과 같은 `seed` 추첨으로 바로 확정하고 `PlaceRoulette` 기록을 남겨 멤버 누구나 조회** | 4.3 P-6 설계 포인트·P1 수용 기준, 7장 `PlaceRoulette` |
 
 ### 오픈 이슈

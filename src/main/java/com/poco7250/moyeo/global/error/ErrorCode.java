@@ -74,6 +74,10 @@ public enum ErrorCode {
 	PLACE_CANDIDATE_NOT_FOUND(HttpStatus.NOT_FOUND, "장소 후보를 찾을 수 없습니다."),
 	// 장소 동점 룰렛(P-6)은 대상 후보가 2개 이상일 때만 돌릴 수 있다
 	PLACE_ROULETTE_NOT_ENOUGH_CANDIDATES(HttpStatus.CONFLICT, "룰렛을 돌릴 동점 후보가 2개 이상이어야 합니다."),
+	// 그룹 단골 장소(P-8): label·주소·지도 링크가 모두 같은 장소는 한 번만 저장한다
+	FAVORITE_PLACE_DUPLICATED(HttpStatus.CONFLICT, "이미 단골 장소에 있는 장소입니다."),
+	FAVORITE_PLACE_LIMIT(HttpStatus.CONFLICT, "단골 장소는 그룹당 50개까지 저장할 수 있습니다."),
+	FAVORITE_PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "단골 장소를 찾을 수 없습니다."),
 
 	// 정산
 	EXPENSE_NOT_FOUND(HttpStatus.NOT_FOUND, "지출을 찾을 수 없습니다."),
