@@ -2,6 +2,7 @@ package com.poco7250.moyeo.global.auth;
 
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
+import com.poco7250.moyeo.group.domain.GroupRole;
 import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.MeetingRepository;
@@ -36,16 +37,49 @@ public class MeetingAccessChecker {
 	}
 
 	/**
-	 * 회원이 모임의 호스트(생성자)인지 검사하고 모임을 돌려준다.
+	 * 회원이 모임의 호스트 권한(실제 호스트 또는 방장, G-4)을 가졌는지 검사하고 모임을 돌려준다.
 	 *
-	 * @throws BusinessException 그룹 멤버가 아니면 NOT_GROUP_MEMBER, 호스트가 아니면 NOT_MEETING_HOST
+	 * @throws BusinessException 그룹 멤버가 아니면 NOT_GROUP_MEMBER, 호스트 권한이 없으면 NOT_MEETING_HOST
 	 */
 	public Meeting requireHost(Long meetingId, Long memberId) {
 		Meeting meeting = requireMember(meetingId, memberId);
-		if (!meeting.isHost(memberId)) {
+		if (!hasHostAuthority(meeting, memberId)) {
 			throw new BusinessException(ErrorCode.NOT_MEETING_HOST);
 		}
 		return meeting;
+	}
+
+	/**
+	 * 회원이 모임의 정산 권한(호스트 권한 또는 총무, G-4)을 가졌는지 검사하고 모임을 돌려준다.
+	 * 정산 확정·재확정과 벌칙 조건 설정·면제가 쓴다.
+	 *
+	 * @throws BusinessException 그룹 멤버가 아니면 NOT_GROUP_MEMBER, 정산 권한이 없으면 NOT_MEETING_HOST
+	 */
+	public Meeting requireSettlementManager(Long meetingId, Long memberId) {
+		Meeting meeting = requireMember(meetingId, memberId);
+		if (!hasSettlementAuthority(meeting, memberId)) {
+			throw new BusinessException(ErrorCode.NOT_MEETING_HOST);
+		}
+		return meeting;
+	}
+
+	/**
+	 * 회원이 모임의 호스트 권한을 가졌는지 확인한다. 실제 호스트면 역할을 조회하지 않는다.
+	 * 멤버 검사를 이미 통과한 뒤 인라인 권한 판단(마감 후 응답, 게임 운영, 기록 수정)에 쓴다.
+	 */
+	public boolean hasHostAuthority(Meeting meeting, Long memberId) {
+		return meeting.isHost(memberId) || roleOf(meeting, memberId).hasHostAuthority();
+	}
+
+	/**
+	 * 회원이 모임의 정산 권한을 가졌는지 확인한다. 실제 호스트면 역할을 조회하지 않는다.
+	 */
+	public boolean hasSettlementAuthority(Meeting meeting, Long memberId) {
+		return meeting.isHost(memberId) || roleOf(meeting, memberId).hasSettlementAuthority();
+	}
+
+	private GroupRole roleOf(Meeting meeting, Long memberId) {
+		return groupAccessChecker.findRole(meeting.getGroup().getId(), memberId).orElse(GroupRole.MEMBER);
 	}
 
 	/**
@@ -61,9 +95,9 @@ public class MeetingAccessChecker {
 	}
 
 	/**
-	 * 회원이 차수가 속한 모임의 호스트인지 검사하고 차수를 돌려준다.
+	 * 회원이 차수가 속한 모임의 호스트 권한을 가졌는지 검사하고 차수를 돌려준다.
 	 *
-	 * @throws BusinessException 그룹 멤버가 아니면 NOT_GROUP_MEMBER, 호스트가 아니면 NOT_MEETING_HOST
+	 * @throws BusinessException 그룹 멤버가 아니면 NOT_GROUP_MEMBER, 호스트 권한이 없으면 NOT_MEETING_HOST
 	 */
 	public Round requireRoundHost(Long roundId, Long memberId) {
 		Round round = findRound(roundId);

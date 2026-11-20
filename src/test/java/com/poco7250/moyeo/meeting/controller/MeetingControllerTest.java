@@ -8,6 +8,7 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -21,8 +22,10 @@ import com.poco7250.moyeo.meeting.dto.ConfirmedPlaceResponse;
 import com.poco7250.moyeo.meeting.dto.GroupMeetingsResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingCreateRequest;
 import com.poco7250.moyeo.meeting.dto.MeetingDetailResponse;
+import com.poco7250.moyeo.meeting.dto.MeetingHostResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingSummaryResponse;
 import com.poco7250.moyeo.meeting.dto.RoundResponse;
+import com.poco7250.moyeo.meeting.service.MeetingHostService;
 import com.poco7250.moyeo.meeting.service.MeetingService;
 import com.poco7250.moyeo.support.SecurityTestConfig;
 import jakarta.servlet.http.Cookie;
@@ -58,6 +61,9 @@ class MeetingControllerTest {
 
 	@MockitoBean
 	MeetingService meetingService;
+
+	@MockitoBean
+	MeetingHostService meetingHostService;
 
 	@Test
 	@DisplayName("모임 생성에 성공하면 201과 모임 상세 링크·차수를 공통 응답으로 준다")
@@ -226,12 +232,51 @@ class MeetingControllerTest {
 				.andExpect(jsonPath("$.data.past[0].id").value(9));
 	}
 
+	@Test
+	@DisplayName("호스트를 위임하면 새 호스트를 공통 응답 래퍼로 준다")
+	void changeHost() throws Exception {
+		given(meetingHostService.changeHost(10L, 7L, 8L)).willReturn(new MeetingHostResponse(10L, 8L));
+
+		mockMvc.perform(put("/api/meetings/10/host").cookie(accessCookie(7L))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"memberId\":8}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.meetingId").value(10))
+				.andExpect(jsonPath("$.data.hostMemberId").value(8));
+	}
+
+	@Test
+	@DisplayName("위임 대상이 없으면 400, 로그인하지 않으면 401이고 서비스를 부르지 않는다")
+	void changeHostInvalid() throws Exception {
+		mockMvc.perform(put("/api/meetings/10/host").cookie(accessCookie(7L))
+						.contentType(MediaType.APPLICATION_JSON).content("{}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error.fieldErrors[?(@.field == 'memberId')]").exists());
+		mockMvc.perform(put("/api/meetings/10/host").contentType(MediaType.APPLICATION_JSON)
+						.content("{\"memberId\":8}"))
+				.andExpect(status().isUnauthorized());
+		verifyNoInteractions(meetingHostService);
+	}
+
+	@ParameterizedTest(name = "{0}")
+	@CsvSource({"NOT_MEETING_HOST, 403", "GROUP_MEMBER_NOT_FOUND, 404"})
+	@DisplayName("위임 거절을 그대로 전달한다")
+	void changeHostRejected(ErrorCode code, int httpStatus) throws Exception {
+		given(meetingHostService.changeHost(10L, 8L, 9L)).willThrow(new BusinessException(code));
+
+		mockMvc.perform(put("/api/meetings/10/host").cookie(accessCookie(8L))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"memberId\":9}"))
+				.andExpect(status().is(httpStatus))
+				.andExpect(jsonPath("$.error.code").value(code.name()));
+	}
+
 	private String body(String roundsJson) {
 		return "{\"title\":\"연말 모임\",\"startAt\":\"2026-12-20T18:00:00\",\"rounds\":" + roundsJson + "}";
 	}
 
 	private MeetingDetailResponse detail() {
-		return new MeetingDetailResponse(10L, 1L, "연말 모임", START_AT, MeetingDateStatus.CONFIRMED, "메모", null, 7L, true, "/share/meetings/token", "공유 문구",
+		return new MeetingDetailResponse(10L, 1L, "연말 모임", START_AT, MeetingDateStatus.CONFIRMED, "메모", null, 7L, true, true, true, "/share/meetings/token", "공유 문구",
 				List.of(new RoundResponse(100L, 1, "밥", PlaceStatus.CONFIRMED, null, false,
 								new ConfirmedPlaceResponse("강남 식당", "https://map.example.com/1")),
 						new RoundResponse(101L, 2, "볼링", PlaceStatus.UNDECIDED, null, false, null)));

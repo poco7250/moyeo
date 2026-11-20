@@ -1,7 +1,6 @@
 package com.poco7250.moyeo.boardgame.domain;
 
 import com.poco7250.moyeo.global.common.BaseTimeEntity;
-import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.Round;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -84,10 +83,11 @@ public class BoardGameRecord extends BaseTimeEntity {
 	}
 
 	/**
-	 * 회원이 이 기록을 고치거나 지울 수 있는지(기록한 사람 또는 모임 호스트) 돌려준다.
+	 * 회원이 이 기록을 고치거나 지울 수 있는지(기록한 사람 또는 모임 호스트 권한자) 돌려준다.
+	 * 호스트 권한(호스트·방장)은 그룹 역할을 알아야 해서 호출 쪽이 판단해 넘긴다.
 	 */
-	public boolean isEditableBy(Long memberId, Meeting meeting) {
-		return Objects.equals(recordedBy, memberId) || meeting.isHost(memberId);
+	public boolean isEditableBy(Long memberId, boolean hostAuthority) {
+		return Objects.equals(recordedBy, memberId) || hostAuthority;
 	}
 
 	private void apply(String gameName, List<BoardGameRank> ranks, Long loserMemberId) {

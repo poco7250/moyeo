@@ -115,7 +115,7 @@ class PenaltyConditionServiceTest {
 				TestClocks.fixed(NOW));
 		game = revealedGame(PenaltyKind.MONEY);
 		penalties = List.of(penalty(MINSU_PENALTY_ID, MINSU_ID), penalty(YEONGHEE_PENALTY_ID, YEONGHEE_ID));
-		given(gameAccessChecker.requireHost(GAME_ID, HOST_ID)).willAnswer(invocation -> game);
+		given(gameAccessChecker.requireSettlementManager(GAME_ID, HOST_ID)).willAnswer(invocation -> game);
 		given(penaltyRepository.findAllByGameSessionIdAndStatusNot(GAME_ID, PenaltyStatus.VOIDED))
 				.willAnswer(invocation -> penalties);
 		given(penaltyRuleRepository.save(any())).willAnswer(invocation -> {
@@ -323,9 +323,9 @@ class PenaltyConditionServiceTest {
 	}
 
 	@Test
-	@DisplayName("호스트가 아니면 403 NOT_MEETING_HOST이고 정산을 잠그지 않는다")
+	@DisplayName("정산 권한이 없으면 403 NOT_MEETING_HOST이고 정산을 잠그지 않는다")
 	void notHost() {
-		given(gameAccessChecker.requireHost(GAME_ID, MINSU_ID))
+		given(gameAccessChecker.requireSettlementManager(GAME_ID, MINSU_ID))
 				.willThrow(new BusinessException(ErrorCode.NOT_MEETING_HOST));
 
 		assertRejected(() -> service.setRule(GAME_ID, MINSU_ID, RATIO_30), ErrorCode.NOT_MEETING_HOST);

@@ -152,6 +152,7 @@ class BoardGameRecordServiceTest {
 	@DisplayName("호스트는 남이 만든 기록도 지울 수 있고 BOARD_GAME_RECORD_DELETED를 발행한다")
 	void deleteByHost() {
 		BoardGameRecord record = givenSavedRecord();
+		given(meetingAccessChecker.hasHostAuthority(meeting, HOST_ID)).willReturn(true);
 
 		service.delete(RECORD_ID, HOST_ID);
 

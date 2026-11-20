@@ -60,13 +60,13 @@ class BoardGameRecordTest {
 	}
 
 	@Test
-	@DisplayName("기록한 사람과 모임 호스트만 고치거나 지울 수 있다")
+	@DisplayName("기록한 사람과 호스트 권한자만 고치거나 지울 수 있다")
 	void editableBy() {
 		BoardGameRecord record = BoardGameRecord.create(round, "스플렌더", RECORDER_ID,
 				List.of(BoardGameRank.of(8L, 1), BoardGameRank.of(9L, 2)), 9L);
 
-		assertThat(record.isEditableBy(RECORDER_ID, meeting)).isTrue();
-		assertThat(record.isEditableBy(HOST_ID, meeting)).isTrue();
-		assertThat(record.isEditableBy(9L, meeting)).isFalse();
+		assertThat(record.isEditableBy(RECORDER_ID, false)).isTrue();
+		assertThat(record.isEditableBy(HOST_ID, true)).isTrue();
+		assertThat(record.isEditableBy(9L, false)).isFalse();
 	}
 }

@@ -44,12 +44,12 @@ public class PenaltyConditionService {
 	 * 금액 조건을 정한다. 조건이 없으면 새로 만들어 전원 APPLIED로 바꾸고, 이미 있으면 값만 바꾼다.
 	 * 면제 상태였다면 면제를 취소하고 조건을 건다(변경 로그 2건).
 	 *
-	 * @throws BusinessException 호스트가 아니면 NOT_MEETING_HOST, 조건을 걸 수 없는 게임·벌칙이면 PENALTY_NOT_CONFIGURABLE,
+	 * @throws BusinessException 정산 권한이 없으면 NOT_MEETING_HOST, 조건을 걸 수 없는 게임·벌칙이면 PENALTY_NOT_CONFIGURABLE,
 	 *         없는 지출이면 EXPENSE_NOT_FOUND, 다른 모임의 지출이면 EXPENSE_NOT_IN_MEETING
 	 */
 	@Transactional
 	public PenaltyConditionResponse setRule(Long gameId, Long memberId, PenaltyRuleRequest request) {
-		PenaltyConditionTarget target = penaltyConditionLoader.loadForHost(gameId, memberId);
+		PenaltyConditionTarget target = penaltyConditionLoader.loadForSettlementManager(gameId, memberId);
 		Expense expense = findTargetExpense(request.targetExpenseId(), target.meetingId());
 		LocalDateTime now = LocalDateTime.now(clock);
 		if (target.status() == PenaltyStatus.APPLIED) {
@@ -61,11 +61,11 @@ public class PenaltyConditionService {
 	/**
 	 * 금액 조건을 해제한다. 규칙을 지우고 전원 ASSIGNED로 되돌린다.
 	 *
-	 * @throws BusinessException 호스트가 아니면 NOT_MEETING_HOST, 조건이 걸려 있지 않으면 PENALTY_NOT_CONFIGURABLE
+	 * @throws BusinessException 정산 권한이 없으면 NOT_MEETING_HOST, 조건이 걸려 있지 않으면 PENALTY_NOT_CONFIGURABLE
 	 */
 	@Transactional
 	public PenaltyConditionResponse clearRule(Long gameId, Long memberId) {
-		PenaltyConditionTarget target = penaltyConditionLoader.loadForHost(gameId, memberId);
+		PenaltyConditionTarget target = penaltyConditionLoader.loadForSettlementManager(gameId, memberId);
 		target.penalties().forEach(Penalty::unapply);
 		reflect(target, memberId, List.of(removeRule(target)));
 		return target.toResponse(null);
@@ -74,11 +74,11 @@ public class PenaltyConditionService {
 	/**
 	 * "금액 벌칙 없음"으로 전원 면제한다. 조건이 걸려 있었다면 규칙을 지우고 면제한다(변경 로그 2건).
 	 *
-	 * @throws BusinessException 호스트가 아니면 NOT_MEETING_HOST, 이미 면제 상태면 PENALTY_NOT_CONFIGURABLE
+	 * @throws BusinessException 정산 권한이 없으면 NOT_MEETING_HOST, 이미 면제 상태면 PENALTY_NOT_CONFIGURABLE
 	 */
 	@Transactional
 	public PenaltyConditionResponse waive(Long gameId, Long memberId) {
-		PenaltyConditionTarget target = penaltyConditionLoader.loadForHost(gameId, memberId);
+		PenaltyConditionTarget target = penaltyConditionLoader.loadForSettlementManager(gameId, memberId);
 		List<ConditionChange> changes = new ArrayList<>();
 		if (target.status() == PenaltyStatus.APPLIED) {
 			changes.add(removeRule(target));
@@ -93,11 +93,11 @@ public class PenaltyConditionService {
 	/**
 	 * 면제를 취소해 전원 ASSIGNED(조건 미설정)로 되돌린다.
 	 *
-	 * @throws BusinessException 호스트가 아니면 NOT_MEETING_HOST, 면제 상태가 아니면 PENALTY_NOT_CONFIGURABLE
+	 * @throws BusinessException 정산 권한이 없으면 NOT_MEETING_HOST, 면제 상태가 아니면 PENALTY_NOT_CONFIGURABLE
 	 */
 	@Transactional
 	public PenaltyConditionResponse unwaive(Long gameId, Long memberId) {
-		PenaltyConditionTarget target = penaltyConditionLoader.loadForHost(gameId, memberId);
+		PenaltyConditionTarget target = penaltyConditionLoader.loadForSettlementManager(gameId, memberId);
 		PenaltyWaiverSnapshot before = target.waivedSnapshot();
 		target.penalties().forEach(Penalty::unwaive);
 		reflect(target, memberId, List.of(ConditionChange.ofWaiver(gameId, before, target.notWaivedSnapshot())));

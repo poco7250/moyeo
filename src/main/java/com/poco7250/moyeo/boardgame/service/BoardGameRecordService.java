@@ -94,7 +94,7 @@ public class BoardGameRecordService {
 		BoardGameRecord record = boardGameRecordRepository.findById(recordId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_GROUP_MEMBER));
 		Meeting meeting = meetingAccessChecker.requireMember(record.getRound().getMeeting().getId(), memberId);
-		if (!record.isEditableBy(memberId, meeting)) {
+		if (!record.isEditableBy(memberId, meetingAccessChecker.hasHostAuthority(meeting, memberId))) {
 			throw new BusinessException(ErrorCode.NOT_BOARD_GAME_RECORDER);
 		}
 		return record;

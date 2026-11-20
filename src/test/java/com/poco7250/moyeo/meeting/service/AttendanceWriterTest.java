@@ -202,6 +202,7 @@ class AttendanceWriterTest {
 	@DisplayName("마감 뒤에도 호스트는 자기 응답을 바꿀 수 있다")
 	void hostAfterDeadline() {
 		givenMember(HOST_ID);
+		given(meetingAccessChecker.hasHostAuthority(meeting, HOST_ID)).willReturn(true);
 		givenRoundsFor(HOST_ID, List.of());
 		given(memberRepository.getReferenceById(HOST_ID)).willReturn(Member.ofKakao(1L, "호스트", null, null));
 		givenSaveReturnsArgument();

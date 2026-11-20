@@ -4,11 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.group.domain.Group;
+import com.poco7250.moyeo.group.domain.GroupRole;
 import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.MeetingRepository;
@@ -16,8 +19,11 @@ import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -127,5 +133,55 @@ class MeetingAccessCheckerTest {
 				.isInstanceOf(BusinessException.class)
 				.extracting("errorCode").isEqualTo(ErrorCode.NOT_MEETING_HOST);
 		assertThat(meetingAccessChecker.requireRoundHost(ROUND_ID, HOST_ID)).isSameAs(round);
+	}
+
+	@Test
+	@DisplayName("실제 호스트면 그룹 역할을 조회하지 않고 호스트·정산 권한을 모두 갖는다")
+	void actualHostSkipsRoleLookup() {
+		assertThat(meetingAccessChecker.hasHostAuthority(meeting, HOST_ID)).isTrue();
+		assertThat(meetingAccessChecker.hasSettlementAuthority(meeting, HOST_ID)).isTrue();
+		verify(groupAccessChecker, never()).findRole(GROUP_ID, HOST_ID);
+	}
+
+	@ParameterizedTest(name = "{0}: 호스트 권한 {1}, 정산 권한 {2}")
+	@CsvSource({"OWNER, true, true", "TREASURER, false, true", "MEMBER, false, false"})
+	@DisplayName("호스트가 아닌 멤버는 그룹 역할로 권한이 갈린다(방장 = 전부, 총무 = 정산만)")
+	void authorityByRole(GroupRole role, boolean host, boolean settlement) {
+		given(groupAccessChecker.findRole(GROUP_ID, MEMBER_ID)).willReturn(Optional.of(role));
+
+		assertThat(meetingAccessChecker.hasHostAuthority(meeting, MEMBER_ID)).isEqualTo(host);
+		assertThat(meetingAccessChecker.hasSettlementAuthority(meeting, MEMBER_ID)).isEqualTo(settlement);
+	}
+
+	@Test
+	@DisplayName("방장은 남의 모임에서 호스트 검사를 통과한다")
+	void ownerPassesHostCheck() {
+		given(meetingRepository.findById(MEETING_ID)).willReturn(Optional.of(meeting));
+		given(groupAccessChecker.findRole(GROUP_ID, MEMBER_ID)).willReturn(Optional.of(GroupRole.OWNER));
+
+		assertThat(meetingAccessChecker.requireHost(MEETING_ID, MEMBER_ID)).isSameAs(meeting);
+	}
+
+	@Test
+	@DisplayName("총무는 정산 검사는 통과하고 호스트 검사는 NOT_MEETING_HOST다")
+	void treasurerPassesOnlySettlementCheck() {
+		given(meetingRepository.findById(MEETING_ID)).willReturn(Optional.of(meeting));
+		given(groupAccessChecker.findRole(GROUP_ID, MEMBER_ID)).willReturn(Optional.of(GroupRole.TREASURER));
+
+		assertThat(meetingAccessChecker.requireSettlementManager(MEETING_ID, MEMBER_ID)).isSameAs(meeting);
+		assertThatThrownBy(() -> meetingAccessChecker.requireHost(MEETING_ID, MEMBER_ID))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.NOT_MEETING_HOST);
+	}
+
+	@Test
+	@DisplayName("일반 멤버는 정산 검사도 NOT_MEETING_HOST다")
+	void memberFailsSettlementCheck() {
+		given(meetingRepository.findById(MEETING_ID)).willReturn(Optional.of(meeting));
+		given(groupAccessChecker.findRole(GROUP_ID, MEMBER_ID)).willReturn(Optional.of(GroupRole.MEMBER));
+
+		assertThatThrownBy(() -> meetingAccessChecker.requireSettlementManager(MEETING_ID, MEMBER_ID))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.NOT_MEETING_HOST);
 	}
 }

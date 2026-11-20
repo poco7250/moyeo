@@ -40,9 +40,16 @@ public enum ErrorCode {
 	NOT_GROUP_MEMBER(HttpStatus.FORBIDDEN, "그룹 멤버만 이용할 수 있습니다."),
 	GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다."),
 	PAYMENT_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, "저장된 송금 정보가 없습니다."),
+	// 그룹 역할(G-4): 역할 변경·방장 양도는 방장만
+	NOT_GROUP_OWNER(HttpStatus.FORBIDDEN, "방장만 할 수 있습니다."),
+	// 멤버 검사를 통과한 요청자가 지목한 대상(역할 변경·양도·호스트 위임)이 그룹 멤버가 아님
+	GROUP_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "그룹 멤버를 찾을 수 없습니다."),
+	// 방장을 대상으로 역할 변경, OWNER로 변경, 자기 자신에게 양도
+	GROUP_ROLE_INVALID_CHANGE(HttpStatus.CONFLICT, "바꿀 수 없는 역할입니다."),
 
 	// 모임
-	NOT_MEETING_HOST(HttpStatus.FORBIDDEN, "모임 호스트만 할 수 있습니다."),
+	// 호스트 권한(호스트·방장) 또는 정산 권한(호스트·방장·총무)이 없음(G-4)
+	NOT_MEETING_HOST(HttpStatus.FORBIDDEN, "호스트 권한이 없습니다."),
 	MEETING_NOT_FOUND(HttpStatus.NOT_FOUND, "모임을 찾을 수 없습니다."),
 	ROUND_NOT_FOUND(HttpStatus.NOT_FOUND, "차수를 찾을 수 없습니다."),
 

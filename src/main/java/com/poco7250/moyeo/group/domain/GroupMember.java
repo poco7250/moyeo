@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -76,5 +77,19 @@ public class GroupMember extends BaseTimeEntity {
 	public void updateProfile(String nickname, String emoji) {
 		this.nickname = nickname.strip();
 		this.emoji = StringUtils.hasText(emoji) ? emoji.strip() : null;
+	}
+
+	/**
+	 * 역할을 바꾼다. 방장 지정·해제 규칙은 서비스가 검사한다.
+	 */
+	public void changeRole(GroupRole role) {
+		this.role = Objects.requireNonNull(role);
+	}
+
+	/**
+	 * 방장인지 확인한다.
+	 */
+	public boolean isOwner() {
+		return role == GroupRole.OWNER;
 	}
 }
