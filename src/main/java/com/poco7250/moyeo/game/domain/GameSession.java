@@ -3,7 +3,6 @@ package com.poco7250.moyeo.game.domain;
 import com.poco7250.moyeo.global.common.BaseTimeEntity;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
-import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.Round;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -217,10 +216,11 @@ public class GameSession extends BaseTimeEntity {
 	}
 
 	/**
-	 * 주어진 회원이 이 게임의 진행자이거나 모임 호스트인지 확인한다.
+	 * 주어진 회원이 이 게임의 진행자이거나 모임 호스트 권한자인지 확인한다.
+	 * 호스트 권한(호스트·방장)은 그룹 역할을 알아야 해서 호출 쪽이 판단해 넘긴다.
 	 */
-	public boolean isOperator(Long memberId, Meeting meeting) {
-		return memberId != null && (Objects.equals(createdBy, memberId) || meeting.isHost(memberId));
+	public boolean isOperator(Long memberId, boolean hostAuthority) {
+		return memberId != null && (Objects.equals(createdBy, memberId) || hostAuthority);
 	}
 
 	private void requireStatus(GameStatus required) {

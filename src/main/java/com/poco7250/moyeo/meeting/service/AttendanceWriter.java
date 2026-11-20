@@ -45,7 +45,7 @@ public class AttendanceWriter {
 	private final Clock clock;
 
 	/**
-	 * 요청자 본인의 응답을 저장한다. 마감 뒤에는 호스트만 바꿀 수 있다.
+	 * 요청자 본인의 응답을 저장한다. 마감 뒤에는 호스트 권한자(호스트·방장)만 바꿀 수 있다.
 	 *
 	 * @throws BusinessException 비멤버 NOT_GROUP_MEMBER, 마감 후 비호스트 ATTENDANCE_DEADLINE_PASSED
 	 */
@@ -53,7 +53,7 @@ public class AttendanceWriter {
 	public MemberAttendanceResponse respondMine(Long meetingId, Long memberId, AttendanceRespondRequest request) {
 		Meeting meeting = meetingAccessChecker.requireMember(meetingId, memberId);
 		LocalDateTime now = LocalDateTime.now(clock);
-		if (meeting.isResponseClosed(now) && !meeting.isHost(memberId)) {
+		if (meeting.isResponseClosed(now) && !meetingAccessChecker.hasHostAuthority(meeting, memberId)) {
 			throw new BusinessException(ErrorCode.ATTENDANCE_DEADLINE_PASSED);
 		}
 		return save(meeting, memberId, memberId, request, now);

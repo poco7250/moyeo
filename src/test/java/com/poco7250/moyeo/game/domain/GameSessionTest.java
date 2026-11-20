@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
-import com.poco7250.moyeo.meeting.domain.Meeting;
 import java.time.LocalDateTime;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
@@ -142,15 +141,14 @@ class GameSessionTest {
 	}
 
 	@Test
-	@DisplayName("진행자와 모임 호스트만 운영자다")
+	@DisplayName("진행자와 호스트 권한자만 운영자다")
 	void isOperator() {
 		GameSession session = sessionWith(GameStatus.WAITING);
-		Meeting meeting = Meeting.create(null, "연말 모임", NOW, null, null, HOST_ID);
 
-		assertThat(session.isOperator(CREATOR_ID, meeting)).isTrue();
-		assertThat(session.isOperator(HOST_ID, meeting)).isTrue();
-		assertThat(session.isOperator(OTHER_ID, meeting)).isFalse();
-		assertThat(session.isOperator(null, meeting)).isFalse();
+		assertThat(session.isOperator(CREATOR_ID, false)).isTrue();
+		assertThat(session.isOperator(HOST_ID, true)).isTrue();
+		assertThat(session.isOperator(OTHER_ID, false)).isFalse();
+		assertThat(session.isOperator(null, true)).isFalse();
 	}
 
 	@Test

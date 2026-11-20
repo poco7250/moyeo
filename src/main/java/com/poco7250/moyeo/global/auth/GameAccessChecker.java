@@ -31,7 +31,7 @@ public class GameAccessChecker {
 	}
 
 	/**
-	 * 회원이 게임의 진행자이거나 모임 호스트인지 검사하고 게임을 돌려준다.
+	 * 회원이 게임의 진행자이거나 모임 호스트 권한자(호스트·방장)인지 검사하고 게임을 돌려준다.
 	 * 없는 게임도 같은 403으로 응답해 게임 존재 여부를 드러내지 않는다.
 	 *
 	 * @throws BusinessException 없는 게임이거나 그룹 멤버가 아니면 NOT_GROUP_MEMBER, 진행자·호스트가 아니면 NOT_GAME_OPERATOR
@@ -39,21 +39,21 @@ public class GameAccessChecker {
 	public GameSession requireOperator(Long gameId, Long memberId) {
 		GameSession game = findGame(gameId);
 		Meeting meeting = meetingAccessChecker.requireMember(game.getRound().getMeeting().getId(), memberId);
-		if (!game.isOperator(memberId, meeting)) {
+		if (!game.isOperator(memberId, meetingAccessChecker.hasHostAuthority(meeting, memberId))) {
 			throw new BusinessException(ErrorCode.NOT_GAME_OPERATOR);
 		}
 		return game;
 	}
 
 	/**
-	 * 회원이 게임이 속한 모임의 호스트인지 검사하고 게임을 돌려준다. 진행자여도 호스트가 아니면 통과하지 못한다.
-	 * 없는 게임도 같은 403으로 응답해 게임 존재 여부를 드러내지 않는다.
+	 * 회원이 게임이 속한 모임의 정산 권한(호스트·방장·총무)을 가졌는지 검사하고 게임을 돌려준다(벌칙 조건용).
+	 * 진행자여도 정산 권한이 없으면 통과하지 못한다. 없는 게임도 같은 403으로 응답해 게임 존재 여부를 드러내지 않는다.
 	 *
-	 * @throws BusinessException 없는 게임이거나 그룹 멤버가 아니면 NOT_GROUP_MEMBER, 호스트가 아니면 NOT_MEETING_HOST
+	 * @throws BusinessException 없는 게임이거나 그룹 멤버가 아니면 NOT_GROUP_MEMBER, 정산 권한이 없으면 NOT_MEETING_HOST
 	 */
-	public GameSession requireHost(Long gameId, Long memberId) {
+	public GameSession requireSettlementManager(Long gameId, Long memberId) {
 		GameSession game = findGame(gameId);
-		meetingAccessChecker.requireHost(game.getRound().getMeeting().getId(), memberId);
+		meetingAccessChecker.requireSettlementManager(game.getRound().getMeeting().getId(), memberId);
 		return game;
 	}
 

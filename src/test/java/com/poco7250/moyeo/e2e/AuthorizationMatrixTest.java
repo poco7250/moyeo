@@ -100,12 +100,14 @@ class AuthorizationMatrixTest {
 		SELF,
 		/** 그룹 멤버만(비멤버 403 NOT_GROUP_MEMBER) */
 		MEMBER,
-		/** 모임 호스트만(비호스트 멤버 403 NOT_MEETING_HOST) */
+		/** 모임 호스트 권한자(호스트·방장, 정산 API는 총무도)만(일반 멤버 403 NOT_MEETING_HOST) */
 		HOST,
 		/** 게임 진행자 또는 호스트만(그 외 멤버 403 NOT_GAME_OPERATOR) */
 		OPERATOR,
 		/** 보드게임 기록한 사람 또는 호스트만(그 외 멤버 403 NOT_BOARD_GAME_RECORDER) */
-		RECORDER
+		RECORDER,
+		/** 그룹 방장만(그 외 멤버 403 NOT_GROUP_OWNER, G-4) */
+		OWNER
 	}
 
 	/** 점검표 한 줄. path·body의 {이름}은 픽스처 값으로 바꿔 부른다 */
@@ -134,6 +136,10 @@ class AuthorizationMatrixTest {
 			endpoint(HttpMethod.GET, "/api/places/search", Access.SELF),
 			// 그룹
 			endpoint(HttpMethod.GET, "/api/groups/{groupId}/members", Access.MEMBER),
+			new Endpoint(HttpMethod.PUT, "/api/groups/{groupId}/members/{memberId}/role", Access.OWNER,
+					"{\"role\":\"TREASURER\"}"),
+			new Endpoint(HttpMethod.POST, "/api/groups/{groupId}/owner-transfer", Access.OWNER,
+					"{\"memberId\":{memberId}}"),
 			new Endpoint(HttpMethod.PATCH, "/api/groups/{groupId}/members/me", Access.MEMBER,
 					"{\"nickname\":\"점검\"}"),
 			endpoint(HttpMethod.GET, "/api/groups/{groupId}/members/me/payment", Access.MEMBER),
@@ -153,6 +159,7 @@ class AuthorizationMatrixTest {
 			endpoint(HttpMethod.GET, "/api/groups/{groupId}/recent-places", Access.MEMBER),
 			// 모임·참석
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}", Access.MEMBER),
+			new Endpoint(HttpMethod.PUT, "/api/meetings/{meetingId}/host", Access.HOST, "{\"memberId\":{memberId}}"),
 			new Endpoint(HttpMethod.PUT, "/api/meetings/{meetingId}/attendances/me", Access.MEMBER, ROUNDS_BODY),
 			new Endpoint(HttpMethod.PUT, "/api/meetings/{meetingId}/attendances/{memberId}", Access.HOST,
 					ROUNDS_BODY),
@@ -379,6 +386,16 @@ class AuthorizationMatrixTest {
 	}
 
 	@ParameterizedTest(name = "{0}")
+	@MethodSource("ownerEndpoints")
+	@DisplayName("역할 변경·방장 양도는 방장이 아닌 멤버면 403 NOT_GROUP_OWNER다")
+	void nonOwnerRejected(Endpoint endpoint) {
+		Exchange response = call(endpoint, member);
+
+		assertThat(response.status()).isEqualTo(403);
+		assertThat(response.errorCode()).isEqualTo("NOT_GROUP_OWNER");
+	}
+
+	@ParameterizedTest(name = "{0}")
 	@MethodSource("operatorEndpoints")
 	@DisplayName("진행자 전용 API는 진행자도 호스트도 아닌 멤버면 403 NOT_GAME_OPERATOR다")
 	void nonOperatorRejected(Endpoint endpoint) {
@@ -397,7 +414,8 @@ class AuthorizationMatrixTest {
 	}
 
 	Stream<Endpoint> groupResourceEndpoints() {
-		Set<Access> groupResources = Set.of(Access.MEMBER, Access.HOST, Access.OPERATOR, Access.RECORDER);
+		Set<Access> groupResources = Set.of(Access.MEMBER, Access.HOST, Access.OPERATOR, Access.RECORDER,
+				Access.OWNER);
 		return ENDPOINTS.stream().filter(e -> groupResources.contains(e.access()));
 	}
 
@@ -407,6 +425,10 @@ class AuthorizationMatrixTest {
 
 	Stream<Endpoint> recorderEndpoints() {
 		return ENDPOINTS.stream().filter(e -> e.access() == Access.RECORDER);
+	}
+
+	Stream<Endpoint> ownerEndpoints() {
+		return ENDPOINTS.stream().filter(e -> e.access() == Access.OWNER);
 	}
 
 	Stream<Endpoint> operatorEndpoints() {

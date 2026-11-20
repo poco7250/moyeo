@@ -157,7 +157,7 @@ class SettlementConfirmServiceTest {
 		Group group = Group.create("대학 동기");
 		ReflectionTestUtils.setField(group, "id", GROUP_ID);
 		Meeting meeting = Meeting.create(group, "연말 모임", NOW, null, null, HOST_ID);
-		lenient().when(meetingAccessChecker.requireHost(MEETING_ID, HOST_ID)).thenReturn(meeting);
+		lenient().when(meetingAccessChecker.requireSettlementManager(MEETING_ID, HOST_ID)).thenReturn(meeting);
 		// 검사에서 먼저 실패하는 경우엔 벌칙을 읽지 않으므로 lenient
 		lenient().when(meetingPenaltyLoader.load(MEETING_ID)).thenReturn(NO_PENALTIES);
 	}
@@ -337,9 +337,9 @@ class SettlementConfirmServiceTest {
 	}
 
 	@Test
-	@DisplayName("호스트가 아니면 403이고 잠금·저장 없이 끝난다")
+	@DisplayName("정산 권한이 없으면 403이고 잠금·저장 없이 끝난다")
 	void notHost() {
-		given(meetingAccessChecker.requireHost(MEETING_ID, HOST_ID))
+		given(meetingAccessChecker.requireSettlementManager(MEETING_ID, HOST_ID))
 				.willThrow(new BusinessException(ErrorCode.NOT_MEETING_HOST));
 
 		assertRejected(false, ErrorCode.NOT_MEETING_HOST);

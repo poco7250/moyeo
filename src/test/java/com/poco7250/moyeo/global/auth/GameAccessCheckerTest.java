@@ -64,29 +64,29 @@ class GameAccessCheckerTest {
 	}
 
 	@Test
-	void 호스트면_게임을_돌려준다() {
+	void 정산_권한자면_게임을_돌려준다() {
 		GameSession game = givenGame();
 
-		assertThat(gameAccessChecker.requireHost(GAME_ID, MEMBER_ID)).isSameAs(game);
-		org.mockito.Mockito.verify(meetingAccessChecker).requireHost(MEETING_ID, MEMBER_ID);
+		assertThat(gameAccessChecker.requireSettlementManager(GAME_ID, MEMBER_ID)).isSameAs(game);
+		org.mockito.Mockito.verify(meetingAccessChecker).requireSettlementManager(MEETING_ID, MEMBER_ID);
 	}
 
 	@Test
-	void 호스트가_아니면_NOT_MEETING_HOST() {
+	void 정산_권한이_없으면_NOT_MEETING_HOST() {
 		givenGame();
-		given(meetingAccessChecker.requireHost(MEETING_ID, MEMBER_ID))
+		given(meetingAccessChecker.requireSettlementManager(MEETING_ID, MEMBER_ID))
 				.willThrow(new BusinessException(ErrorCode.NOT_MEETING_HOST));
 
-		assertThatThrownBy(() -> gameAccessChecker.requireHost(GAME_ID, MEMBER_ID))
+		assertThatThrownBy(() -> gameAccessChecker.requireSettlementManager(GAME_ID, MEMBER_ID))
 				.isInstanceOf(BusinessException.class)
 				.extracting("errorCode").isEqualTo(ErrorCode.NOT_MEETING_HOST);
 	}
 
 	@Test
-	void 호스트_검사도_없는_게임이면_NOT_GROUP_MEMBER() {
+	void 정산_권한_검사도_없는_게임이면_NOT_GROUP_MEMBER() {
 		given(gameSessionRepository.findById(GAME_ID)).willReturn(Optional.empty());
 
-		assertThatThrownBy(() -> gameAccessChecker.requireHost(GAME_ID, MEMBER_ID))
+		assertThatThrownBy(() -> gameAccessChecker.requireSettlementManager(GAME_ID, MEMBER_ID))
 				.isInstanceOf(BusinessException.class)
 				.extracting("errorCode").isEqualTo(ErrorCode.NOT_GROUP_MEMBER);
 		verifyNoInteractions(meetingAccessChecker);

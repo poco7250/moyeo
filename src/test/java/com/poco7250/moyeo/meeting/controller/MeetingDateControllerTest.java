@@ -98,7 +98,7 @@ class MeetingDateControllerTest {
 	@DisplayName("확정하면 시작 시각이 채워진 모임 상세를 준다")
 	void confirm() throws Exception {
 		given(meetingDateService.confirm(10L, 7L, 100L)).willReturn(new MeetingDetailResponse(10L, 1L, "연말 모임",
-				FIRST, MeetingDateStatus.CONFIRMED, null, null, 7L, true, "/share/meetings/t", "문구", List.of()));
+				FIRST, MeetingDateStatus.CONFIRMED, null, null, 7L, true, true, true, "/share/meetings/t", "문구", List.of()));
 
 		mockMvc.perform(post("/api/meetings/10/date/confirm").cookie(accessCookie(7L))
 						.contentType(MediaType.APPLICATION_JSON)

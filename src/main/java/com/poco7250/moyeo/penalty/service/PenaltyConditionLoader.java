@@ -27,14 +27,14 @@ public class PenaltyConditionLoader {
 	private final PenaltyRepository penaltyRepository;
 
 	/**
-	 * 호스트 권한과 게임 상태를 검사하고, 정산을 잠근 뒤 게임의 비무효 벌칙을 읽는다.
+	 * 정산 권한(호스트·방장·총무)과 게임 상태를 검사하고, 정산을 잠근 뒤 게임의 비무효 벌칙을 읽는다.
 	 * 잠근 뒤에 읽어야 동시에 들어온 조건 변경·결과 공개와 순서가 갈린다.
 	 *
-	 * @throws BusinessException 그룹 멤버가 아니면 NOT_GROUP_MEMBER, 호스트가 아니면 NOT_MEETING_HOST,
+	 * @throws BusinessException 그룹 멤버가 아니면 NOT_GROUP_MEMBER, 정산 권한이 없으면 NOT_MEETING_HOST,
 	 *         금액형이 아니거나 공개 전·취소된 게임이거나 벌칙이 전부 무효면 PENALTY_NOT_CONFIGURABLE
 	 */
-	PenaltyConditionTarget loadForHost(Long gameId, Long memberId) {
-		GameSession game = gameAccessChecker.requireHost(gameId, memberId);
+	PenaltyConditionTarget loadForSettlementManager(Long gameId, Long memberId) {
+		GameSession game = gameAccessChecker.requireSettlementManager(gameId, memberId);
 		if (game.getPenaltyKind() != PenaltyKind.MONEY || !game.isRevealed()) {
 			throw new BusinessException(ErrorCode.PENALTY_NOT_CONFIGURABLE);
 		}

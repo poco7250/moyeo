@@ -13,6 +13,7 @@ import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.dto.GroupMeetingsResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingCreateRequest;
 import com.poco7250.moyeo.meeting.dto.MeetingDetailResponse;
+import com.poco7250.moyeo.meeting.dto.MeetingDetailResponse.ViewerAuthority;
 import com.poco7250.moyeo.meeting.dto.MeetingSummaryResponse;
 import com.poco7250.moyeo.meeting.repository.MeetingDateCandidateRepository;
 import com.poco7250.moyeo.meeting.repository.MeetingRepository;
@@ -117,7 +118,10 @@ public class MeetingService {
 	}
 
 	private MeetingDetailResponse toDetail(Meeting meeting, List<Round> rounds, Long memberId) {
-		return MeetingDetailResponse.of(meeting, rounds, memberId, shareLinkProperties.meetingUrl(meeting.getShareToken()));
+		ViewerAuthority authority = new ViewerAuthority(meetingAccessChecker.hasHostAuthority(meeting, memberId),
+				meetingAccessChecker.hasSettlementAuthority(meeting, memberId));
+		return MeetingDetailResponse.of(meeting, rounds, memberId, authority,
+				shareLinkProperties.meetingUrl(meeting.getShareToken()));
 	}
 
 	private List<MeetingSummaryResponse> toSummaries(List<Meeting> meetings) {

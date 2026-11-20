@@ -53,16 +53,16 @@ public class SettlementConfirmService {
 	private final Clock clock;
 
 	/**
-	 * 호스트가 미확정(DRAFT) 정산을 확정하거나 재확정 필요(REOPENED) 정산을 재확정한다.
+	 * 정산 권한자(호스트·방장·총무)가 미확정(DRAFT) 정산을 확정하거나 재확정 필요(REOPENED) 정산을 재확정한다.
 	 * 검사에 실패하면 정산 상태를 바꾸지 않는다.
 	 *
-	 * @throws BusinessException 호스트가 아니면 NOT_MEETING_HOST, CONFIRMED면 SETTLEMENT_ALREADY_CONFIRMED,
+	 * @throws BusinessException 정산 권한이 없으면 NOT_MEETING_HOST, CONFIRMED면 SETTLEMENT_ALREADY_CONFIRMED,
 	 *         조건 미설정 금액형 벌칙이 있으면 PENALTY_CONDITION_UNSET, 대기·진행 중 금액형 게임이 있으면
 	 *         MONEY_GAME_IN_PROGRESS, 경고를 확인하지 않았으면 WARNING_UNCONFIRMED(모두 막힌 대상 목록을 상세에 싣는다)
 	 */
 	@Transactional
-	public SettlementResponse confirm(Long meetingId, Long hostId, boolean acknowledgeWarnings) {
-		Meeting meeting = meetingAccessChecker.requireHost(meetingId, hostId);
+	public SettlementResponse confirm(Long meetingId, Long managerId, boolean acknowledgeWarnings) {
+		Meeting meeting = meetingAccessChecker.requireSettlementManager(meetingId, managerId);
 		Settlement settlement = settlementGuard.lockForAmountChange(meetingId);
 		settlement.requireConfirmable();
 		MeetingPenalties penalties = meetingPenaltyLoader.load(meetingId);
@@ -77,7 +77,7 @@ public class SettlementConfirmService {
 		// 정산 UPDATE를 먼저 내보내 늦은 쪽이 version 충돌(409)로 끝나게 한다
 		settlementRepository.flush();
 		SettlementRevision revision = revisionRepository.save(SettlementRevision.create(settlement, revisionNo,
-				member(hostId), now, !result.warnings().isEmpty()));
+				member(managerId), now, !result.warnings().isEmpty()));
 		List<RevisionMemberShare> shares = saveMemberShares(revision, result);
 		List<Transfer> transfers = saveTransfers(revision, result);
 		penaltyChargeRecorder.record(revision, penalties, result.penaltyCharges());
@@ -85,7 +85,7 @@ public class SettlementConfirmService {
 				penalties.toResponses(result.penaltyCharges()), revisionChange);
 		if (revisionChange != null) {
 			eventPublisher.publishEvent(new SettlementReconfirmedEvent(meetingId,
-					SettlementReconfirmedResponse.of(revisionNo, hostId, revisionChange, response.transfers())));
+					SettlementReconfirmedResponse.of(revisionNo, managerId, revisionChange, response.transfers())));
 		}
 		// 송금 정보(계좌)는 호스트 응답에만 붙이고 위 실시간 이벤트에는 싣지 않는다
 		return payeeAttacher.attach(meeting.getGroup().getId(), response);

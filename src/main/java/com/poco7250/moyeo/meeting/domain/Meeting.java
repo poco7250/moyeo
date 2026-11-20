@@ -59,15 +59,15 @@ public class Meeting extends BaseTimeEntity {
 	// 참석 응답 마감 시각. 없으면 마감 없이 언제든 응답을 바꿀 수 있다(Task 013)
 	private LocalDateTime responseDeadline;
 
-	// 호스트 = 모임 생성자(PRD D4). 권한 검사는 isHost로만 한다
-	@Column(nullable = false, updatable = false)
+	// 호스트 = 처음엔 모임 생성자(PRD D4), 위임(G-4)으로 바뀔 수 있다. 방장·총무 권한은 MeetingAccessChecker가 더한다
+	@Column(nullable = false)
 	private Long hostMemberId;
 
 	// 비로그인 OG 공유 링크용 토큰. 순번 id 대입으로 다른 모임을 보지 못하게 id 대신 쓴다
 	@Column(name = "share_token", nullable = false, updatable = false, length = RandomTokens.LENGTH)
 	private String shareToken;
 
-	// 날짜 확정이 동시에 들어오면 한쪽만 반영한다
+	// 날짜 확정·호스트 위임이 동시에 들어오면 한쪽만 반영한다
 	@Version
 	private Long version;
 
@@ -138,7 +138,21 @@ public class Meeting extends BaseTimeEntity {
 	}
 
 	/**
-	 * 주어진 회원이 이 모임의 호스트(생성자)인지 확인한다.
+	 * 호스트를 다른 회원으로 바꾼다(G-4 위임). 대상이 그룹 멤버인지는 서비스가 검사한다.
+	 *
+	 * @return 실제로 바뀌었으면 true, 이미 그 회원이 호스트면 false
+	 */
+	public boolean changeHost(Long newHostMemberId) {
+		Objects.requireNonNull(newHostMemberId);
+		if (isHost(newHostMemberId)) {
+			return false;
+		}
+		this.hostMemberId = newHostMemberId;
+		return true;
+	}
+
+	/**
+	 * 주어진 회원이 이 모임의 실제 호스트인지 확인한다. 방장 권한까지 보려면 MeetingAccessChecker를 쓴다.
 	 */
 	public boolean isHost(Long memberId) {
 		return memberId != null && Objects.equals(hostMemberId, memberId);

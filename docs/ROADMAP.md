@@ -1,11 +1,11 @@
 # moyeo ROADMAP
 
-> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-19 (`feature/favorite-place` 기준)
+> 기준 PRD: docs/PRD.md (기준일 2026-10-26, 커밋 `0500d24` "PRD 검증 반영: 벌칙·정산 모델 개정" 이후 상태, 2026-11-04 오픈 이슈 5 종결 — 카카오 데이터 무저장 반영) · 마지막 갱신: 2026-11-21 (`feature/group-role` 기준)
 
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** MVP(Phase 0~10) 백엔드 구현·검증 완료(Task 043, 2026-11-14). 남은 MVP 항목은 카카오톡 인앱 브라우저 로그인 수동 확인(사용자 확인 필요)과 PRD 오픈 이슈 1(SPA 배포 방식) 결정 뒤 채울 배포 설정이다. Phase 11(v0.2) 진행 중 — Task 044(날짜 후보 투표, 2026-11-14)·Task 045(미응답자 리마인드 카톡 문구, 2026-11-14)·Task 046(당일 체크인 → 실제 참석자 확정, 2026-11-14)·Task 049(지출 영수증 사진, 2026-11-15)·Task 048(송금 정보·송금 안내, G-5를 당겨 Task 059 흡수, 2026-11-15) 완료, Task 047(볼링 점수 자동 벌칙)은 사용자 결정으로 제외(2026-11-15, 볼링은 앱 밖에서 진행 — 오픈 이슈 12도 현재 안으로 종결). 오픈 이슈 3도 "본인이 붙여 넣은 송금 링크만"으로 종결했다. 남은 v0.2는 050(보류, 재설계 필요)뿐이라 사용자 결정(2026-11-15)으로 Phase 12(v0.3)를 시작해 Task 052(모임 히스토리, 2026-11-15)·Task 053(룰렛·순서 정하기, 2026-11-15)·Task 054(장소 동점 룰렛, 2026-11-16)·Task 055(보드게임 승패 기록, 2026-11-18)·Task 051(명예의 전당 — 벌칙 순위·보드게임 꼴등·출석부, 2026-11-18)·Task 057(그룹 단골 장소·지난 장소 불러오기, 2026-11-19)을 완료했다. Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격, 2026-11-11)과 Task 032(결과 공개 시 벌칙자 확정, 2026-11-12), Task 033(다시 돌리기 요청과 다시 돌린 회차 취소, 2026-11-12)에 이어 Task 034(다시 돌린 회차 결과 공개, 2026-11-12)로 완료했다. Phase 8은 Task 035(벌칙 부담액 계산·경고 순수 도메인, 2026-11-13)와 Task 036(벌칙 조건 설정·변경·해제·면제·면제 취소 API, 2026-11-13), Task 037(대상 지출 삭제 연동·벌칙 반영 내역 표시, 2026-11-13), Task 038(정산 확정 게이트·`PenaltyCharge` 스냅샷, 2026-11-13)로 완료했다. Phase 9는 Task 039(재확정과 1인당 변동액, 2026-11-14)와 Task 040(리비전·변경 로그 조회와 재확정 알림·공유 문구, 2026-11-14)로 완료했다. Phase 10은 Task 041(정산 시나리오 통합 테스트 예 1~6, 2026-11-14)과 Task 042(동시성·실시간 통합 테스트, 2026-11-14), Task 043(MVP 핵심 흐름 E2E·인가 점검표·배포 전 점검, 2026-11-14)으로 완료했다. 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API와 그룹 멤버 송금 정보(`GroupMemberPayment`, 계좌번호 AES-GCM 암호화 `global/crypto/`) 저장·조회·삭제 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판·미응답자 리마인드·당일 체크인·실제 참석자 확정 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 지출 영수증 사진(`ExpenseReceipt`, 저장소 인터페이스 `global/storage/`·로컬 디스크) 올리기·교체·삭제·조회 API, 정산 응답의 송금 안내 받는 사람 송금 정보(`payees`), 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 정산 계산·송금 최소화와 벌칙 부담액 계산·경고 순수 도메인(`settlement/calc/`), 벌칙 계산 입력 조립과 정산 조회의 벌칙 반영 내역, 대상 지출 삭제 시 조건 정리(`settlement/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 정산 확정 게이트·`PenaltyCharge` 스냅샷, 재확정(리비전 +1)과 직전 리비전 대비 1인당 변동액, 리비전 목록·변경 로그 조회 API와 재확정 알림·공유 문구, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API·동점 룰렛 확정과 룰렛 기록 조회 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API(사다리·꽝뽑기·룰렛·순서 정하기)와 게임 상태 조회·차수별 게임 목록 API, 다시 돌리기 요청 API(`game/`), 게임 인가 `GameAccessChecker`(호스트 검사 포함, `global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이, 결과 공개 시 벌칙자 확정·다시 돌린 회차의 원 벌칙 무효·규칙 이관·조건 상속 `PenaltyAssigner`, 벌칙 조건 설정·변경·해제·면제·면제 취소 API(`penalty/`), 지난 모임 히스토리 조회 API(`history/`), 보드게임 승패 기록(꼴등 지정 포함) 생성·목록·수정·삭제 API(`boardgame/`), 명예의 전당 조회 API(`history/`), 공통 코드(`global/`)가 있다.
+- **현재 단계:** MVP(Phase 0~10) 백엔드 구현·검증 완료(Task 043, 2026-11-14). 남은 MVP 항목은 카카오톡 인앱 브라우저 로그인 수동 확인(사용자 확인 필요)과 PRD 오픈 이슈 1(SPA 배포 방식) 결정 뒤 채울 배포 설정이다. Phase 11(v0.2) 진행 중 — Task 044(날짜 후보 투표, 2026-11-14)·Task 045(미응답자 리마인드 카톡 문구, 2026-11-14)·Task 046(당일 체크인 → 실제 참석자 확정, 2026-11-14)·Task 049(지출 영수증 사진, 2026-11-15)·Task 048(송금 정보·송금 안내, G-5를 당겨 Task 059 흡수, 2026-11-15) 완료, Task 047(볼링 점수 자동 벌칙)은 사용자 결정으로 제외(2026-11-15, 볼링은 앱 밖에서 진행 — 오픈 이슈 12도 현재 안으로 종결). 오픈 이슈 3도 "본인이 붙여 넣은 송금 링크만"으로 종결했다. 남은 v0.2는 050(보류, 재설계 필요)뿐이라 사용자 결정(2026-11-15)으로 Phase 12(v0.3)를 시작해 Task 052(모임 히스토리, 2026-11-15)·Task 053(룰렛·순서 정하기, 2026-11-15)·Task 054(장소 동점 룰렛, 2026-11-16)·Task 055(보드게임 승패 기록, 2026-11-18)·Task 051(명예의 전당 — 벌칙 순위·보드게임 꼴등·출석부, 2026-11-18)·Task 057(그룹 단골 장소·지난 장소 불러오기, 2026-11-19)·Task 058(그룹 역할·호스트 위임, 오픈 이슈 15 종결, 2026-11-21)을 완료했다. Phase 12에 남은 건 056(PWA 웹 푸시)뿐이다. Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격, 2026-11-11)과 Task 032(결과 공개 시 벌칙자 확정, 2026-11-12), Task 033(다시 돌리기 요청과 다시 돌린 회차 취소, 2026-11-12)에 이어 Task 034(다시 돌린 회차 결과 공개, 2026-11-12)로 완료했다. Phase 8은 Task 035(벌칙 부담액 계산·경고 순수 도메인, 2026-11-13)와 Task 036(벌칙 조건 설정·변경·해제·면제·면제 취소 API, 2026-11-13), Task 037(대상 지출 삭제 연동·벌칙 반영 내역 표시, 2026-11-13), Task 038(정산 확정 게이트·`PenaltyCharge` 스냅샷, 2026-11-13)로 완료했다. Phase 9는 Task 039(재확정과 1인당 변동액, 2026-11-14)와 Task 040(리비전·변경 로그 조회와 재확정 알림·공유 문구, 2026-11-14)로 완료했다. Phase 10은 Task 041(정산 시나리오 통합 테스트 예 1~6, 2026-11-14)과 Task 042(동시성·실시간 통합 테스트, 2026-11-14), Task 043(MVP 핵심 흐름 E2E·인가 점검표·배포 전 점검, 2026-11-14)으로 완료했다. 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API와 그룹 멤버 송금 정보(`GroupMemberPayment`, 계좌번호 AES-GCM 암호화 `global/crypto/`) 저장·조회·삭제 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판·미응답자 리마인드·당일 체크인·실제 참석자 확정 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 지출 영수증 사진(`ExpenseReceipt`, 저장소 인터페이스 `global/storage/`·로컬 디스크) 올리기·교체·삭제·조회 API, 정산 응답의 송금 안내 받는 사람 송금 정보(`payees`), 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 정산 계산·송금 최소화와 벌칙 부담액 계산·경고 순수 도메인(`settlement/calc/`), 벌칙 계산 입력 조립과 정산 조회의 벌칙 반영 내역, 대상 지출 삭제 시 조건 정리(`settlement/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 정산 확정 게이트·`PenaltyCharge` 스냅샷, 재확정(리비전 +1)과 직전 리비전 대비 1인당 변동액, 리비전 목록·변경 로그 조회 API와 재확정 알림·공유 문구, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API·동점 룰렛 확정과 룰렛 기록 조회 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API(사다리·꽝뽑기·룰렛·순서 정하기)와 게임 상태 조회·차수별 게임 목록 API, 다시 돌리기 요청 API(`game/`), 게임 인가 `GameAccessChecker`(호스트 검사 포함, `global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이, 결과 공개 시 벌칙자 확정·다시 돌린 회차의 원 벌칙 무효·규칙 이관·조건 상속 `PenaltyAssigner`, 벌칙 조건 설정·변경·해제·면제·면제 취소 API(`penalty/`), 지난 모임 히스토리 조회 API(`history/`), 보드게임 승패 기록(꼴등 지정 포함) 생성·목록·수정·삭제 API(`boardgame/`), 명예의 전당 조회 API(`history/`), 공통 코드(`global/`)가 있다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -1456,7 +1456,7 @@ Phase 10 040 → 041, 042 → 043
 | Task 055 ✅ | 보드게임 승패 기록 | R-7 | 043 | — (2026-11-18 결정으로 진행, 아래 상세) |
 | Task 056 | PWA 웹 푸시 | 6장 플랫폼, M-6 | 045 | — |
 | Task 057 ✅ | 그룹 단골 장소·지난 장소 불러오기 | P-8 | 043 | — (2026-11-19 결정으로 진행, 아래 상세. 사용자 입력 `Place`만 저장) |
-| Task 058 | 그룹 역할(방장/총무/멤버) | G-4 | 043 | 오픈 이슈 15(호스트 위임) |
+| Task 058 ✅ | 그룹 역할(방장/총무/멤버)·호스트 위임 | G-4 | 043 | — (2026-11-21 결정으로 진행, 아래 상세. 오픈 이슈 15 종결) |
 | Task 059 ➡️ | ~~그룹 기본 송금 계좌·토스/카카오페이 링크~~ | G-5 | — | **Task 048에 흡수(2026-11-15)** |
 
 > ~~⚠️ S-7(Task 048, v0.2)의 "계좌 복사"는 G-5(Task 059, v0.3)의 계좌 저장에 기대므로 순서 재조정 필요.~~ → 해소(2026-11-15): G-5를 v0.2로 당겨 Task 048에서 함께 구현했다.
@@ -1647,6 +1647,46 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew build` 통과(전체 1,701건) · [x] `/spring-tools:validate` 통과(진단 0건) · [x] 수락 기준 충족
 - **참고:** 새 테이블 `favorite_place`는 `ddl-auto=update`가 만들어 로컬 수동 ALTER는 없다. 프론트는 단골·지난 장소 값을 입력칸에 채워도 된다(카카오 검색 결과 자동 채우기 금지와 별개 — 사용자 입력 데이터)
 
+### Task 058: 그룹 역할(방장/총무/멤버)·호스트 위임   ✅ 완료
+
+- **완료일:** 2026-11-21 · 브랜치 `feature/group-role`
+- **관련 기능:** G-4(P1), 오픈 이슈 15(호스트 위임·부재)
+- **선행 Task:** Task 043
+- **선행 조건:** Phase 12에 남은 056·058 중 2026-11-21 사용자 결정으로 058을 먼저 했다. PRD G-4가 한 줄뿐이고 오픈 이슈 15가 열려 있어 같은 날 사용자 결정으로 규칙을 정하고 PRD 4.1(설계 포인트·P1 수용 기준)·4.2 D4·6장 인가·7장·결정 사항에 반영, 오픈 이슈 15를 종결했다
+- **구현 사항**
+  - [x] ⚠️ 결정(2026-11-21, 사용자)
+    - 오픈 이슈 15 = 역할 권한 + 위임 API 둘 다
+    - 방장(`OWNER`) = 그룹당 1명, 모든 모임에서 호스트 권한 전부
+    - 총무(`TREASURER`) = 여러 명, 모든 모임에서 정산 권한만(정산 확정·재확정, 벌칙 조건 설정·변경·해제·면제·면제 취소)
+    - 방장만 총무 지정·해제와 방장 양도
+    - (세부값, 플랜 승인으로 확정) 권한 없음은 기존 403 `NOT_MEETING_HOST`(메시지만 "호스트 권한이 없습니다."), 새 코드 `NOT_GROUP_OWNER`(403)·`GROUP_MEMBER_NOT_FOUND`(404)·`GROUP_ROLE_INVALID_CHANGE`(409), 같은 역할·현재 호스트로의 변경은 그대로 반환, 양도 시 이전 방장 `MEMBER`, 역할 변경은 실시간 없음·위임은 모임 토픽 `MEETING_HOST_CHANGED`, 게임 진행자·보드게임 작성자는 위임해도 유지
+  - [x] `GroupRole.TREASURER`와 `hasHostAuthority()`·`hasSettlementAuthority()`, `GroupMember.changeRole`·`isOwner`
+  - [x] 권한 판단을 `global/auth`로 모음
+    - `GroupAccessChecker.findRole`
+    - `MeetingAccessChecker.requireHost`/`requireRoundHost` = 호스트 권한(실제 호스트 또는 방장, 실제 호스트면 역할 조회 생략)
+    - `requireSettlementManager`(+ 총무), 인라인용 `hasHostAuthority`·`hasSettlementAuthority`
+    - `GameAccessChecker.requireHost` → `requireSettlementManager`(벌칙 조건, `PenaltyConditionLoader.loadForSettlementManager`)
+  - [x] 도메인 인라인 `meeting.isHost` 제거: `GameSession.isOperator(memberId, hostAuthority)`, `BoardGameRecord.isEditableBy(memberId, hostAuthority)`, `AttendanceWriter.respondMine`(마감 후), `SettlementConfirmService`는 정산 권한
+  - [x] `MeetingDetailResponse`에 `hostAuthority`·`settlementAuthority`(`host`는 실제 호스트 그대로)
+  - [x] `group/service/GroupRoleService`·`GroupRoleController`
+    - `PUT /api/groups/{groupId}/members/{memberId}/role`(`TREASURER`/`MEMBER`)
+    - `POST /api/groups/{groupId}/owner-transfer`(바뀐 두 멤버 반환)
+    - 동시성: 그룹 행 `findByIdForUpdate` → 멤버십 `findByGroupIdAndMemberIdForUpdate`(새 쿼리, `PESSIMISTIC_WRITE`)로 다시 읽어 방장 검사. 늦은 양도는 이미 방장이 아니라 403 `NOT_GROUP_OWNER`
+  - [x] `meeting/service/MeetingHostService`: `PUT /api/meetings/{meetingId}/host`(호스트 권한자), 대상 그룹 멤버 검사 → `Meeting.changeHost`(`hostMemberId`의 `updatable = false` 해제) → flush(`@Version` 충돌 409) → `MeetingHostChangedEvent`(기존 모임 토픽 해석기)
+- **테스트**
+  - [x] 단위 `GroupMemberRoleTest` 2건, `MeetingAccessCheckerTest` +5(실제 호스트는 역할 조회 생략, 역할별 권한 3종, 방장 호스트 검사 통과, 총무 정산만, 멤버 정산 403), `GroupRoleServiceTest` 7건(지정·해제, 같은 역할, 비방장 403, `OWNER`·방장 대상·자기 양도 409, 비멤버 대상 404, 양도, 비멤버 잠금 없음)
+  - [x] `@WebMvcTest` `GroupRoleControllerTest`(응답 형식 2종, 검증 400 4종, 거절 전달 4종, 401), `MeetingControllerTest` +3(위임 응답, 400·401, 403·404 전달)
+  - [x] 통합(DB, 실제 커밋) `GroupRoleIntegrationTest` 6건: 총무 정산 확정·장소 확정 403, 총무 해제 뒤 403, 방장이 남의 모임 장소·정산 확정 → 양도 뒤 권한 잃음, 동시 양도 방장 1명(3회 반복)
+  - [x] 통합 `MeetingHostIntegrationTest` 4건: 위임 → 새 호스트만 확정·모임 토픽 메시지 1건, 방장 대리 위임·총무 403, 상세의 역할별 권한 플래그, 비멤버 대상 404·현재 호스트 그대로·메시지 없음
+  - [x] 기존 테스트 시그니처 반영(`GameSessionTest`·`BoardGameRecordTest`·`GameAccessCheckerTest`·`PenaltyConditionServiceTest`·`SettlementConfirmServiceTest`·`AttendanceWriterTest`·`BoardGameRecordServiceTest`·`MeetingDateControllerTest`)
+  - [x] `AuthorizationMatrixTest`에 새 API 3개(새 등급 `OWNER` 2 — 그 외 멤버 403 `NOT_GROUP_OWNER` / HOST 1). 픽스처의 일반 멤버는 `MEMBER`라 기존 HOST 행은 그대로 통과
+- **수락 기준**
+  - [x] PRD G-4 수용 기준(P1) — `GroupRoleIntegrationTest`·`MeetingHostIntegrationTest` 전체, `GroupRoleControllerTest.invalidRole`
+  - [x] 오픈 이슈 15 종결 반영
+- **완료 조건**
+  - [x] `./gradlew build` 통과(전체 1,751건) · [x] `/spring-tools:validate` 통과(코드 진단 0건, Boot 버전 안내 2건만) · [x] 수락 기준 충족
+- **참고:** 로컬 MySQL의 `group_member.role`은 Hibernate가 만든 네이티브 `enum('MEMBER','OWNER')`라 `ddl-auto=update`가 `TREASURER`를 추가하지 않는다 → 수동 `ALTER TABLE group_member MODIFY role ENUM('OWNER','TREASURER','MEMBER') NOT NULL` 필요(테스트는 `create-drop`이라 영향 없음). `meeting.host_member_id`는 스키마 변화 없음. 프론트는 권한 버튼 노출에 `MeetingDetailResponse.hostAuthority`·`settlementAuthority`를 쓰고, `MEETING_HOST_CHANGED`를 받으면 상세를 다시 읽는다. 그룹 탈퇴·강퇴는 아직 없어 "호스트가 그룹을 나간 경우"는 탈퇴 기능을 만들 때 다시 본다
+
 ## Phase 13: v1.0 (개략)
 
 검증 질문: 공유를 통한 신규 그룹 유입이 생기나?
@@ -1670,7 +1710,7 @@ Phase 10 040 → 041, 042 → 043
 | G-1 | P0 | 007, 008 |
 | G-2 | P0 | 007, 009 |
 | G-3 | P0 | 003, 004, 005, 006, 009 |
-| G-4 | P1 | 058 |
+| G-4 | P1 | 058 ✅ |
 | G-5 | P1 | 048 (059 흡수) |
 | G-6 | P2 | 063 |
 | M-1 | P0 | 011, 012 |
@@ -1733,7 +1773,7 @@ P0 26개 전부 MVP Phase(0~10)에 매핑됨. 통합 검증 Task 041~043은 P0 �
 | 8. S-8 초과분 차감 대상 애매한 경우 | 023, 035 | Task 023 착수 전(경계 케이스만 보류 가능) |
 | 12. 벌칙자별 다른 조건 | 047(제외) | **종결(2026-11-15)** — R-6 제외, 게임당 규칙 1개 유지 |
 | 14. 정산 잠금 시점 | — (MVP 잠금 없음) | 출시 후 재확정 비율 지표 보고 |
-| 15. 호스트 위임·부재 | 058 | v0.3 G-4 설계 시 |
+| 15. 호스트 위임·부재 | 058 | **종결(2026-11-21)** — 위임 API + 방장(호스트 권한 전부)·총무(정산 권한) |
 | 16. `ChangeLog` 공개 범위·화이트리스트 | 021, 040 | Task 021 착수 전 |
 | 17. `REOPENED` 판단 기준 | 021, 025 | Task 021 착수 전 현재 안 유지 확인 |
 | 18. 변동분 송금 경로 안내 | 040 (현재 안: 변동액만) | 출시 후 |

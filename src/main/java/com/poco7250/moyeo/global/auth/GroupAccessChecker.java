@@ -2,7 +2,10 @@ package com.poco7250.moyeo.global.auth;
 
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
+import com.poco7250.moyeo.group.domain.GroupMember;
+import com.poco7250.moyeo.group.domain.GroupRole;
 import com.poco7250.moyeo.group.repository.GroupMemberRepository;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -25,5 +28,12 @@ public class GroupAccessChecker {
 		if (!groupMemberRepository.existsByGroupIdAndMemberId(groupId, memberId)) {
 			throw new BusinessException(ErrorCode.NOT_GROUP_MEMBER);
 		}
+	}
+
+	/**
+	 * 회원의 그룹 역할을 조회한다(G-4 권한 판단용). 멤버가 아니면 빈 값이다.
+	 */
+	public Optional<GroupRole> findRole(Long groupId, Long memberId) {
+		return groupMemberRepository.findByGroupIdAndMemberId(groupId, memberId).map(GroupMember::getRole);
 	}
 }
