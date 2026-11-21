@@ -20,6 +20,7 @@ import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.PlaceStatus;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
+import com.poco7250.moyeo.meeting.service.MeetingPushPublisher;
 import com.poco7250.moyeo.member.repository.MemberRepository;
 import com.poco7250.moyeo.place.domain.PlaceCandidate;
 import com.poco7250.moyeo.place.domain.PlaceRoulette;
@@ -47,6 +48,9 @@ class PlaceRouletteServiceTest {
 	private static final LocalDateTime DEADLINE = LocalDateTime.of(2026, 12, 19, 18, 0);
 	private static final LocalDateTime NOW = DEADLINE.plusMinutes(1);
 	private static final long SEED = 42L;
+
+	@Mock
+	MeetingPushPublisher meetingPushPublisher;
 
 	@Mock
 	MeetingAccessChecker meetingAccessChecker;
@@ -83,7 +87,7 @@ class PlaceRouletteServiceTest {
 		service = new PlaceRouletteService(meetingAccessChecker, roundRepository,
 				new RoundVoteDecider(placeCandidateRepository, placeVoteRepository), placeRouletteRepository,
 				memberRepository, seedGenerator, new RoundPlaceSnapshot(placeCandidateRepository, eventPublisher),
-				eventPublisher, TestClocks.fixed(NOW));
+				meetingPushPublisher, eventPublisher, TestClocks.fixed(NOW));
 		round = PlaceServiceFixture.round();
 		first = PlaceServiceFixture.candidate(round, 500L, "고깃집");
 		second = PlaceServiceFixture.candidate(round, 501L, "횟집");
@@ -131,6 +135,7 @@ class PlaceRouletteServiceTest {
 		assertThat(result.place().confirmedCandidateId()).isEqualTo(expected.get(0));
 		verify(eventPublisher).publishEvent(any(PlaceChangedEvent.class));
 		verify(eventPublisher).publishEvent(new PlaceRouletteSpunEvent(MEETING_ID, result.roulette()));
+		verify(meetingPushPublisher).placeConfirmed(round, HOST_ID);
 		verify(roundRepository).flush();
 	}
 

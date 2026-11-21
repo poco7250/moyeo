@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import com.poco7250.moyeo.meeting.domain.PlaceStatus;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
+import com.poco7250.moyeo.meeting.service.MeetingPushPublisher;
 import com.poco7250.moyeo.place.domain.PlaceCandidate;
 import com.poco7250.moyeo.place.domain.PlaceVote;
 import com.poco7250.moyeo.place.dto.PlaceDecisionRequiredResponse;
@@ -36,6 +37,9 @@ class PlaceVoteCloseProcessorTest {
 	private static final LocalDateTime NOW = DEADLINE.plusSeconds(1);
 
 	@Mock
+	MeetingPushPublisher meetingPushPublisher;
+
+	@Mock
 	RoundRepository roundRepository;
 
 	@Mock
@@ -56,7 +60,7 @@ class PlaceVoteCloseProcessorTest {
 	void setUp() {
 		processor = new PlaceVoteCloseProcessor(roundRepository,
 				new RoundVoteDecider(placeCandidateRepository, placeVoteRepository),
-				new RoundPlaceSnapshot(placeCandidateRepository, eventPublisher), eventPublisher,
+				new RoundPlaceSnapshot(placeCandidateRepository, eventPublisher), meetingPushPublisher, eventPublisher,
 				TestClocks.fixed(NOW));
 		round = PlaceServiceFixture.round();
 		first = PlaceServiceFixture.candidate(round, 500L, "고깃집");
@@ -94,6 +98,8 @@ class PlaceVoteCloseProcessorTest {
 		assertThat(round.getConfirmedCandidate()).isSameAs(second);
 		assertThat(round.isAwaitingHostDecision()).isFalse();
 		verify(eventPublisher).publishEvent(any(PlaceChangedEvent.class));
+		// 자동 마감은 확정한 사람이 없다
+		verify(meetingPushPublisher).placeConfirmed(round, null);
 	}
 
 	@Test
@@ -105,6 +111,7 @@ class PlaceVoteCloseProcessorTest {
 		processor.close(ROUND_ID);
 
 		assertDecisionRequested(List.of(500L, 501L));
+		verifyNoInteractions(meetingPushPublisher);
 	}
 
 	@Test

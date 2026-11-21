@@ -5,6 +5,7 @@ import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.PlaceStatus;
 import com.poco7250.moyeo.meeting.domain.Round;
+import com.poco7250.moyeo.meeting.service.MeetingPushPublisher;
 import com.poco7250.moyeo.member.repository.MemberRepository;
 import com.poco7250.moyeo.place.domain.PlaceCandidate;
 import com.poco7250.moyeo.place.dto.PlaceInput;
@@ -28,6 +29,7 @@ public class RoundPlaceService {
 	private final PlaceVoteRepository placeVoteRepository;
 	private final MemberRepository memberRepository;
 	private final RoundPlaceSnapshot roundPlaceSnapshot;
+	private final MeetingPushPublisher meetingPushPublisher;
 
 	/**
 	 * 투표 없이 장소를 바로 확정한다. 후보 1개짜리 PlaceCandidate를 만들고 CONFIRMED로 바꾼다(PRD P-2).
@@ -43,6 +45,7 @@ public class RoundPlaceService {
 		PlaceCandidate candidate = placeCandidateRepository.save(
 				PlaceCandidate.propose(round, input.toPlace(), memberRepository.getReferenceById(hostId)));
 		round.confirmDirectly(candidate);
+		meetingPushPublisher.placeConfirmed(round, hostId);
 		return roundPlaceSnapshot.publish(round);
 	}
 
@@ -58,6 +61,7 @@ public class RoundPlaceService {
 		PlaceCandidate candidate = placeCandidateRepository.findByIdAndRoundId(candidateId, roundId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.PLACE_CANDIDATE_NOT_FOUND));
 		round.confirm(candidate);
+		meetingPushPublisher.placeConfirmed(round, hostId);
 		return roundPlaceSnapshot.publish(round);
 	}
 

@@ -67,6 +67,10 @@ public enum ErrorCode {
 	ATTENDANCE_TARGET_NOT_MEMBER(HttpStatus.NOT_FOUND, "응답을 수정할 멤버를 찾을 수 없습니다."),
 	// 마감 뒤엔 멤버가 직접 응답할 수 없어 리마인드 문구를 만들지 않는다
 	ATTENDANCE_REMINDER_CLOSED(HttpStatus.CONFLICT, "응답이 마감되어 리마인드할 수 없습니다."),
+	// 리마인드 푸시(M-6 웹 푸시): 미응답자가 없으면 보낼 대상이 없다(쿨다운은 쓰지 않음)
+	ATTENDANCE_REMINDER_NO_TARGET(HttpStatus.CONFLICT, "아직 응답 안 한 멤버가 없습니다."),
+	// 리마인드 푸시는 모임당 1시간에 한 번. 다시 보낼 수 있는 시각은 error.details.nextAvailableAt
+	ATTENDANCE_REMINDER_COOLDOWN(HttpStatus.TOO_MANY_REQUESTS, "리마인드 알림은 1시간에 한 번만 보낼 수 있습니다."),
 	// 체크인·실제 참석자 확정은 모임 당일부터(날짜 투표 중이면 불가)
 	CHECK_IN_NOT_OPEN(HttpStatus.CONFLICT, "모임 당일부터 체크인할 수 있습니다."),
 
@@ -117,6 +121,10 @@ public enum ErrorCode {
 	// 벌칙
 	// 벌칙 상태 전이 표에 없는 전이(예: 무효가 된 벌칙에 조건 설정)
 	PENALTY_NOT_CONFIGURABLE(HttpStatus.CONFLICT, "지금 상태에서는 벌칙 조건을 바꿀 수 없습니다."),
+
+	// 웹 푸시
+	// VAPID 키가 설정되지 않은 서버(로컬 개발 등)
+	PUSH_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "지금은 푸시 알림을 쓸 수 없습니다."),
 
 	// 초대
 	INVITE_LINK_NOT_FOUND(HttpStatus.NOT_FOUND, "초대 링크를 찾을 수 없습니다."),

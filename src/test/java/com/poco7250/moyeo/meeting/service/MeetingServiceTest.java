@@ -52,6 +52,9 @@ class MeetingServiceTest {
 	private static final LocalDateTime START_AT = LocalDateTime.of(2026, 12, 20, 18, 0);
 
 	@Mock
+	MeetingPushPublisher meetingPushPublisher;
+
+	@Mock
 	MeetingRepository meetingRepository;
 
 	@Mock
@@ -79,7 +82,7 @@ class MeetingServiceTest {
 	@BeforeEach
 	void setUp() {
 		meetingService = new MeetingService(meetingRepository, meetingDateCandidateRepository, roundRepository, settlementRepository,
-				groupRepository, groupAccessChecker, meetingAccessChecker, new ShareLinkProperties(""),
+				groupRepository, groupAccessChecker, meetingAccessChecker, meetingPushPublisher, new ShareLinkProperties(""),
 				TestClocks.fixed(NOW));
 		group = Group.create("대학 동기");
 		ReflectionTestUtils.setField(group, "id", GROUP_ID);
