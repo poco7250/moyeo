@@ -2,12 +2,14 @@ package com.poco7250.moyeo.meeting.repository;
 
 import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.MeetingDateStatus;
+import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -55,4 +57,11 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 			+ "order by m.startAt desc, m.id desc")
 	List<Meeting> findAllByGroupIdAndStartAtInRange(@Param("groupId") Long groupId,
 			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+	/**
+	 * 모임을 쓰기 잠금으로 읽는다(리마인드 푸시 쿨다운을 모임 단위로 줄 세움). version은 올리지 않는다.
+	 */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select m from Meeting m where m.id = :meetingId")
+	Optional<Meeting> findByIdForUpdate(@Param("meetingId") Long meetingId);
 }

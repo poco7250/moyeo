@@ -2,6 +2,7 @@ package com.poco7250.moyeo.place.service;
 
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
+import com.poco7250.moyeo.meeting.service.MeetingPushPublisher;
 import com.poco7250.moyeo.place.dto.PlaceDecisionRequiredResponse;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ public class PlaceVoteCloseProcessor {
 	private final RoundRepository roundRepository;
 	private final RoundVoteDecider roundVoteDecider;
 	private final RoundPlaceSnapshot roundPlaceSnapshot;
+	private final MeetingPushPublisher meetingPushPublisher;
 	private final ApplicationEventPublisher eventPublisher;
 	private final Clock clock;
 
@@ -39,6 +41,8 @@ public class PlaceVoteCloseProcessor {
 		RoundVoteDecider.Result result = roundVoteDecider.decide(round.getId());
 		if (result.decision().hasWinner()) {
 			round.confirm(result.winner());
+			// 자동 마감은 확정한 사람이 없어 불참자만 뺀다
+			meetingPushPublisher.placeConfirmed(round, null);
 			roundPlaceSnapshot.publish(round);
 			return;
 		}

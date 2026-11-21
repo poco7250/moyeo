@@ -53,4 +53,10 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, Long> 
 	 */
 	@Query("select gm from GroupMember gm join fetch gm.group where gm.member.id = :memberId order by gm.id desc")
 	List<GroupMember> findAllWithGroupByMemberId(@Param("memberId") Long memberId);
+
+	/**
+	 * 그룹 멤버의 회원 id만 조회한다(웹 푸시 받는 사람).
+	 */
+	@Query("select gm.member.id from GroupMember gm where gm.group.id = :groupId")
+	List<Long> findMemberIdsByGroupId(@Param("groupId") Long groupId);
 }

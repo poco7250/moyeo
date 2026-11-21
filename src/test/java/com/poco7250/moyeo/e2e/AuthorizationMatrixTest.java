@@ -88,6 +88,9 @@ class AuthorizationMatrixTest {
 			"{\"gameName\":\"점검\",\"ranks\":[{\"memberId\":{hostId},\"rank\":1},{\"memberId\":{memberId},\"rank\":2}],"
 					+ "\"loserMemberId\":{memberId}}";
 	private static final String EXPENSE_BODY = "{\"amount\":1000,\"payerId\":{hostId},\"memo\":\"점검\"}";
+	private static final String PUSH_SUBSCRIBE_BODY = "{\"endpoint\":\"https://fcm.googleapis.com/fcm/send/check\","
+			+ "\"keys\":{\"p256dh\":\"BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4\","
+			+ "\"auth\":\"BTBZMqHH6r4Tts7J_aSIgg\"}}";
 	// 이 표시가 body면 JSON 대신 영수증 사진 multipart 파트를 보낸다
 	private static final String RECEIPT_FILE = "<receipt-file>";
 	private static final byte[] JPEG_BYTES = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0x10};
@@ -130,6 +133,13 @@ class AuthorizationMatrixTest {
 			endpoint(HttpMethod.GET, "/share/invites/{token}", Access.PUBLIC),
 			// 로그인만
 			endpoint(HttpMethod.GET, "/api/members/me", Access.SELF),
+			endpoint(HttpMethod.GET, "/api/push/vapid-public-key", Access.SELF),
+			new Endpoint(HttpMethod.POST, "/api/members/me/push-subscriptions", Access.SELF, PUSH_SUBSCRIBE_BODY),
+			new Endpoint(HttpMethod.DELETE, "/api/members/me/push-subscriptions", Access.SELF,
+					"{\"endpoint\":\"https://fcm.googleapis.com/fcm/send/check\"}"),
+			endpoint(HttpMethod.GET, "/api/members/me/push-preferences", Access.SELF),
+			new Endpoint(HttpMethod.PATCH, "/api/members/me/push-preferences", Access.SELF,
+					"{\"enabled\":{\"MEETING_CREATED\":false}}"),
 			new Endpoint(HttpMethod.POST, "/api/groups", Access.SELF, "{\"name\":\"새 그룹\"}"),
 			endpoint(HttpMethod.GET, "/api/groups", Access.SELF),
 			endpoint(HttpMethod.POST, "/api/invites/{token}/join", Access.SELF),
@@ -165,6 +175,7 @@ class AuthorizationMatrixTest {
 					ROUNDS_BODY),
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/attendance-board", Access.MEMBER),
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/attendance-reminder", Access.MEMBER),
+			endpoint(HttpMethod.POST, "/api/meetings/{meetingId}/attendance-reminder/push", Access.MEMBER),
 			// 당일 체크인·실제 참석자 확정
 			endpoint(HttpMethod.PUT, "/api/rounds/{roundId}/check-ins/me", Access.MEMBER),
 			endpoint(HttpMethod.DELETE, "/api/rounds/{roundId}/check-ins/me", Access.MEMBER),

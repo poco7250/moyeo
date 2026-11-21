@@ -36,6 +36,7 @@ public class MeetingDateWriter {
 	private final MeetingDateCandidateRepository candidateRepository;
 	private final MeetingDateVoteRepository voteRepository;
 	private final MemberRepository memberRepository;
+	private final MeetingPushPublisher meetingPushPublisher;
 	private final ApplicationEventPublisher eventPublisher;
 
 	/**
@@ -82,7 +83,7 @@ public class MeetingDateWriter {
 	}
 
 	/**
-	 * 호스트가 고른 후보로 날짜를 확정하고 MEETING_DATE_CONFIRMED를 발행한다(커밋 후 전송).
+	 * 호스트가 고른 후보로 날짜를 확정하고 MEETING_DATE_CONFIRMED와 날짜 확정 웹 푸시를 발행한다(커밋 후 전송).
 	 * 확정끼리 동시에 들어오면 Meeting.version 충돌로 늦은 쪽이 실패한다.
 	 *
 	 * @throws BusinessException 비멤버 NOT_GROUP_MEMBER, 호스트 아님 NOT_MEETING_HOST,
@@ -97,6 +98,7 @@ public class MeetingDateWriter {
 		log.info("모임 날짜 확정: meetingId={}, candidateId={}", meetingId, candidateId);
 		eventPublisher.publishEvent(new MeetingDateConfirmedEvent(meetingId,
 				new MeetingDateConfirmedResponse(meetingId, candidateId, candidate.getStartAt())));
+		meetingPushPublisher.dateConfirmed(meeting, hostId);
 	}
 
 	/**

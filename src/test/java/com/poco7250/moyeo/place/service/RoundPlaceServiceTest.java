@@ -16,6 +16,7 @@ import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.PlaceStatus;
 import com.poco7250.moyeo.meeting.domain.Round;
+import com.poco7250.moyeo.meeting.service.MeetingPushPublisher;
 import com.poco7250.moyeo.member.repository.MemberRepository;
 import com.poco7250.moyeo.place.domain.PlaceCandidate;
 import com.poco7250.moyeo.place.dto.PlaceInput;
@@ -41,6 +42,9 @@ class RoundPlaceServiceTest {
 	private static final LocalDateTime DEADLINE = LocalDateTime.of(2026, 12, 19, 18, 0);
 
 	@Mock
+	MeetingPushPublisher meetingPushPublisher;
+
+	@Mock
 	MeetingAccessChecker meetingAccessChecker;
 
 	@Mock
@@ -61,7 +65,7 @@ class RoundPlaceServiceTest {
 	@BeforeEach
 	void setUp() {
 		service = new RoundPlaceService(meetingAccessChecker, placeCandidateRepository, placeVoteRepository,
-				memberRepository, new RoundPlaceSnapshot(placeCandidateRepository, eventPublisher));
+				memberRepository, new RoundPlaceSnapshot(placeCandidateRepository, eventPublisher), meetingPushPublisher);
 		round = PlaceServiceFixture.round();
 	}
 
@@ -133,6 +137,7 @@ class RoundPlaceServiceTest {
 		assertThat(round.getPlaceStatus()).isEqualTo(PlaceStatus.CONFIRMED);
 		assertThat(response.confirmedCandidateId()).isEqualTo(500L);
 		verify(eventPublisher).publishEvent(any(PlaceChangedEvent.class));
+		verify(meetingPushPublisher).placeConfirmed(round, HOST_ID);
 	}
 
 	@Test

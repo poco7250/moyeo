@@ -6,6 +6,7 @@ import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
+import com.poco7250.moyeo.meeting.service.MeetingPushPublisher;
 import com.poco7250.moyeo.member.repository.MemberRepository;
 import com.poco7250.moyeo.place.domain.PlaceRoulette;
 import com.poco7250.moyeo.place.dto.PlaceRouletteResponse;
@@ -35,6 +36,7 @@ public class PlaceRouletteService {
 	private final MemberRepository memberRepository;
 	private final GameSeedGenerator seedGenerator;
 	private final RoundPlaceSnapshot roundPlaceSnapshot;
+	private final MeetingPushPublisher meetingPushPublisher;
 	private final ApplicationEventPublisher eventPublisher;
 	private final Clock clock;
 
@@ -56,6 +58,7 @@ public class PlaceRouletteService {
 		// 기록 insert의 FK 공유 잠금을 먼저 잡으면 수동 확정의 차수 갱신과 잠금 대기·데드락이 나므로 version 갱신을 먼저 보낸다
 		roundRepository.flush();
 		placeRouletteRepository.save(roulette);
+		meetingPushPublisher.placeConfirmed(round, hostId);
 		RoundPlaceResponse place = roundPlaceSnapshot.publish(round);
 		PlaceRouletteResponse response = PlaceRouletteResponse.from(roulette);
 		eventPublisher.publishEvent(new PlaceRouletteSpunEvent(round.getMeeting().getId(), response));

@@ -43,12 +43,14 @@ public class MeetingService {
 	private final GroupRepository groupRepository;
 	private final GroupAccessChecker groupAccessChecker;
 	private final MeetingAccessChecker meetingAccessChecker;
+	private final MeetingPushPublisher meetingPushPublisher;
 	private final ShareLinkProperties shareLinkProperties;
 	private final Clock clock;
 
 	/**
 	 * 모임을 만든다. 요청자가 호스트가 되고, 차수와 미확정(DRAFT) 정산이 한 트랜잭션에서 함께 생긴다.
 	 * 날짜 후보를 보냈으면 날짜 투표(VOTING) 모임으로 만들고 후보도 함께 저장한다(PRD M-5).
+	 * 만든 사람을 뺀 그룹 멤버에게 새 모임 웹 푸시를 보낸다(커밋 후).
 	 *
 	 * @throws BusinessException 그룹 멤버가 아니면 NOT_GROUP_MEMBER
 	 */
@@ -64,6 +66,7 @@ public class MeetingService {
 		}
 		List<Round> rounds = roundRepository.saveAll(createRounds(meeting, request.resolveRoundNames()));
 		settlementRepository.save(Settlement.createDraft(meeting));
+		meetingPushPublisher.meetingCreated(meeting, memberId);
 		return toDetail(meeting, rounds, memberId);
 	}
 

@@ -5,7 +5,7 @@
 ## 개요
 
 - **목표:** "모임 공지 → 장소 정하기 → 참석 → 놀기(게임) → 정산"을 하나의 링크로 끝내는 모바일 웹앱의 백엔드(JSON API + WebSocket) MVP(v0.1) 완성
-- **현재 단계:** MVP(Phase 0~10) 백엔드 구현·검증 완료(Task 043, 2026-11-14). 남은 MVP 항목은 카카오톡 인앱 브라우저 로그인 수동 확인(사용자 확인 필요)과 PRD 오픈 이슈 1(SPA 배포 방식) 결정 뒤 채울 배포 설정이다. Phase 11(v0.2) 진행 중 — Task 044(날짜 후보 투표, 2026-11-14)·Task 045(미응답자 리마인드 카톡 문구, 2026-11-14)·Task 046(당일 체크인 → 실제 참석자 확정, 2026-11-14)·Task 049(지출 영수증 사진, 2026-11-15)·Task 048(송금 정보·송금 안내, G-5를 당겨 Task 059 흡수, 2026-11-15) 완료, Task 047(볼링 점수 자동 벌칙)은 사용자 결정으로 제외(2026-11-15, 볼링은 앱 밖에서 진행 — 오픈 이슈 12도 현재 안으로 종결). 오픈 이슈 3도 "본인이 붙여 넣은 송금 링크만"으로 종결했다. 남은 v0.2는 050(보류, 재설계 필요)뿐이라 사용자 결정(2026-11-15)으로 Phase 12(v0.3)를 시작해 Task 052(모임 히스토리, 2026-11-15)·Task 053(룰렛·순서 정하기, 2026-11-15)·Task 054(장소 동점 룰렛, 2026-11-16)·Task 055(보드게임 승패 기록, 2026-11-18)·Task 051(명예의 전당 — 벌칙 순위·보드게임 꼴등·출석부, 2026-11-18)·Task 057(그룹 단골 장소·지난 장소 불러오기, 2026-11-19)·Task 058(그룹 역할·호스트 위임, 오픈 이슈 15 종결, 2026-11-21)을 완료했다. Phase 12에 남은 건 056(PWA 웹 푸시)뿐이다. Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격, 2026-11-11)과 Task 032(결과 공개 시 벌칙자 확정, 2026-11-12), Task 033(다시 돌리기 요청과 다시 돌린 회차 취소, 2026-11-12)에 이어 Task 034(다시 돌린 회차 결과 공개, 2026-11-12)로 완료했다. Phase 8은 Task 035(벌칙 부담액 계산·경고 순수 도메인, 2026-11-13)와 Task 036(벌칙 조건 설정·변경·해제·면제·면제 취소 API, 2026-11-13), Task 037(대상 지출 삭제 연동·벌칙 반영 내역 표시, 2026-11-13), Task 038(정산 확정 게이트·`PenaltyCharge` 스냅샷, 2026-11-13)로 완료했다. Phase 9는 Task 039(재확정과 1인당 변동액, 2026-11-14)와 Task 040(리비전·변경 로그 조회와 재확정 알림·공유 문구, 2026-11-14)로 완료했다. Phase 10은 Task 041(정산 시나리오 통합 테스트 예 1~6, 2026-11-14)과 Task 042(동시성·실시간 통합 테스트, 2026-11-14), Task 043(MVP 핵심 흐름 E2E·인가 점검표·배포 전 점검, 2026-11-14)으로 완료했다. 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API와 그룹 멤버 송금 정보(`GroupMemberPayment`, 계좌번호 AES-GCM 암호화 `global/crypto/`) 저장·조회·삭제 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판·미응답자 리마인드·당일 체크인·실제 참석자 확정 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 지출 영수증 사진(`ExpenseReceipt`, 저장소 인터페이스 `global/storage/`·로컬 디스크) 올리기·교체·삭제·조회 API, 정산 응답의 송금 안내 받는 사람 송금 정보(`payees`), 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 정산 계산·송금 최소화와 벌칙 부담액 계산·경고 순수 도메인(`settlement/calc/`), 벌칙 계산 입력 조립과 정산 조회의 벌칙 반영 내역, 대상 지출 삭제 시 조건 정리(`settlement/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 정산 확정 게이트·`PenaltyCharge` 스냅샷, 재확정(리비전 +1)과 직전 리비전 대비 1인당 변동액, 리비전 목록·변경 로그 조회 API와 재확정 알림·공유 문구, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API·동점 룰렛 확정과 룰렛 기록 조회 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API(사다리·꽝뽑기·룰렛·순서 정하기)와 게임 상태 조회·차수별 게임 목록 API, 다시 돌리기 요청 API(`game/`), 게임 인가 `GameAccessChecker`(호스트 검사 포함, `global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이, 결과 공개 시 벌칙자 확정·다시 돌린 회차의 원 벌칙 무효·규칙 이관·조건 상속 `PenaltyAssigner`, 벌칙 조건 설정·변경·해제·면제·면제 취소 API(`penalty/`), 지난 모임 히스토리 조회 API(`history/`), 보드게임 승패 기록(꼴등 지정 포함) 생성·목록·수정·삭제 API(`boardgame/`), 명예의 전당 조회 API(`history/`), 공통 코드(`global/`)가 있다.
+- **현재 단계:** MVP(Phase 0~10) 백엔드 구현·검증 완료(Task 043, 2026-11-14). 남은 MVP 항목은 카카오톡 인앱 브라우저 로그인 수동 확인(사용자 확인 필요)과 PRD 오픈 이슈 1(SPA 배포 방식) 결정 뒤 채울 배포 설정이다. Phase 11(v0.2) 진행 중 — Task 044(날짜 후보 투표, 2026-11-14)·Task 045(미응답자 리마인드 카톡 문구, 2026-11-14)·Task 046(당일 체크인 → 실제 참석자 확정, 2026-11-14)·Task 049(지출 영수증 사진, 2026-11-15)·Task 048(송금 정보·송금 안내, G-5를 당겨 Task 059 흡수, 2026-11-15) 완료, Task 047(볼링 점수 자동 벌칙)은 사용자 결정으로 제외(2026-11-15, 볼링은 앱 밖에서 진행 — 오픈 이슈 12도 현재 안으로 종결). 오픈 이슈 3도 "본인이 붙여 넣은 송금 링크만"으로 종결했다. 남은 v0.2는 050(보류, 재설계 필요)뿐이라 사용자 결정(2026-11-15)으로 Phase 12(v0.3)를 시작해 Task 052(모임 히스토리, 2026-11-15)·Task 053(룰렛·순서 정하기, 2026-11-15)·Task 054(장소 동점 룰렛, 2026-11-16)·Task 055(보드게임 승패 기록, 2026-11-18)·Task 051(명예의 전당 — 벌칙 순위·보드게임 꼴등·출석부, 2026-11-18)·Task 057(그룹 단골 장소·지난 장소 불러오기, 2026-11-19)·Task 058(그룹 역할·호스트 위임, 오픈 이슈 15 종결, 2026-11-21)·Task 056(PWA 웹 푸시 — 리마인드·새 모임·장소·날짜 확정 푸시, 2026-11-21)을 완료해 Phase 12를 마쳤다. 다음은 Phase 13(v1.0)이다. Task 015(카카오 로컬 검색 프록시) 완료. 오픈 이슈 5를 "카카오 데이터 무저장"으로 종결(2026-11-04)해 Task 014·016·019 보류를 풀었다. Task 014(장소 값 타입·후보·투표 도메인)·Task 016(후보 등록·바로 확정·투표 열기·재투표) 완료(2026-11-04), Task 017(후보 투표·취소·실시간 득표 현황) 완료(2026-11-05), Task 018(투표 마감 자동 확정·호스트 수동 확정) 완료(2026-11-07). Task 019(확정 장소 노출·OG 메타 HTML) 완료(2026-11-08, 오픈 이슈 1과 무관한 `/share/**` 경로로 구현). Phase 5(정산 기본·최초 확정)는 Task 025로 완료했다. Phase 6(게임 방·사다리·꽝뽑기)은 Task 030으로 완료했다. Phase 7은 Task 031(벌칙·벌칙 규칙 도메인 골격, 2026-11-11)과 Task 032(결과 공개 시 벌칙자 확정, 2026-11-12), Task 033(다시 돌리기 요청과 다시 돌린 회차 취소, 2026-11-12)에 이어 Task 034(다시 돌린 회차 결과 공개, 2026-11-12)로 완료했다. Phase 8은 Task 035(벌칙 부담액 계산·경고 순수 도메인, 2026-11-13)와 Task 036(벌칙 조건 설정·변경·해제·면제·면제 취소 API, 2026-11-13), Task 037(대상 지출 삭제 연동·벌칙 반영 내역 표시, 2026-11-13), Task 038(정산 확정 게이트·`PenaltyCharge` 스냅샷, 2026-11-13)로 완료했다. Phase 9는 Task 039(재확정과 1인당 변동액, 2026-11-14)와 Task 040(리비전·변경 로그 조회와 재확정 알림·공유 문구, 2026-11-14)로 완료했다. Phase 10은 Task 041(정산 시나리오 통합 테스트 예 1~6, 2026-11-14)과 Task 042(동시성·실시간 통합 테스트, 2026-11-14), Task 043(MVP 핵심 흐름 E2E·인가 점검표·배포 전 점검, 2026-11-14)으로 완료했다. 코드에는 카카오 기반 회원·내 정보 API(`member/`), 카카오 로그인·콜백·토큰 재발급/로그아웃 API와 쿠키 JWT 인증 필터(`auth/`), 그룹·그룹 멤버·초대 링크 도메인과 그룹 생성·내 그룹 목록·초대 링크 재발급·초대 미리보기/가입·멤버 목록·그룹 프로필 변경 API와 그룹 멤버 송금 정보(`GroupMemberPayment`, 계좌번호 AES-GCM 암호화 `global/crypto/`) 저장·조회·삭제 API(`group/`), 그룹 멤버 인가 `GroupAccessChecker`(`global/auth/`), STOMP 설정·구독 인가(`global/websocket/`)와 커밋 후 브로드캐스트(`global/event/`), 모임·차수·참석 엔티티, 모임 토픽 해석기, 모임 생성·상세·그룹 모임 목록 API와 차수별 참석 응답·호스트 대리 수정·현황판·미응답자 리마인드·당일 체크인·실제 참석자 확정 API(`meeting/`), 모임 인가 `MeetingAccessChecker`(`global/auth/`), 정산 골격·지출·분배 조정·변경 로그 엔티티와 지출 영수증 사진(`ExpenseReceipt`, 저장소 인터페이스 `global/storage/`·로컬 디스크) 올리기·교체·삭제·조회 API, 정산 응답의 송금 안내 받는 사람 송금 정보(`payees`), 정산 직렬화·`REOPENED` 전이·변경 로그 기록과 지출 등록·수정·삭제·분배 조정·목록 API(`settlement/`), 정산 계산·송금 최소화와 벌칙 부담액 계산·경고 순수 도메인(`settlement/calc/`), 벌칙 계산 입력 조립과 정산 조회의 벌칙 반영 내역, 대상 지출 삭제 시 조건 정리(`settlement/`), 정산 조회·최초 확정 API와 리비전 스냅샷, 정산 확정 게이트·`PenaltyCharge` 스냅샷, 재확정(리비전 +1)과 직전 리비전 대비 1인당 변동액, 리비전 목록·변경 로그 조회 API와 재확정 알림·공유 문구, 참석 변경의 정산 반영(`settlement/`), 낙관적 락 재시도 실행기(`global/concurrency/`), 카카오 로컬 장소 검색 프록시·회원별 빈도 제한과 장소 값 타입·후보·투표 엔티티·`@HttpsUrl`·지도 링크 생성기와 후보 추가·바로 확정·투표 열기(재투표) API·차수 인가와 후보 투표·취소·득표 현황 API·투표 마감 스케줄러·호스트 수동 확정 API·동점 룰렛 확정과 룰렛 기록 조회 API(`place/`), 확정 장소 노출과 공유 링크 OG 메타 HTML(`og/`), 게임·참가자·결과 엔티티와 상태 전이, 게임 토픽 해석기, 게임 방 생성·즉시 추첨·종료·취소 API(사다리·꽝뽑기·룰렛·순서 정하기)와 게임 상태 조회·차수별 게임 목록 API, 다시 돌리기 요청 API(`game/`), 게임 인가 `GameAccessChecker`(호스트 검사 포함, `global/auth/`), 벌칙·벌칙 금액 조건 엔티티와 벌칙 상태 전이, 결과 공개 시 벌칙자 확정·다시 돌린 회차의 원 벌칙 무효·규칙 이관·조건 상속 `PenaltyAssigner`, 벌칙 조건 설정·변경·해제·면제·면제 취소 API(`penalty/`), 지난 모임 히스토리 조회 API(`history/`), 보드게임 승패 기록(꼴등 지정 포함) 생성·목록·수정·삭제 API(`boardgame/`), 명예의 전당 조회 API(`history/`), 공통 코드(`global/`)가 있다.
 - **구현 순서:** PRD 8장 "MVP 구현 순서(백엔드)" 0 → 1 → 2 → 3 → 4 → 5-a → 6 → 7 → 8 → 5-b → 9를 그대로 따른다. 실시간 기반(WebSocket)은 P-3(4단계)의 수용 기준이 요구하므로 3단계 앞으로 당겼다(Task 010).
 
 | Phase | 이름 | PRD 단계 | Task 수 | 완료 | 상태 |
@@ -22,9 +22,9 @@
 | 9 | 재확정·리비전 비교·알림 | 5-b | 2 | 2 | ✅ 완료 |
 | 10 | MVP 통합 검증 | 9 | 3 | 3 | ✅ 완료 (인앱 브라우저 수동 확인 대기) |
 | 11 | v0.2 (개략) | — | 6 (047 제외) | 5 | 🔄 진행 중 (050 보류만 남음) |
-| 12 | v0.3 (개략) | — | 8 (059 → 048 흡수) | 5 | 🔄 진행 중 |
+| 12 | v0.3 (개략) | — | 8 (059 → 048 흡수) | 8 | ✅ 완료 |
 | 13 | v1.0 (개략) | — | 7 | 0 | ⬜ 대기 |
-| **합계** | | | **64** (MVP 43, 047 제외·059 흡수) | **47** | |
+| **합계** | | | **64** (MVP 43, 047 제외·059 흡수) | **56** | |
 
 ## 상태 범례
 
@@ -1454,7 +1454,7 @@ Phase 10 040 → 041, 042 → 043
 | Task 053 ✅ | 룰렛·랜덤 순서 정하기 | R-3 | 043 | — (2026-11-15 결정으로 진행, 아래 상세) |
 | Task 054 ✅ | 장소 동점 룰렛 결정 | P-6 | 053 | — (2026-11-15 결정으로 진행, 아래 상세) |
 | Task 055 ✅ | 보드게임 승패 기록 | R-7 | 043 | — (2026-11-18 결정으로 진행, 아래 상세) |
-| Task 056 | PWA 웹 푸시 | 6장 플랫폼, M-6 | 045 | — |
+| Task 056 ✅ | PWA 웹 푸시 | 6장 플랫폼, M-6 | 045 | — (2026-11-21 결정으로 진행, 아래 상세. 리마인드·새 모임·장소·날짜 확정 4종, 정산 푸시 없음) |
 | Task 057 ✅ | 그룹 단골 장소·지난 장소 불러오기 | P-8 | 043 | — (2026-11-19 결정으로 진행, 아래 상세. 사용자 입력 `Place`만 저장) |
 | Task 058 ✅ | 그룹 역할(방장/총무/멤버)·호스트 위임 | G-4 | 043 | — (2026-11-21 결정으로 진행, 아래 상세. 오픈 이슈 15 종결) |
 | Task 059 ➡️ | ~~그룹 기본 송금 계좌·토스/카카오페이 링크~~ | G-5 | — | **Task 048에 흡수(2026-11-15)** |
@@ -1687,6 +1687,38 @@ Phase 10 040 → 041, 042 → 043
   - [x] `./gradlew build` 통과(전체 1,751건) · [x] `/spring-tools:validate` 통과(코드 진단 0건, Boot 버전 안내 2건만) · [x] 수락 기준 충족
 - **참고:** 로컬 MySQL의 `group_member.role`은 Hibernate가 만든 네이티브 `enum('MEMBER','OWNER')`라 `ddl-auto=update`가 `TREASURER`를 추가하지 않는다 → 수동 `ALTER TABLE group_member MODIFY role ENUM('OWNER','TREASURER','MEMBER') NOT NULL` 필요(테스트는 `create-drop`이라 영향 없음). `meeting.host_member_id`는 스키마 변화 없음. 프론트는 권한 버튼 노출에 `MeetingDetailResponse.hostAuthority`·`settlementAuthority`를 쓰고, `MEETING_HOST_CHANGED`를 받으면 상세를 다시 읽는다. 그룹 탈퇴·강퇴는 아직 없어 "호스트가 그룹을 나간 경우"는 탈퇴 기능을 만들 때 다시 본다
 
+### Task 056: PWA 웹 푸시   ✅ 완료
+
+- **완료일:** 2026-11-21 · 브랜치 `feature/web-push`
+- **관련 기능:** 6장 플랫폼(PWA 웹 푸시), M-6(P1, 웹 푸시 리마인드 부분)
+- **선행 Task:** Task 045
+- **선행 조건:** Phase 12에 남은 마지막 Task. PRD에 "웹 푸시" 한 줄뿐이라 2026-11-21 사용자 결정으로 규칙을 정하고 PRD 4.2 M-6(설계 포인트·P1 수용 기준)·6장·7장·결정 사항에 반영했다. 백엔드만 다룬다(서비스 워커·구독 UI는 프론트)
+- **구현 사항**
+  - [x] ⚠️ 결정(2026-11-21, 사용자)
+    - 푸시 종류 = 미응답자 리마인드·새 모임·장소 확정·날짜 확정(정산 확정·재확정 푸시 없음)
+    - 리마인드 푸시 = 그룹 멤버 누구나, 모임당 1시간 쿨다운
+    - 전송 = JDK 직접 구현(RFC 8291 aes128gcm + RFC 8292 VAPID), 새 의존성 없음
+    - 받기 설정 = 회원별 종류별 on/off(기본 전부 켬)
+    - (세부값, 플랜 승인으로 확정) 받는 사람: 리마인드 = 미응답자, 새 모임·날짜 확정 = 행위자 제외 그룹 멤버, 장소 확정 = 행위자·그 차수 불참자 제외 그룹 멤버(자동 마감은 불참자만). 쿨다운 429 `ATTENDANCE_REMINDER_COOLDOWN`(`details.nextAvailableAt`), 미응답자 0명 409 `ATTENDANCE_REMINDER_NO_TARGET`, VAPID 미설정 503 `PUSH_NOT_CONFIGURED`. endpoint는 FCM·Mozilla·Apple·WNS https만(SSRF 방지), 회원당 기기 10개, 404·410이면 구독 삭제·그 외 실패는 로그만, TTL 리마인드 6h·그 외 24h, STOMP 이벤트 추가 없음
+  - [x] 프로토콜 `global/push/`: `EcKeys`(raw P-256 키 ↔ JDK 키), `WebPushEncryptor`(RFC 8291), `VapidTokenSigner`(jjwt ES256), `WebPushClient`(전용 `webPushRestClient`, 타임아웃, 결과 `PushSendResult`, 키 없으면 비활성), `VapidProperties`(`push.vapid.*`), `@PushEndpoint`·`PushEndpointValidator`
+  - [x] `push/`: `PushSubscription`(endpoint 해시 유니크)·`PushMute`(문자열 컬럼)·`PushType`, `PushSubscriptionService`·`PushController`
+    - `GET /api/push/vapid-public-key`, `POST`/`DELETE /api/members/me/push-subscriptions`, `GET`/`PATCH /api/members/me/push-preferences`(보낸 종류만 바꿈 — 플랜의 "PUT 전체 교체"를 부분 변경 PATCH로 바꿈)
+  - [x] 전송: `PushNotificationEvent`(트랜잭션 안 발행) → `PushDispatcher`(`@Async(pushTaskExecutor)` + `AFTER_COMMIT`, 뮤트 제외 구독 쿼리 1번), `global/config/AsyncConfig`(`@EnableAsync`, core 2·max 4·queue 500, 넘치면 버리고 로그)
+  - [x] 발행: `meeting/service/MeetingPushPublisher`(받는 사람·문구 `MeetingPushText`·태그) — `MeetingService.create`, `MeetingDateWriter.confirm`, `RoundPlaceService` 바로·수동 확정, `PlaceVoteCloseProcessor` 단독 최다 확정, `PlaceRouletteService.spin`
+  - [x] 리마인드 푸시: `AttendanceReminderPushService` + `POST /api/meetings/{meetingId}/attendance-reminder/push`. `getReminder` 재사용 → 모임 행 `findByIdForUpdate` → 기록 잠금 읽기 `findByMeetingIdForUpdate`(REPEATABLE READ 스냅샷 회피) → 쿨다운 → 발행. `AttendanceReminderPush`(meeting 유니크)
+  - [x] 새 쿼리: `GroupMemberRepository.findMemberIdsByGroupId`, `AttendanceRepository.findAbsentMemberIdsByRoundId`, `MeetingRepository.findByIdForUpdate`
+- **테스트**
+  - [x] 단위 `WebPushEncryptorTest` 3건(RFC 8291 부록 A 본문 바이트 일치, 복호화 왕복, 4,096바이트·키 형식 거절), `VapidTokenSignerTest` 3건, `PushEndpointValidatorTest`(허용 4·거절 9·응답 분류)
+  - [x] 단위 `PushDispatcherTest` 3건, `PushSubscriptionServiceTest` 4건, `MeetingPushPublisherTest` 4건, `AttendanceReminderPushServiceTest` 4건, 기존 장소 테스트에 발행 검증(`PlaceVoteCloseProcessorTest`·`PlaceRouletteServiceTest`·`RoundPlaceServiceTest`)
+  - [x] `@WebMvcTest` `PushControllerTest`(응답 형식, 503, 구독 검증 400 5종, 설정 400 3종, 401), `AttendanceControllerTest` +4(응답 형식, 429 `details`, 409, 401)
+  - [x] 통합(DB, 실제 커밋, `WebPushClient`만 목) `WebPushIntegrationTest` 5건: 리마인드(미응답자 기기만·뮤트 제외·410 삭제·재요청 429 전송 없음), 동시 리마인드 1건만, 새 모임(만든 사람 제외·페이로드), 날짜·장소 확정 받는 사람, 롤백 시 전송 없음
+  - [x] `AuthorizationMatrixTest`에 새 API 6개(SELF 5 / MEMBER 1)
+- **수락 기준**
+  - [x] PRD M-6(웹 푸시) 수용 기준(P1) — `WebPushIntegrationTest.reminderPush`·`concurrentReminder`, `AttendanceReminderPushServiceTest.noTarget`
+- **완료 조건**
+  - [x] `./gradlew build` 통과(전체 1,819건) · [x] `/spring-tools:validate` 통과(코드 진단 0건, Boot 버전 안내 2건만) · [x] 수락 기준 충족 · [ ] 실제 브라우저 수신 수동 확인(프론트 서비스 워커 준비 뒤)
+- **참고:** 새 테이블 `push_subscription`·`push_mute`·`attendance_reminder_push`는 `ddl-auto=update`가 만들어 로컬 수동 ALTER는 없다(`push_mute.type`은 문자열 컬럼이라 종류를 늘려도 ALTER 불필요). VAPID 키는 `npx web-push generate-vapid-keys`로 만들어 `config/application-local.properties`·환경 변수(`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`)에 넣는다. 프론트는 서비스 워커에서 페이로드 `{type, title, body, url, tag}`로 알림을 띄우고 클릭 시 `url`을 연다. 푸시 전송은 단일 인스턴스 메모리 스레드 풀이라 서버 재시작 중 큐에 있던 알림은 사라질 수 있다
+
 ## Phase 13: v1.0 (개략)
 
 검증 질문: 공유를 통한 신규 그룹 유입이 생기나?
@@ -1718,7 +1750,7 @@ Phase 10 040 → 041, 042 → 043
 | M-3 | P0 | 011, 013, 025 |
 | M-4 | P0 | 013 |
 | M-5 | P1 | 044 |
-| M-6 | P1 | 045, 056 |
+| M-6 | P1 | 045, 056 ✅ |
 | M-7 | P1 | 046 |
 | M-8 | P2 | 066 |
 | P-1 | P0 | 014, 015, 016 |

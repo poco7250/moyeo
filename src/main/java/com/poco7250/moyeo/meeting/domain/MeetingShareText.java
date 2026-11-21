@@ -14,7 +14,7 @@ public final class MeetingShareText {
 
 	private static final String PLACE_UNDECIDED = "장소 미정";
 	private static final String DATE_VOTING = "날짜 투표 중";
-	private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("M월 d일(E) HH:mm", Locale.KOREAN);
+	static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("M월 d일(E) HH:mm", Locale.KOREAN);
 
 	private MeetingShareText() {
 	}
