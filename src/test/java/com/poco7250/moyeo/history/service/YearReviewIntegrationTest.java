@@ -135,7 +135,8 @@ class YearReviewIntegrationTest {
 				올해 모임 2번 · 총 100,000원
 				최다 참석: 영희(2번)
 				가장 많이 간 곳: 강남 고깃집(2번)
-				벌칙왕: 민수·영희(1번)""");
+				벌칙왕: 민수·영희(1번)
+				노쇼왕: 지수(1번)""");
 	}
 
 	@Test
@@ -154,7 +155,7 @@ class YearReviewIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("장소는 앞뒤 공백을 뺀 이름으로 묶어 방문 횟수 순으로, 벌칙왕은 무효를 뺀 1위 전원이다")
+	@DisplayName("장소는 앞뒤 공백을 뺀 이름으로 묶어 방문 횟수 순으로, 벌칙왕은 무효를 뺀 1위 전원, 노쇼왕은 노쇼 1위 전원이다")
 	void placesAndPenaltyKings() {
 		YearReviewResponse result = yearReviewService.get(group.getId(), host.getId(), 2019);
 
@@ -164,6 +165,8 @@ class YearReviewIntegrationTest {
 						tuple(2, "홍대 포차", 1L, LocalDateTime.of(2019, 6, 1, 18, 0)));
 		assertThat(result.penaltyKings()).extracting(k -> k.member().nickname(), k -> k.penaltyCount())
 				.containsExactly(tuple("민수", 1L), tuple("영희", 1L));
+		assertThat(result.noShowKings()).extracting(k -> k.member().nickname(), k -> k.noShowCount())
+				.containsExactly(tuple("지수", 1L));
 	}
 
 	@Test
@@ -176,6 +179,7 @@ class YearReviewIntegrationTest {
 		assertThat(result.totalExpense()).isZero();
 		assertThat(result.topPlaces()).isEmpty();
 		assertThat(result.penaltyKings()).isEmpty();
+		assertThat(result.noShowKings()).isEmpty();
 		assertThat(result.shareText()).isNull();
 		assertThat(result.attendanceRanking()).extracting(r -> r.rank(), r -> r.attendCount())
 				.containsOnly(tuple(1, 0L));
@@ -192,7 +196,7 @@ class YearReviewIntegrationTest {
 	}
 
 	/**
-	 * 2019년 3월 2차 모임: 1차(호스트·민수)·2차(민수·영희) 모두 "강남 고깃집"(2차는 공백 섞어 입력), 지출 50,000·30,000원.
+	 * 2019년 3월 2차 모임: 1차(호스트·민수)·2차(민수·영희, 지수 노쇼) 모두 "강남 고깃집"(2차는 공백 섞어 입력), 지출 50,000·30,000원.
 	 * 리비전 1 확정 → 재확정 리비전 2(호스트 25,000·민수 35,000·영희 20,000). 금액형 사다리 민수 꽝, 호스트 벌칙은 무효.
 	 */
 	private void saveMarch2019() {
@@ -203,7 +207,7 @@ class YearReviewIntegrationTest {
 		respond(meal, minsu, AttendanceStatus.ATTEND);
 		respond(second, minsu, AttendanceStatus.ATTEND);
 		respond(second, younghee, AttendanceStatus.ATTEND);
-		respond(second, jisu, AttendanceStatus.ABSENT);
+		saveNoShow(second, jisu);
 		expenseRepository.save(Expense.create(meal, host, 50_000L, "고기"));
 		expenseRepository.save(Expense.create(second, minsu, 30_000L, "맥주"));
 		Settlement settlement = settlementRepository.findByMeetingId(meeting.getId()).orElseThrow();
@@ -283,6 +287,14 @@ class YearReviewIntegrationTest {
 
 	private void respond(Round round, Member member, AttendanceStatus status) {
 		attendanceRepository.save(Attendance.respond(round, member, status, AT));
+	}
+
+	// 참석으로 응답했다가 실제 참석자 확정 때 체크인이 없어 불참이 된 노쇼 행
+	private void saveNoShow(Round round, Member member) {
+		Attendance attendance = Attendance.respond(round, member, AttendanceStatus.ATTEND, AT);
+		attendance.recordNoShowIfMissed();
+		attendance.changeStatus(AttendanceStatus.ABSENT, AT);
+		attendanceRepository.save(attendance);
 	}
 
 	private Member joinGroup(Group target, String nickname) {

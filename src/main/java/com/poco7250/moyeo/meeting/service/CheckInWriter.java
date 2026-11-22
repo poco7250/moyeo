@@ -69,7 +69,8 @@ public class CheckInWriter {
 
 	/**
 	 * 차수의 실제 참석자를 확정한다(호스트). 체크인한 그룹 멤버는 참석, 나머지는 불참으로 응답을 바꾸고(응답 없으면 만든다)
-	 * 바뀐 응답은 기존 참석 변경처럼 정산에 반영한다. 다시 확정할 수 있고, 확정 시각은 매번 갱신된다.
+	 * 바뀐 응답은 기존 참석 변경처럼 정산에 반영한다. 참석 응답인데 체크인 안 한 멤버는 노쇼로 기록한다.
+	 * 다시 확정할 수 있고, 확정 시각은 매번 갱신된다.
 	 *
 	 * @throws BusinessException 호스트 아님 NOT_MEETING_HOST, 모임 당일 전 CHECK_IN_NOT_OPEN
 	 */
@@ -83,6 +84,8 @@ public class CheckInWriter {
 		Map<Long, Attendance> byMember = attendanceRepository.findAllByRoundId(roundId).stream()
 				.collect(Collectors.toMap(a -> a.getMember().getId(), Function.identity()));
 
+		// 응답을 덮어쓰기 전에 참석이라 해 놓고 체크인 안 한 멤버를 노쇼로 남긴다(PRD M-8)
+		byMember.values().forEach(Attendance::recordNoShowIfMissed);
 		List<AttendanceChange> changes = new ArrayList<>();
 		members.forEach(m -> attendanceUpserter.upsert(byMember.get(memberIdOf(m)), round, memberIdOf(m),
 				confirmedStatus(byMember.get(memberIdOf(m))), now).ifPresent(changes::add));

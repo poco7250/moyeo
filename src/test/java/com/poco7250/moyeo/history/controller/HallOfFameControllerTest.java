@@ -14,6 +14,7 @@ import com.poco7250.moyeo.history.dto.AttendanceLogResponse;
 import com.poco7250.moyeo.history.dto.BoardGameLoserRankResponse;
 import com.poco7250.moyeo.history.dto.HallOfFameResponse;
 import com.poco7250.moyeo.history.dto.HistoryMemberResponse;
+import com.poco7250.moyeo.history.dto.NoShowRankResponse;
 import com.poco7250.moyeo.history.dto.PenaltyRankResponse;
 import com.poco7250.moyeo.history.service.HallOfFameService;
 import com.poco7250.moyeo.support.SecurityTestConfig;
@@ -49,14 +50,16 @@ class HallOfFameControllerTest {
 	HallOfFameService hallOfFameService;
 
 	@Test
-	@DisplayName("year 없이 부르면 전체 기간으로 벌칙 순위·보드게임 꼴등 순위·출석부를 공통 응답 래퍼로 준다")
+	@DisplayName("year 없이 부르면 전체 기간으로 벌칙 순위·보드게임 꼴등 순위·노쇼 순위·출석부를 공통 응답 래퍼로 준다")
 	void allTime() throws Exception {
 		HistoryMemberResponse minsu = new HistoryMemberResponse(3L, "민수", "🎳");
+		HistoryMemberResponse jiho = new HistoryMemberResponse(4L, "지호", null);
 		given(hallOfFameService.get(5L, 8L, null)).willReturn(new HallOfFameResponse(null,
 				List.of(new PenaltyRankResponse(1, minsu, 4, 52_000L)),
 				List.of(new BoardGameLoserRankResponse(1, minsu, 2, 5)),
+				List.of(new NoShowRankResponse(1, jiho, 1), new NoShowRankResponse(2, minsu, 0)),
 				List.of(new AttendanceLogResponse(10L, "11월 모임", LocalDateTime.of(2026, 11, 1, 18, 0),
-						List.of(minsu)))));
+						List.of(minsu), List.of(jiho)))));
 
 		mockMvc.perform(get(URL).cookie(accessCookie()))
 				.andExpect(status().isOk())
@@ -69,14 +72,18 @@ class HallOfFameControllerTest {
 				.andExpect(jsonPath("$.data.boardGameLoserRanking[0].loserCount").value(2))
 				.andExpect(jsonPath("$.data.boardGameLoserRanking[0].playCount").value(5))
 				.andExpect(jsonPath("$.data.attendanceLog[0].startAt").value("2026-11-01T18:00:00"))
-				.andExpect(jsonPath("$.data.attendanceLog[0].attendees[0].memberId").value(3));
+				.andExpect(jsonPath("$.data.noShowRanking[0].member.nickname").value("지호"))
+				.andExpect(jsonPath("$.data.noShowRanking[0].noShowCount").value(1))
+				.andExpect(jsonPath("$.data.noShowRanking[1].rank").value(2))
+				.andExpect(jsonPath("$.data.attendanceLog[0].attendees[0].memberId").value(3))
+				.andExpect(jsonPath("$.data.attendanceLog[0].noShows[0].memberId").value(4));
 	}
 
 	@Test
 	@DisplayName("year를 넘기면 그대로 서비스에 전달한다")
 	void passesYear() throws Exception {
 		given(hallOfFameService.get(5L, 8L, 2026))
-				.willReturn(new HallOfFameResponse(2026, List.of(), List.of(), List.of()));
+				.willReturn(new HallOfFameResponse(2026, List.of(), List.of(), List.of(), List.of()));
 
 		mockMvc.perform(get(URL).param("year", "2026").cookie(accessCookie()))
 				.andExpect(status().isOk())

@@ -12,6 +12,7 @@ import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.history.dto.AttendanceRankResponse;
 import com.poco7250.moyeo.history.dto.HistoryMemberResponse;
+import com.poco7250.moyeo.history.dto.NoShowRankResponse;
 import com.poco7250.moyeo.history.dto.PenaltyRankResponse;
 import com.poco7250.moyeo.history.dto.PlaceVisitResponse;
 import com.poco7250.moyeo.history.dto.ShareRankResponse;
@@ -56,7 +57,8 @@ class YearReviewControllerTest {
 		given(yearReviewService.get(5L, 8L, 2026)).willReturn(new YearReviewResponse(2026, 23, 30, 1_420_000L, 20,
 				List.of(new AttendanceRankResponse(1, minsu, 20)), List.of(new ShareRankResponse(1, minsu, 300_000L)),
 				List.of(new PlaceVisitResponse(1, "강남 OO식당", 5, LocalDateTime.of(2026, 11, 1, 18, 0))),
-				List.of(new PenaltyRankResponse(1, minsu, 7, 52_000L)), "[대학 동기] 2026년 결산"));
+				List.of(new PenaltyRankResponse(1, minsu, 7, 52_000L)), List.of(new NoShowRankResponse(1, minsu, 2)),
+				"[대학 동기] 2026년 결산"));
 
 		mockMvc.perform(get(URL).param("year", "2026").cookie(accessCookie()))
 				.andExpect(status().isOk())
@@ -71,6 +73,7 @@ class YearReviewControllerTest {
 				.andExpect(jsonPath("$.data.topPlaces[0].label").value("강남 OO식당"))
 				.andExpect(jsonPath("$.data.topPlaces[0].lastVisitedAt").value("2026-11-01T18:00:00"))
 				.andExpect(jsonPath("$.data.penaltyKings[0].member.nickname").value("민수"))
+				.andExpect(jsonPath("$.data.noShowKings[0].noShowCount").value(2))
 				.andExpect(jsonPath("$.data.shareText").value("[대학 동기] 2026년 결산"));
 	}
 

@@ -34,6 +34,7 @@ final class MeetingHistoryAssembler {
 	private final MeetingHistorySource source;
 	private final Map<Long, List<Round>> roundsByMeeting;
 	private final Map<Long, List<Long>> attendeesByRound;
+	private final Map<Long, List<Long>> noShowsByRound;
 	private final Map<Long, List<GameSession>> gamesByRound;
 	private final Map<Long, List<Long>> penalizedByGame;
 	private final Map<Long, List<Long>> orderedByGame;
@@ -43,6 +44,8 @@ final class MeetingHistoryAssembler {
 		this.source = source;
 		this.roundsByMeeting = source.rounds().stream().collect(groupingBy(r -> r.getMeeting().getId()));
 		this.attendeesByRound = source.attendances().stream()
+				.collect(groupingBy(a -> a.getRound().getId(), mapping(a -> a.getMember().getId(), toList())));
+		this.noShowsByRound = source.noShows().stream()
 				.collect(groupingBy(a -> a.getRound().getId(), mapping(a -> a.getMember().getId(), toList())));
 		this.gamesByRound = source.games().stream().collect(groupingBy(g -> g.getRound().getId()));
 		this.penalizedByGame = source.penalties().stream()
@@ -91,7 +94,8 @@ final class MeetingHistoryAssembler {
 				.map(this::game).toList();
 		return new RoundHistoryResponse(round.getId(), round.getSeq(), round.getName(),
 				ConfirmedPlaceResponse.from(round.confirmedPlace()),
-				members(attendeesByRound.getOrDefault(round.getId(), List.of())), games,
+				members(attendeesByRound.getOrDefault(round.getId(), List.of())),
+				members(noShowsByRound.getOrDefault(round.getId(), List.of())), games,
 				boardGamesByRound.getOrDefault(round.getId(), List.of()).stream().map(this::boardGame).toList());
 	}
 

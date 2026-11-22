@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.groupingBy;
 import com.poco7250.moyeo.group.domain.GroupMember;
 import com.poco7250.moyeo.history.dto.AttendanceRankResponse;
 import com.poco7250.moyeo.history.dto.HistoryMemberResponse;
+import com.poco7250.moyeo.history.dto.NoShowRankResponse;
 import com.poco7250.moyeo.history.dto.PenaltyRankResponse;
 import com.poco7250.moyeo.history.dto.PlaceVisitResponse;
 import com.poco7250.moyeo.history.dto.ShareRankResponse;
@@ -46,12 +47,14 @@ final class YearReviewAssembler {
 	YearReviewResponse assemble(int year) {
 		List<AttendanceRankResponse> attendance = attendanceRanking();
 		List<PlaceVisitResponse> places = topPlaces();
-		List<PenaltyRankResponse> kings = penaltyKings();
+		HallOfFameAssembler hallOfFame = new HallOfFameAssembler(source.toHallOfFameSource());
+		List<PenaltyRankResponse> kings = penaltyKings(hallOfFame);
+		List<NoShowRankResponse> noShowKings = noShowKings(hallOfFame);
 		String shareText = source.meetings().isEmpty() ? null
 				: YearReviewShareText.of(source.groupName(), year, source.meetings().size(), source.totalExpense(),
-						topAttendees(attendance), topPlace(places), kingsOf(kings));
+						topAttendees(attendance), topPlace(places), kingsOf(kings), noShowKingsOf(noShowKings));
 		return new YearReviewResponse(year, source.meetings().size(), source.rounds().size(), source.totalExpense(),
-				source.confirmedMeetingCount(), attendance, shareRanking(), places, kings, shareText);
+				source.confirmedMeetingCount(), attendance, shareRanking(), places, kings, noShowKings, shareText);
 	}
 
 	private List<AttendanceRankResponse> attendanceRanking() {
@@ -113,9 +116,16 @@ final class YearReviewAssembler {
 		return visits;
 	}
 
-	private List<PenaltyRankResponse> penaltyKings() {
-		return new HallOfFameAssembler(source.toHallOfFameSource()).penaltyRanking().stream()
+	private static List<PenaltyRankResponse> penaltyKings(HallOfFameAssembler hallOfFame) {
+		return hallOfFame.penaltyRanking().stream()
 				.filter(rank -> rank.rank() == 1 && rank.penaltyCount() > 0)
+				.toList();
+	}
+
+	// 노쇼 순위 1위 전원. 노쇼가 한 번도 없으면 빈 목록
+	private static List<NoShowRankResponse> noShowKings(HallOfFameAssembler hallOfFame) {
+		return hallOfFame.noShowRanking().stream()
+				.filter(rank -> rank.rank() == 1 && rank.noShowCount() > 0)
 				.toList();
 	}
 
@@ -134,6 +144,11 @@ final class YearReviewAssembler {
 	private static Ranked kingsOf(List<PenaltyRankResponse> kings) {
 		return kings.isEmpty() ? Ranked.NONE
 				: new Ranked(kings.stream().map(k -> k.member().nickname()).toList(), kings.getFirst().penaltyCount());
+	}
+
+	private static Ranked noShowKingsOf(List<NoShowRankResponse> kings) {
+		return kings.isEmpty() ? Ranked.NONE
+				: new Ranked(kings.stream().map(k -> k.member().nickname()).toList(), kings.getFirst().noShowCount());
 	}
 
 	// 그룹 멤버 전원을 값이 큰 순으로 정렬한다. 값이 같으면 가입 순(안정 정렬)

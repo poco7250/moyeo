@@ -51,6 +51,10 @@ public class Attendance extends BaseTimeEntity {
 	@Column(nullable = false)
 	private boolean checkedIn;
 
+	// 참석으로 응답했는데 실제 참석자 확정 때 체크인하지 않은 노쇼(PRD M-8). 응답이 다시 ATTEND가 되면 풀린다
+	@Column(nullable = false)
+	private boolean noShow;
+
 	// 마지막으로 응답한 시각(응답률 지표 기준)
 	@Column(nullable = false)
 	private LocalDateTime respondedAt;
@@ -92,10 +96,23 @@ public class Attendance extends BaseTimeEntity {
 	}
 
 	/**
-	 * 응답을 바꾸고 응답 시각을 갱신한다.
+	 * 실제 참석자 확정 직전에 부른다. 참석(ATTEND)으로 응답했는데 체크인하지 않았으면 노쇼로 남긴다.
+	 * 이미 노쇼인 행은 그대로 둔다(재확정 때도 체크인 안 했으면 유지).
+	 */
+	public void recordNoShowIfMissed() {
+		if (status == AttendanceStatus.ATTEND && !checkedIn) {
+			this.noShow = true;
+		}
+	}
+
+	/**
+	 * 응답을 바꾸고 응답 시각을 갱신한다. 참석(ATTEND)으로 바뀌면 노쇼 기록을 푼다.
 	 */
 	public void changeStatus(AttendanceStatus status, LocalDateTime now) {
 		this.status = status;
 		this.respondedAt = now;
+		if (status == AttendanceStatus.ATTEND) {
+			this.noShow = false;
+		}
 	}
 }

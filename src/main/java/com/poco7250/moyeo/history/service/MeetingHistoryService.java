@@ -97,6 +97,7 @@ public class MeetingHistoryService {
 		List<Round> rounds = roundRepository.findAllWithConfirmedPlaceByMeetingIdIn(meetingIds);
 		List<Long> roundIds = rounds.stream().map(Round::getId).toList();
 		List<Attendance> attendances = attendanceRepository.findAllAttendingByRoundIdIn(roundIds);
+		List<Attendance> noShows = attendanceRepository.findAllNoShowByRoundIdIn(roundIds);
 		List<GameSession> games = MeetingHistoryAssembler.latestRevealedPerRoot(
 				gameSessionRepository.findAllRevealedByRoundIdIn(roundIds));
 		List<Penalty> penalties = games.isEmpty() ? List.of()
@@ -105,11 +106,12 @@ public class MeetingHistoryService {
 		List<BoardGameRecord> boardGames = roundIds.isEmpty() ? List.of()
 				: boardGameRecordRepository.findAllByRoundIdInOrderByIdAsc(roundIds);
 		Stream<Long> memberIds = Stream.of(attendances.stream().map(a -> a.getMember().getId()),
+				noShows.stream().map(a -> a.getMember().getId()),
 				penalties.stream().map(p -> p.getMember().getId()),
 				orderResults.stream().map(r -> r.getMember().getId()),
 				boardGames.stream().flatMap(b -> b.getRanks().stream()).map(BoardGameRank::getMemberId))
 				.flatMap(Function.identity());
-		return new MeetingHistorySource(rounds, attendances, expenseTotals(meetingIds), settlements(meetingIds),
+		return new MeetingHistorySource(rounds, attendances, noShows, expenseTotals(meetingIds), settlements(meetingIds),
 				games, penalties, orderResults, boardGames, groupMembers(groupId, memberIds));
 	}
 

@@ -13,10 +13,11 @@ import java.util.List;
  * @param shareRanking 그룹 멤버 전원의 부담액 순위(금액 → 가입 순)
  * @param topPlaces 많이 간 장소 상위 3개(횟수 → 최근 방문 순)
  * @param penaltyKings 벌칙 순위 1위 전원(당첨 0회면 빈 목록)
+ * @param noShowKings 노쇼 순위 1위 전원(노쇼 0회면 빈 목록)
  * @param shareText 단톡방에 붙여 넣을 결산 문구. 모임이 없으면 null
  */
 public record YearReviewResponse(int year, long meetingCount, long roundCount, long totalExpense,
 		long confirmedMeetingCount, List<AttendanceRankResponse> attendanceRanking,
 		List<ShareRankResponse> shareRanking, List<PlaceVisitResponse> topPlaces,
-		List<PenaltyRankResponse> penaltyKings, String shareText) {
+		List<PenaltyRankResponse> penaltyKings, List<NoShowRankResponse> noShowKings, String shareText) {
 }

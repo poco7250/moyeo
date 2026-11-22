@@ -8,9 +8,11 @@ import java.util.List;
  *
  * @param place 확정 장소, 확정 안 됐으면 null
  * @param attendees 참석(ATTEND) 응답자, 그룹 가입 순
+ * @param noShows 참석으로 응답했는데 실제 참석자 확정 때 체크인하지 않은 멤버, 그룹 가입 순
  * @param boardGames 보드게임 승패 기록, 기록 순
  */
 public record RoundHistoryResponse(Long roundId, int seq, String name, ConfirmedPlaceResponse place,
-		List<HistoryMemberResponse> attendees, List<GameHistoryResponse> games,
+		List<HistoryMemberResponse> attendees, List<HistoryMemberResponse> noShows,
+		List<GameHistoryResponse> games,
 		List<BoardGameHistoryResponse> boardGames) {
 }
