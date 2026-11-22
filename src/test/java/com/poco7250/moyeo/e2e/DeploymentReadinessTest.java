@@ -27,7 +27,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /**
- * 배포 전 점검(Task 043): 이메일 가입 경로가 완전히 없어졌는지, 비밀값이 설정 파일 밖으로 빠져 있는지 본다.
+ * 배포 전 점검(Task 043·067): 이메일 가입 경로가 완전히 없어졌는지, 비밀값이 설정 파일 밖으로 빠져 있는지,
+ * 도커 이미지에 로컬 설정이 안 들어가는지, 운영 스키마가 마이그레이션으로 관리되는지 본다.
  * 실행 위치는 프로젝트 루트(Gradle 기본)라서 src/main/resources와 .gitignore를 파일로 읽는다.
  */
 @SpringBootTest
@@ -37,7 +38,7 @@ class DeploymentReadinessTest {
 
 	/** 운영 jar에 값이 들어가면 안 되는 설정 키 */
 	private static final List<String> SECRET_KEYS = List.of("kakao.oauth.client-id", "kakao.oauth.client-secret",
-			"kakao.local.rest-api-key", "auth.jwt.secret");
+			"kakao.local.rest-api-key", "auth.jwt.secret", "payment.crypto.encryption-key", "push.vapid.private-key");
 
 	/** ${ENV:} 또는 ${ENV:${ENV2:}}처럼 환경 변수만 가리키고 기본값은 비어 있어야 한다 */
 	private static final String ENV_ONLY = "\\$\\{[A-Z_]+:(\\$\\{[A-Z_]+:})?}";
@@ -96,6 +97,27 @@ class DeploymentReadinessTest {
 		assertThat(Files.readAllLines(Path.of(".gitignore"), StandardCharsets.UTF_8))
 				.map(String::strip)
 				.contains("application-local.properties");
+	}
+
+	@Test
+	@DisplayName("도커 빌드 컨텍스트에서 로컬 설정·데이터가 빠지고, 운영 env 파일은 gitignore 대상이다")
+	void deployFilesKeepSecretsOut() throws IOException {
+		assertThat(Files.readAllLines(Path.of(".dockerignore"), StandardCharsets.UTF_8))
+				.map(String::strip)
+				.contains("config/", "data/", ".env");
+		assertThat(Files.readAllLines(Path.of(".gitignore"), StandardCharsets.UTF_8))
+				.map(String::strip)
+				.contains(".env");
+		assertThat(Path.of("deploy/.env.example")).isRegularFile();
+	}
+
+	@Test
+	@DisplayName("운영 스키마는 Flyway가 만들고 Hibernate는 검사만 한다(ddl-auto=validate, V1 베이스라인 존재)")
+	void schemaManagedByMigrations() throws IOException {
+		Properties properties = load(MAIN_RESOURCES.resolve("application.properties"));
+
+		assertThat(properties.getProperty("spring.jpa.hibernate.ddl-auto")).isEqualTo("validate");
+		assertThat(MAIN_RESOURCES.resolve("db/migration/V1__init.sql")).isRegularFile();
 	}
 
 	private static Properties load(Path path) throws IOException {

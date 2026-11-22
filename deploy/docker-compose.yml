@@ -1,0 +1,79 @@
+# moyeo 운영 구성(Task 067): VM 1대에 MySQL · Spring 앱 · Caddy(리버스 프록시 + 자동 HTTPS + SPA 정적 파일)
+# 실행: deploy/ 에서 cp .env.example .env 후 값 채우고 docker compose up -d --build
+# 앱은 인메모리 STOMP 브로커·빈도 제한·로컬 디스크 영수증을 써서 단일 인스턴스 전제다(app을 여러 개 띄우지 않는다)
+name: moyeo
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-moyeo}
+      MYSQL_USER: ${MYSQL_USER:-moyeo}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD를 .env에 넣어야 한다}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD를 .env에 넣어야 한다}
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+09:00
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: moyeo-app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # 기본 프로필이 local이라 운영은 반드시 지정한다. prod 전용 설정 파일은 없고 값은 전부 환경 변수로 받는다
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${MYSQL_DATABASE:-moyeo}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-moyeo}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      KAKAO_REDIRECT_URI: ${APP_BASE_URL}/api/auth/kakao/callback
+    volumes:
+      - receipts:/app/data/receipts
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8080/actuator/health/readiness"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    # 포트를 밖으로 열지 않는다. Caddy만 compose 네트워크로 접근한다
+
+  proxy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN을 .env에 넣어야 한다}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # 프론트(React Vite) 빌드 결과물(dist)을 여기에 둔다
+      - ./frontend-dist:/srv/frontend:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  receipts:
+  caddy-data:
+  caddy-config:

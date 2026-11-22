@@ -1,0 +1,14 @@
+# 도커 빌드 컨텍스트에서 빼는 것. 로컬 비밀값(config/)·데이터(data/)가 이미지에 들어가지 않게 한다
+config/
+data/
+.env
+deploy/
+build/
+.gradle/
+.idea/
+.vscode/
+.claude/
+docs/
+shrimp_data/
+*.iml
+HELP.md

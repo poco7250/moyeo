@@ -22,7 +22,9 @@ ext {
 }
 
 dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-flyway'
 	implementation 'org.springframework.boot:spring-boot-starter-restclient'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
@@ -33,6 +35,7 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'com.mysql:mysql-connector-j'
+	runtimeOnly 'org.flywaydb:flyway-mysql'
 	runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
 	runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
 	annotationProcessor 'org.projectlombok:lombok'
@@ -53,4 +56,14 @@ tasks.named('test') {
 	useJUnitPlatform()
 	// 기본 프로필(local)의 로컬 MySQL 대신 Testcontainers를 쓰는 test 프로필로 실행
 	systemProperty 'spring.profiles.active', 'test'
+}
+
+// 배포 이미지(Dockerfile)가 버전과 상관없이 같은 이름으로 복사하도록 실행 jar 이름을 고정한다(Task 067)
+tasks.named('bootJar') {
+	archiveFileName = 'moyeo.jar'
+}
+
+// 실행 불가능한 plain jar는 쓰지 않으므로 만들지 않는다
+tasks.named('jar') {
+	enabled = false
 }

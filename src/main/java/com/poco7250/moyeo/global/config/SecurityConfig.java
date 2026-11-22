@@ -56,6 +56,8 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/api/invites/*").permitAll()
 				// 카카오톡 크롤러가 쿠키 없이 읽는 OG 메타 HTML. 토큰을 아는 경우에만 내용이 나온다
 				.requestMatchers(HttpMethod.GET, "/share/meetings/*", "/share/invites/*").permitAll()
+				// 컨테이너 헬스 체크(Task 067). 리버스 프록시가 /actuator를 넘기지 않아 외부에서는 닿지 않는다
+				.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
 				// WebSocket 핸드셰이크(/ws)도 여기 걸려 access_token 쿠키 인증이 필요하다. 인증 결과가 STOMP Principal이 된다
 				.anyRequest().authenticated();
 	}
