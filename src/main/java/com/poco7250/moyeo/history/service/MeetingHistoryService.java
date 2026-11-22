@@ -12,6 +12,7 @@ import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.group.domain.GroupMember;
 import com.poco7250.moyeo.group.repository.GroupMemberRepository;
 import com.poco7250.moyeo.history.dto.MeetingHistoryPageResponse;
+import com.poco7250.moyeo.history.dto.MeetingHistoryResponse;
 import com.poco7250.moyeo.meeting.domain.Attendance;
 import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.Round;
@@ -81,6 +82,14 @@ public class MeetingHistoryService {
 		MeetingHistorySource source = load(groupId, meetings.getContent());
 		return MeetingHistoryPageResponse.of(meetings,
 				new MeetingHistoryAssembler(source).assemble(meetings.getContent()));
+	}
+
+	/**
+	 * 모임 하나의 히스토리 응답을 만든다(결산 카드). 지난 모임인지는 부르는 쪽이 검사한다.
+	 */
+	MeetingHistoryResponse historyOf(Long groupId, Meeting meeting) {
+		List<Meeting> meetings = List.of(meeting);
+		return new MeetingHistoryAssembler(load(groupId, meetings)).assemble(meetings).getFirst();
 	}
 
 	private MeetingHistorySource load(Long groupId, List<Meeting> meetings) {

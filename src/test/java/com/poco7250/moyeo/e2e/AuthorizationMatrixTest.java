@@ -175,6 +175,7 @@ class AuthorizationMatrixTest {
 			new Endpoint(HttpMethod.PUT, "/api/meetings/{meetingId}/attendances/{memberId}", Access.HOST,
 					ROUNDS_BODY),
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/attendance-board", Access.MEMBER),
+			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/summary-card", Access.MEMBER),
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/attendance-reminder", Access.MEMBER),
 			endpoint(HttpMethod.POST, "/api/meetings/{meetingId}/attendance-reminder/push", Access.MEMBER),
 			// 당일 체크인·실제 참석자 확정
