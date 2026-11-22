@@ -27,12 +27,13 @@ public interface PenaltyRepository extends JpaRepository<Penalty, Long> {
 
 	/**
 	 * 모임의 금액형 게임 벌칙 중 무효가 아닌 것을 게임·차수와 함께 게임 순번 → 원 회차 id → 벌칙 id 순으로 조회한다.
-	 * 정산 계산과 벌칙 반영 내역(PRD S-4)에 쓴다.
+	 * 정산 계산과 벌칙 반영 내역(PRD S-4)·확정 게이트에 쓴다. 모임 게스트(G-6) 벌칙은 앱 밖에서 정산하므로 뺀다.
 	 */
 	@Query("select p from Penalty p join fetch p.gameSession g join fetch g.round r "
 			+ "where r.meeting.id = :meetingId "
 			+ "and p.status <> com.poco7250.moyeo.penalty.domain.PenaltyStatus.VOIDED "
 			+ "and g.penaltyKind = com.poco7250.moyeo.game.domain.PenaltyKind.MONEY "
+			+ "and p.member.guest = false "
 			+ "order by g.applyOrderAt, g.rootSessionId, p.id")
 	List<Penalty> findAllActiveMoneyByMeetingId(@Param("meetingId") Long meetingId);
 

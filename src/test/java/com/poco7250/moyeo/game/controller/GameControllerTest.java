@@ -48,7 +48,7 @@ class GameControllerTest {
 	private static final Long MEMBER_ID = 8L;
 	private static final String CREATE_URL = "/api/rounds/100/games";
 	private static final List<GameParticipantResponse> PARTICIPANTS = List.of(
-			new GameParticipantResponse(8L, "민수", "🍖"), new GameParticipantResponse(9L, "영희", null));
+			new GameParticipantResponse(8L, "민수", "🍖", false), new GameParticipantResponse(9L, "영희", null, false));
 	private static final GameStateResponse WAITING = new GameStateResponse(300L, 100L, GameType.LADDER,
 			GameStatus.WAITING, MEMBER_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, 300L, null, null, PARTICIPANTS, null);
 	private static final GameStateResponse RERUN = new GameStateResponse(301L, 100L, GameType.LADDER,

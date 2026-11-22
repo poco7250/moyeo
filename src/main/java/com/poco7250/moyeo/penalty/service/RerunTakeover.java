@@ -12,11 +12,13 @@ import java.util.List;
  * @param voidedMemberIds 무효가 된 원 회차 벌칙자 회원 id(오름차순)
  * @param movedRule 새 회차로 옮긴 금액 조건. 없으면 null
  * @param ruleBefore 옮기기 전 금액 조건 값. 없으면 null
+ * @param voidedMemberPenalty 무효가 된 원 회차 벌칙 중 그룹 멤버(게스트 아님) 벌칙이 있었는지
  */
 record RerunTakeover(Long rerunOfId, InheritedCondition condition, List<Long> voidedMemberIds, PenaltyRule movedRule,
-		PenaltyRuleSnapshot ruleBefore) {
+		PenaltyRuleSnapshot ruleBefore, boolean voidedMemberPenalty) {
 
-	static final RerunTakeover NONE = new RerunTakeover(null, InheritedCondition.UNSET, List.of(), null, null);
+	static final RerunTakeover NONE = new RerunTakeover(null, InheritedCondition.UNSET, List.of(), null, null,
+			false);
 
 	boolean isRerun() {
 		return rerunOfId != null;

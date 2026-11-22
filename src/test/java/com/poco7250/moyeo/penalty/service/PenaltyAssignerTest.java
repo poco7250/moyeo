@@ -119,6 +119,29 @@ class PenaltyAssignerTest {
 	}
 
 	@Test
+	@DisplayName("금액형이어도 벌칙자가 전부 모임 게스트면 벌칙만 만들고 정산·변경 로그는 건드리지 않는다")
+	void moneyGameWithOnlyGuestsSkipsSettlement() {
+		GameSession game = revealedGame(PenaltyKind.MONEY);
+
+		penaltyAssigner.onRevealed(game, ACTOR_ID, List.of(guest(50L)));
+
+		verify(penaltyRepository).saveAll(penaltiesCaptor.capture());
+		assertThat(penaltiesCaptor.getValue()).extracting(penalty -> penalty.getMember().getId()).containsExactly(50L);
+		verifyNoInteractions(settlementGuard, changeLogRecorder);
+	}
+
+	@Test
+	@DisplayName("금액형에서 멤버와 게스트가 같이 당첨되면 정산에 반영한다")
+	void moneyGameWithMemberAndGuestReflects() {
+		GameSession game = revealedGame(PenaltyKind.MONEY);
+		givenMeeting();
+
+		penaltyAssigner.onRevealed(game, ACTOR_ID, List.of(guest(50L), member(MINSU_ID)));
+
+		verify(settlementGuard).markAmountChanged(eq(MEETING_ID), eq(ACTOR_ID), any());
+	}
+
+	@Test
 	@DisplayName("벌칙 종류가 없음이면 벌칙을 만들지 않고 정산도 건드리지 않는다")
 	void noneKindCreatesNothing() {
 		penaltyAssigner.onRevealed(revealedGame(PenaltyKind.NONE), ACTOR_ID, List.of(member(MINSU_ID)));
@@ -319,6 +342,12 @@ class PenaltyAssignerTest {
 		game.start();
 		game.reveal(REVEALED_AT);
 		return game;
+	}
+
+	private Member guest(Long id) {
+		Member guest = Member.guest("게스트" + id);
+		ReflectionTestUtils.setField(guest, "id", id);
+		return guest;
 	}
 
 	private Member member(Long id) {

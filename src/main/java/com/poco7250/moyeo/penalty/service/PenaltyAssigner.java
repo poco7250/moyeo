@@ -46,6 +46,7 @@ public class PenaltyAssigner {
 	 * 공개된 게임의 벌칙자를 벌칙으로 만든다. 벌칙 종류가 없음이면 아무것도 만들지 않는다.
 	 * 최초 공개면 ASSIGNED로, 다시 돌린 회차면 원 회차의 조건 상태(ASSIGNED·APPLIED·WAIVED)를 이어받아 만든다.
 	 * 금액형이면 금액 영향 변경으로 정산에 반영하고 변경 로그를 남긴다. 금액은 여기서 계산하지 않는다.
+	 * 모임 게스트(G-6) 벌칙은 정산에서 빠지므로, 새 벌칙자와 무효가 된 원 벌칙자가 전부 게스트면 정산을 건드리지 않는다.
 	 *
 	 * @param actorId 게임을 시작한 회원
 	 * @param penalizedMembers 추첨에서 벌칙자로 뽑힌 회원(순서 무관)
@@ -59,7 +60,8 @@ public class PenaltyAssigner {
 		List<Member> ordered = penalizedMembers.stream().sorted(Comparator.comparing(Member::getId)).toList();
 		penaltyRepository.saveAll(
 				ordered.stream().map(member -> takeover.condition().newPenalty(game, member)).toList());
-		if (game.getPenaltyKind() == PenaltyKind.MONEY) {
+		boolean memberAffected = takeover.voidedMemberPenalty() || ordered.stream().anyMatch(m -> !m.isGuest());
+		if (game.getPenaltyKind() == PenaltyKind.MONEY && memberAffected) {
 			reflectToSettlement(game, actorId, ordered.stream().map(Member::getId).toList(), takeover);
 		}
 	}
@@ -86,7 +88,8 @@ public class PenaltyAssigner {
 		if (rule != null) {
 			rule.moveTo(game);
 		}
-		return new RerunTakeover(original.getId(), condition, voidedMemberIds, rule, ruleBefore);
+		boolean voidedMemberPenalty = activeOriginals.stream().anyMatch(penalty -> !penalty.getMember().isGuest());
+		return new RerunTakeover(original.getId(), condition, voidedMemberIds, rule, ruleBefore, voidedMemberPenalty);
 	}
 
 	private void reflectToSettlement(GameSession game, Long actorId, List<Long> penaltyMemberIds,

@@ -25,6 +25,7 @@ import com.poco7250.moyeo.meeting.dto.MeetingCreateRequest;
 import com.poco7250.moyeo.meeting.dto.MeetingDetailResponse;
 import com.poco7250.moyeo.meeting.dto.RoundResponse;
 import com.poco7250.moyeo.meeting.repository.MeetingDateCandidateRepository;
+import com.poco7250.moyeo.meeting.repository.MeetingGuestRepository;
 import com.poco7250.moyeo.meeting.repository.MeetingRepository;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.settlement.domain.Settlement;
@@ -64,6 +65,9 @@ class MeetingServiceTest {
 	RoundRepository roundRepository;
 
 	@Mock
+	MeetingGuestRepository meetingGuestRepository;
+
+	@Mock
 	SettlementRepository settlementRepository;
 
 	@Mock
@@ -81,7 +85,8 @@ class MeetingServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		meetingService = new MeetingService(meetingRepository, meetingDateCandidateRepository, roundRepository, settlementRepository,
+		meetingService = new MeetingService(meetingRepository, meetingDateCandidateRepository, roundRepository,
+				meetingGuestRepository, settlementRepository,
 				groupRepository, groupAccessChecker, meetingAccessChecker, meetingPushPublisher, new ShareLinkProperties(""),
 				TestClocks.fixed(NOW));
 		group = Group.create("대학 동기");

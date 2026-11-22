@@ -171,6 +171,9 @@ class AuthorizationMatrixTest {
 			// 모임·참석
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}", Access.MEMBER),
 			new Endpoint(HttpMethod.PUT, "/api/meetings/{meetingId}/host", Access.HOST, "{\"memberId\":{memberId}}"),
+			new Endpoint(HttpMethod.POST, "/api/meetings/{meetingId}/guests", Access.HOST, "{\"name\":\"점검 게스트\"}"),
+			// 호스트 회원 id는 게스트가 아니라 호스트도 404라 성공 쪽은 403이 아닌 것만 본다
+			endpoint(HttpMethod.DELETE, "/api/meetings/{meetingId}/guests/{hostId}", Access.HOST),
 			new Endpoint(HttpMethod.PUT, "/api/meetings/{meetingId}/attendances/me", Access.MEMBER, ROUNDS_BODY),
 			new Endpoint(HttpMethod.PUT, "/api/meetings/{meetingId}/attendances/{memberId}", Access.HOST,
 					ROUNDS_BODY),

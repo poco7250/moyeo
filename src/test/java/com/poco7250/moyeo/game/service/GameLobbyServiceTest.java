@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -30,7 +31,9 @@ import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
+import com.poco7250.moyeo.meeting.repository.MeetingGuestRepository;
 import com.poco7250.moyeo.member.domain.Member;
+import com.poco7250.moyeo.member.repository.MemberRepository;
 import com.poco7250.moyeo.penalty.service.PenaltyAssigner;
 import com.poco7250.moyeo.settlement.domain.ChangeLogEntityType;
 import com.poco7250.moyeo.settlement.domain.ChangeType;
@@ -83,6 +86,12 @@ class GameLobbyServiceTest {
 	AttendanceRepository attendanceRepository;
 
 	@Mock
+	MeetingGuestRepository meetingGuestRepository;
+
+	@Mock
+	MemberRepository memberRepository;
+
+	@Mock
 	GameStateAssembler gameStateAssembler;
 
 	@Mock
@@ -112,12 +121,14 @@ class GameLobbyServiceTest {
 	@BeforeEach
 	void setUp() {
 		service = new GameLobbyService(meetingAccessChecker, gameAccessChecker, gameSessionRepository,
-				gameParticipantRepository, gameResultRepository, attendanceRepository, gameStateAssembler,
+				gameParticipantRepository, meetingGuestRepository, memberRepository, gameResultRepository,
+				attendanceRepository, gameStateAssembler,
 				gameSeedGenerator, penaltyAssigner, settlementGuard, changeLogRecorder, eventPublisher, TestClocks.fixed(NOW));
 		Meeting meeting = mock(Meeting.class);
 		given(meeting.getId()).willReturn(MEETING_ID);
 		round = mock(Round.class);
 		given(round.getMeeting()).willReturn(meeting);
+		lenient().when(round.getId()).thenReturn(ROUND_ID);
 		given(gameStateAssembler.assemble(any())).willReturn(STATE);
 	}
 

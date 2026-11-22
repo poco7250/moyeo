@@ -52,8 +52,8 @@ class HallOfFameControllerTest {
 	@Test
 	@DisplayName("year 없이 부르면 전체 기간으로 벌칙 순위·보드게임 꼴등 순위·노쇼 순위·출석부를 공통 응답 래퍼로 준다")
 	void allTime() throws Exception {
-		HistoryMemberResponse minsu = new HistoryMemberResponse(3L, "민수", "🎳");
-		HistoryMemberResponse jiho = new HistoryMemberResponse(4L, "지호", null);
+		HistoryMemberResponse minsu = new HistoryMemberResponse(3L, "민수", "🎳", false);
+		HistoryMemberResponse jiho = new HistoryMemberResponse(4L, "지호", null, false);
 		given(hallOfFameService.get(5L, 8L, null)).willReturn(new HallOfFameResponse(null,
 				List.of(new PenaltyRankResponse(1, minsu, 4, 52_000L)),
 				List.of(new BoardGameLoserRankResponse(1, minsu, 2, 5)),

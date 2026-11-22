@@ -29,8 +29,10 @@ import com.poco7250.moyeo.history.dto.RoundHistoryResponse;
 import com.poco7250.moyeo.meeting.domain.Attendance;
 import com.poco7250.moyeo.meeting.domain.AttendanceStatus;
 import com.poco7250.moyeo.meeting.domain.Meeting;
+import com.poco7250.moyeo.meeting.domain.MeetingGuest;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
+import com.poco7250.moyeo.meeting.repository.MeetingGuestRepository;
 import com.poco7250.moyeo.meeting.repository.MeetingRepository;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.member.domain.Member;
@@ -83,6 +85,9 @@ class MeetingHistoryIntegrationTest {
 
 	@Autowired
 	MeetingRepository meetingRepository;
+
+	@Autowired
+	MeetingGuestRepository meetingGuestRepository;
 
 	@Autowired
 	RoundRepository roundRepository;
@@ -162,6 +167,22 @@ class MeetingHistoryIntegrationTest {
 		assertThat(second.games().get(0).penalized()).extracting(HistoryMemberResponse::nickname)
 				.containsExactly("영희");
 		assertThat(second.games().get(0).ordered()).isEmpty();
+	}
+
+	@Test
+	@DisplayName("모임 게스트가 벌칙에 당첨되면 게스트 이름과 guest 표시로 나온다")
+	void guestPenalized() {
+		Meeting meeting = savePastMeeting("6월 모임", LocalDateTime.of(2020, 6, 1, 18, 0));
+		Round bowling = roundRepository.save(Round.create(meeting, 1, "볼링"));
+		Member guest = memberRepository.save(Member.guest("민수 친구"));
+		meetingGuestRepository.save(MeetingGuest.add(meeting, guest, host.getId()));
+		saveRevealedGame(GameSession.create(bowling, GameType.LADDER, host.getId(), PenaltyKind.ACTION, null, 1),
+				guest);
+
+		GameHistoryResponse game = meetingHistoryService.list(group.getId(), minsu.getId(), 0, 20)
+				.items().get(0).rounds().get(0).games().get(0);
+
+		assertThat(game.penalized()).containsExactly(HistoryMemberResponse.guest(guest.getId(), "민수 친구"));
 	}
 
 	@Test
