@@ -18,7 +18,6 @@ import com.poco7250.moyeo.penalty.repository.PenaltyRepository;
 import com.poco7250.moyeo.settlement.dto.MemberPenaltyAmount;
 import com.poco7250.moyeo.settlement.repository.PenaltyChargeRepository;
 import java.time.Clock;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -33,9 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class HallOfFameService {
-
-	// 전체 기간 조회의 시작 시각(서비스 시작 전이라 어떤 모임보다도 이르다)
-	static final LocalDateTime EARLIEST = LocalDateTime.of(2000, 1, 1, 0, 0);
 
 	private final GroupAccessChecker groupAccessChecker;
 	private final GroupMemberRepository groupMemberRepository;
@@ -58,7 +54,9 @@ public class HallOfFameService {
 	public HallOfFameResponse get(Long groupId, Long memberId, Integer year) {
 		groupAccessChecker.requireMember(groupId, memberId);
 		List<GroupMember> groupMembers = groupMemberRepository.findAllByGroupIdOrderByIdAsc(groupId);
-		List<Meeting> meetings = meetingRepository.findAllByGroupIdAndStartAtInRange(groupId, from(year), to(year));
+		HistoryPeriod period = HistoryPeriod.of(year, clock);
+		List<Meeting> meetings = meetingRepository.findAllByGroupIdAndStartAtInRange(groupId, period.from(),
+				period.to());
 		HallOfFameSource source = meetings.isEmpty() ? HallOfFameSource.empty(groupMembers)
 				: load(meetings, groupMembers);
 		return new HallOfFameAssembler(source).assemble(year);
@@ -81,19 +79,5 @@ public class HallOfFameService {
 	private Map<Long, Long> penaltyAmounts(List<Long> meetingIds) {
 		return penaltyChargeRepository.sumLatestAmountByMemberAndMeetingIdIn(meetingIds).stream()
 				.collect(Collectors.toMap(MemberPenaltyAmount::memberId, MemberPenaltyAmount::totalAmount));
-	}
-
-	private static LocalDateTime from(Integer year) {
-		return year == null ? EARLIEST : LocalDateTime.of(year, 1, 1, 0, 0);
-	}
-
-	// 지금 이전만 센다. 연도를 주면 다음 해 1월 1일과 지금 중 이른 쪽까지
-	private LocalDateTime to(Integer year) {
-		LocalDateTime now = LocalDateTime.now(clock);
-		if (year == null) {
-			return now;
-		}
-		LocalDateTime nextYear = LocalDateTime.of(year + 1, 1, 1, 0, 0);
-		return nextYear.isBefore(now) ? nextYear : now;
 	}
 }

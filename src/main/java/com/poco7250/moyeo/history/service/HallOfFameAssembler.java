@@ -55,7 +55,10 @@ final class HallOfFameAssembler {
 		return new HallOfFameResponse(year, penaltyRanking(), boardGameLoserRanking(), attendanceLog());
 	}
 
-	private List<PenaltyRankResponse> penaltyRanking() {
+	/**
+	 * 그룹 멤버 전원의 벌칙 순위를 구한다(연말 결산의 벌칙왕도 같은 계산을 쓴다).
+	 */
+	List<PenaltyRankResponse> penaltyRanking() {
 		Map<Long, Long> counts = source.penalties().stream()
 				.collect(groupingBy(p -> p.getMember().getId(), counting()));
 		ToLongFunction<Long> count = id -> counts.getOrDefault(id, 0L);
