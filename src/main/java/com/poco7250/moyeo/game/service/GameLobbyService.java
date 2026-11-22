@@ -17,7 +17,9 @@ import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
+import com.poco7250.moyeo.meeting.repository.MeetingGuestRepository;
 import com.poco7250.moyeo.member.domain.Member;
+import com.poco7250.moyeo.member.repository.MemberRepository;
 import com.poco7250.moyeo.penalty.service.PenaltyAssigner;
 import com.poco7250.moyeo.settlement.domain.ChangeLogEntityType;
 import com.poco7250.moyeo.settlement.domain.ChangeType;
@@ -25,6 +27,7 @@ import com.poco7250.moyeo.settlement.service.ChangeLogRecorder;
 import com.poco7250.moyeo.settlement.service.SettlementGuard;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +51,8 @@ public class GameLobbyService {
 	private final GameAccessChecker gameAccessChecker;
 	private final GameSessionRepository gameSessionRepository;
 	private final GameParticipantRepository gameParticipantRepository;
+	private final MeetingGuestRepository meetingGuestRepository;
+	private final MemberRepository memberRepository;
 	private final GameResultRepository gameResultRepository;
 	private final AttendanceRepository attendanceRepository;
 	private final GameStateAssembler gameStateAssembler;
@@ -59,13 +64,13 @@ public class GameLobbyService {
 	private final Clock clock;
 
 	/**
-	 * 고른 차수 참석자로 게임 방을 만든다. 만든 회원이 진행자가 된다.
+	 * 고른 차수 참석자와 모임 게스트(G-6)로 게임 방을 만든다. 만든 회원이 진행자가 된다.
 	 *
-	 * @throws BusinessException 참석자가 아닌 회원이 있으면 GAME_PARTICIPANT_NOT_ATTENDING
+	 * @throws BusinessException 차수 참석자도 그 모임 게스트도 아닌 회원이 있으면 GAME_PARTICIPANT_NOT_ATTENDING
 	 */
 	public GameStateResponse create(Long roundId, Long memberId, GameCreateRequest request) {
 		Round round = meetingAccessChecker.requireRoundMember(roundId, memberId);
-		List<Member> members = findAttendingMembers(roundId, request.participantMemberIds());
+		List<Member> members = findParticipants(round, request.participantMemberIds());
 		GameSession game = gameSessionRepository.save(GameSession.create(round, request.type(), memberId,
 				request.penaltyKind(), request.penaltyNote(), request.resolvedPenaltyCount()));
 		game.markAsRoot();
@@ -118,11 +123,18 @@ public class GameLobbyService {
 		return publishStateChanged(game);
 	}
 
-	private List<Member> findAttendingMembers(Long roundId, List<Long> memberIds) {
-		List<Member> members = attendanceRepository.findAttendingMembers(roundId, memberIds);
-		if (members.size() != memberIds.size()) {
+	/**
+	 * 참가자 후보가 전부 차수 참석(ATTEND) 멤버이거나 그 모임 게스트인지 확인하고 회원을 돌려준다(참석자 먼저, 게스트 다음).
+	 * 게스트는 참석 응답이 없어 두 집합이 겹치지 않는다.
+	 */
+	private List<Member> findParticipants(Round round, List<Long> memberIds) {
+		List<Member> members = new ArrayList<>(attendanceRepository.findAttendingMembers(round.getId(), memberIds));
+		List<Long> guestIds = meetingGuestRepository.findMemberIdsByMeetingIdAndMemberIdIn(
+				round.getMeeting().getId(), memberIds);
+		if (members.size() + guestIds.size() != memberIds.size()) {
 			throw new BusinessException(ErrorCode.GAME_PARTICIPANT_NOT_ATTENDING);
 		}
+		guestIds.stream().sorted().map(memberRepository::getReferenceById).forEach(members::add);
 		return members;
 	}
 

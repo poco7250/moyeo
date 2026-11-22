@@ -15,8 +15,10 @@ import com.poco7250.moyeo.history.dto.MeetingHistoryPageResponse;
 import com.poco7250.moyeo.history.dto.MeetingHistoryResponse;
 import com.poco7250.moyeo.meeting.domain.Attendance;
 import com.poco7250.moyeo.meeting.domain.Meeting;
+import com.poco7250.moyeo.meeting.domain.MeetingGuest;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
+import com.poco7250.moyeo.meeting.repository.MeetingGuestRepository;
 import com.poco7250.moyeo.meeting.repository.MeetingRepository;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.penalty.domain.Penalty;
@@ -56,6 +58,7 @@ public class MeetingHistoryService {
 	private final MeetingRepository meetingRepository;
 	private final RoundRepository roundRepository;
 	private final AttendanceRepository attendanceRepository;
+	private final MeetingGuestRepository meetingGuestRepository;
 	private final ExpenseRepository expenseRepository;
 	private final SettlementRepository settlementRepository;
 	private final GameSessionRepository gameSessionRepository;
@@ -112,7 +115,7 @@ public class MeetingHistoryService {
 				boardGames.stream().flatMap(b -> b.getRanks().stream()).map(BoardGameRank::getMemberId))
 				.flatMap(Function.identity());
 		return new MeetingHistorySource(rounds, attendances, noShows, expenseTotals(meetingIds), settlements(meetingIds),
-				games, penalties, orderResults, boardGames, groupMembers(groupId, memberIds));
+				games, penalties, orderResults, boardGames, groupMembers(groupId, memberIds), guestNames(meetingIds));
 	}
 
 	private List<GameResult> orderResults(List<GameSession> games) {
@@ -129,6 +132,14 @@ public class MeetingHistoryService {
 	private Map<Long, Settlement> settlements(List<Long> meetingIds) {
 		return settlementRepository.findAllByMeetingIdIn(meetingIds).stream()
 				.collect(Collectors.toMap(s -> s.getMeeting().getId(), Function.identity()));
+	}
+
+	/**
+	 * 모임들의 게스트 이름을 한 번에 읽는다(게임 벌칙자·순번에 나올 수 있음, G-6).
+	 */
+	private Map<Long, String> guestNames(List<Long> meetingIds) {
+		return meetingGuestRepository.findAllWithMemberByMeetingIdIn(meetingIds).stream()
+				.collect(Collectors.toMap(guest -> guest.getMember().getId(), MeetingGuest::name));
 	}
 
 	/**

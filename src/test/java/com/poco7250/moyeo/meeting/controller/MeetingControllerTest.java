@@ -21,6 +21,7 @@ import com.poco7250.moyeo.meeting.domain.PlaceStatus;
 import com.poco7250.moyeo.meeting.dto.ConfirmedPlaceResponse;
 import com.poco7250.moyeo.meeting.dto.GroupMeetingsResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingCreateRequest;
+import com.poco7250.moyeo.meeting.dto.MeetingGuestResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingDetailResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingHostResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingSummaryResponse;
@@ -279,7 +280,8 @@ class MeetingControllerTest {
 		return new MeetingDetailResponse(10L, 1L, "연말 모임", START_AT, MeetingDateStatus.CONFIRMED, "메모", null, 7L, true, true, true, "/share/meetings/token", "공유 문구",
 				List.of(new RoundResponse(100L, 1, "밥", PlaceStatus.CONFIRMED, null, false,
 								new ConfirmedPlaceResponse("강남 식당", "https://map.example.com/1")),
-						new RoundResponse(101L, 2, "볼링", PlaceStatus.UNDECIDED, null, false, null)));
+						new RoundResponse(101L, 2, "볼링", PlaceStatus.UNDECIDED, null, false, null)),
+				List.of(new MeetingGuestResponse(50L, "민수 친구")));
 	}
 
 	private Cookie accessCookie(Long memberId) {

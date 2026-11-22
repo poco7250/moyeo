@@ -9,8 +9,10 @@ import com.poco7250.moyeo.game.dto.GameStateResponse;
 import com.poco7250.moyeo.game.repository.GameParticipantRepository;
 import com.poco7250.moyeo.game.repository.GameResultRepository;
 import com.poco7250.moyeo.group.repository.GroupMemberRepository;
+import com.poco7250.moyeo.member.domain.Member;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -32,14 +34,21 @@ public class GameStateAssembler {
 		return GameStateResponse.of(game, loadParticipants(game), loadResult(game));
 	}
 
+	/**
+	 * 참가자를 회원 id 순으로 돌려준다. 그룹 멤버는 그룹 프로필, 게스트는 게스트 이름으로 만든다.
+	 */
 	private List<GameParticipantResponse> loadParticipants(GameSession game) {
-		List<Long> memberIds = gameParticipantRepository.findAllByGameSessionIdOrderByIdAsc(game.getId()).stream()
+		List<Member> members = gameParticipantRepository.findAllByGameSessionIdOrderByIdAsc(game.getId()).stream()
 				.map(GameParticipant::getMember)
-				.map(member -> member.getId())
 				.toList();
+		List<Long> memberIds = members.stream().filter(member -> !member.isGuest()).map(Member::getId).toList();
 		Long groupId = game.getRound().getMeeting().getGroup().getId();
-		return groupMemberRepository.findAllByGroupIdAndMemberIdIn(groupId, memberIds).stream()
-				.map(GameParticipantResponse::from)
+		Stream<GameParticipantResponse> groupMembers = memberIds.isEmpty() ? Stream.empty()
+				: groupMemberRepository.findAllByGroupIdAndMemberIdIn(groupId, memberIds).stream()
+						.map(GameParticipantResponse::from);
+		Stream<GameParticipantResponse> guests = members.stream().filter(Member::isGuest)
+				.map(GameParticipantResponse::guest);
+		return Stream.concat(groupMembers, guests)
 				.sorted(Comparator.comparing(GameParticipantResponse::memberId))
 				.toList();
 	}

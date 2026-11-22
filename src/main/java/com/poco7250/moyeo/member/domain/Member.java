@@ -13,6 +13,8 @@ import org.springframework.util.StringUtils;
 
 /**
  * 회원 엔티티. 카카오 로그인으로만 가입하며 kakaoId로 식별한다.
+ * 모임 게스트(PRD G-6)도 게임·벌칙 기록을 그대로 쓰려고 이 테이블에 둔다. 게스트는 kakaoId가 없어 로그인할 수 없고
+ * 그룹 멤버십도 없어 어떤 그룹·모임 API에도 접근하지 못한다.
  * 닉네임은 카카오 닉네임이라 중복될 수 있고, 그룹 안 별명은 GroupMember에 따로 둔다.
  * 카카오가 닉네임을 주지 않으면(동의항목 미설정·철회) 신규 회원은 기본 닉네임, 기존 회원은 원래 닉네임을 쓴다.
  */
@@ -28,8 +30,13 @@ public class Member extends BaseTimeEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@Column(nullable = false, unique = true)
+	// 게스트는 카카오 계정이 없어 null이다
+	@Column(unique = true)
 	private Long kakaoId;
+
+	// 호스트가 모임에 이름만으로 추가한 게스트인지(PRD G-6)
+	@Column(nullable = false)
+	private boolean guest;
 
 	@Column(nullable = false, length = 50)
 	private String nickname;
@@ -53,6 +60,18 @@ public class Member extends BaseTimeEntity {
 	 */
 	public static Member ofKakao(Long kakaoId, String nickname, String profileImageUrl, String email) {
 		return new Member(kakaoId, nickname, profileImageUrl, email);
+	}
+
+	/**
+	 * 모임 게스트를 만든다. 이름은 앞뒤 공백을 뺀 값이고 비어 있으면 안 된다.
+	 */
+	public static Member guest(String name) {
+		if (!StringUtils.hasText(name)) {
+			throw new IllegalArgumentException("게스트 이름은 비어 있을 수 없습니다.");
+		}
+		Member member = new Member(null, name.strip(), null, null);
+		member.guest = true;
+		return member;
 	}
 
 	/**

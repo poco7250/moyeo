@@ -24,8 +24,10 @@ import com.poco7250.moyeo.history.dto.HistoryMemberResponse;
 import com.poco7250.moyeo.meeting.domain.Attendance;
 import com.poco7250.moyeo.meeting.domain.AttendanceStatus;
 import com.poco7250.moyeo.meeting.domain.Meeting;
+import com.poco7250.moyeo.meeting.domain.MeetingGuest;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
+import com.poco7250.moyeo.meeting.repository.MeetingGuestRepository;
 import com.poco7250.moyeo.meeting.repository.MeetingRepository;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.member.domain.Member;
@@ -108,6 +110,9 @@ class HallOfFameIntegrationTest {
 	PenaltyRepository penaltyRepository;
 
 	@Autowired
+	MeetingGuestRepository meetingGuestRepository;
+
+	@Autowired
 	PenaltyRuleRepository penaltyRuleRepository;
 
 	@Autowired
@@ -120,6 +125,7 @@ class HallOfFameIntegrationTest {
 	private Member jisu;
 	private Meeting may2019;
 	private Meeting june2020;
+	private Member guest;
 
 	@BeforeEach
 	void setUp() {
@@ -139,6 +145,7 @@ class HallOfFameIntegrationTest {
 		HallOfFameResponse result = hallOfFameService.get(group.getId(), jisu.getId(), null);
 
 		assertThat(result.year()).isNull();
+		assertThat(result.penaltyRanking()).extracting(r -> r.member().memberId()).doesNotContain(guest.getId());
 		assertThat(result.penaltyRanking())
 				.extracting(r -> r.member().nickname(), r -> r.rank(), r -> r.penaltyCount(), r -> r.penaltyAmount())
 				.containsExactly(tuple("영희", 1, 2L, 0L), tuple("민수", 2, 1L, 12_000L), tuple("호스트", 3, 0L, 0L),
@@ -232,6 +239,11 @@ class HallOfFameIntegrationTest {
 		settlement.reopen();
 		saveRevision(settlement, minsuPenalty, rule, 12_000L);
 		saveActionRerun(round);
+		// 모임 게스트 벌칙은 앱 밖 사람이라 순위에 안 나온다(G-6)
+		guest = memberRepository.save(Member.guest("민수 친구"));
+		meetingGuestRepository.save(MeetingGuest.add(meeting, guest, host.getId()));
+		penaltyRepository.save(Penalty.assign(saveRevealedGame(GameSession.create(round, GameType.LADDER,
+				host.getId(), PenaltyKind.ACTION, null, 1)), guest));
 		saveBoardGame(round, minsu, minsu, younghee);
 		BoardGameRecord beforeLoser = BoardGameRecord.create(round, "옛 기록", host.getId(),
 				List.of(BoardGameRank.of(host.getId(), 1), BoardGameRank.of(younghee.getId(), 2)), younghee.getId());

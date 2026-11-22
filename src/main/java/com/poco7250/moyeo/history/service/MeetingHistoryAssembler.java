@@ -103,9 +103,9 @@ final class MeetingHistoryAssembler {
 		Long loserId = record.getLoserMemberId();
 		return new BoardGameHistoryResponse(record.getId(), record.getGameName(), record.getRanks().stream()
 				.map(rank -> new BoardGameRankHistoryResponse(rank.getRankNo(),
-						HistoryMemberResponse.of(rank.getMemberId(), source.groupMembers().get(rank.getMemberId()))))
+						member(rank.getMemberId())))
 				.toList(),
-				loserId == null ? null : HistoryMemberResponse.of(loserId, source.groupMembers().get(loserId)));
+				loserId == null ? null : member(loserId));
 	}
 
 	private GameHistoryResponse game(GameSession game) {
@@ -118,18 +118,30 @@ final class MeetingHistoryAssembler {
 	 * 순번 순서를 그대로 두고 응답으로 바꾼다.
 	 */
 	private List<HistoryMemberResponse> orderedMembers(List<Long> memberIds) {
-		return memberIds.stream().map(id -> HistoryMemberResponse.of(id, source.groupMembers().get(id))).toList();
+		return memberIds.stream().map(this::member).toList();
 	}
 
 	/**
-	 * 회원 id를 그룹 가입 순(멤버십 id 순)으로 정렬해 응답으로 바꾼다. 멤버십이 없으면 맨 뒤로 보낸다.
+	 * 회원 id를 그룹 가입 순(멤버십 id 순)으로 정렬해 응답으로 바꾼다. 멤버십이 없으면(게스트 포함) 맨 뒤로 보낸다.
 	 */
 	private List<HistoryMemberResponse> members(List<Long> memberIds) {
 		Map<Long, GroupMember> groupMembers = source.groupMembers();
 		Comparator<Long> joinOrder = Comparator.comparing(id -> groupMembers.containsKey(id)
 				? groupMembers.get(id).getId() : Long.MAX_VALUE);
 		return memberIds.stream().distinct().sorted(joinOrder.thenComparing(Comparator.naturalOrder()))
-				.map(id -> HistoryMemberResponse.of(id, groupMembers.get(id))).toList();
+				.map(this::member).toList();
+	}
+
+	/**
+	 * 회원 id 하나를 응답으로 바꾼다. 그룹 멤버가 아니고 그 모임 게스트면 게스트 이름을 쓴다.
+	 */
+	private HistoryMemberResponse member(Long memberId) {
+		GroupMember groupMember = source.groupMembers().get(memberId);
+		String guestName = source.guestNames().get(memberId);
+		if (groupMember == null && guestName != null) {
+			return HistoryMemberResponse.guest(memberId, guestName);
+		}
+		return HistoryMemberResponse.of(memberId, groupMember);
 	}
 
 	private static Long rootOf(GameSession game) {

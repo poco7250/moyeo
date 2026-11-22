@@ -24,9 +24,11 @@ import java.util.Map;
  * @param orderResults 그 게임 중 순서 정하기 게임의 순번 결과
  * @param boardGames 차수들의 보드게임 기록(순위 포함, 기록 순)
  * @param groupMembers 회원 id → 그룹 멤버십
+ * @param guestNames 게스트 회원 id → 게스트 이름(그 모임들의 게스트, G-6)
  */
 record MeetingHistorySource(List<Round> rounds, List<Attendance> attendances, List<Attendance> noShows,
 		Map<Long, Long> expenseTotals,
 		Map<Long, Settlement> settlements, List<GameSession> games, List<Penalty> penalties,
-		List<GameResult> orderResults, List<BoardGameRecord> boardGames, Map<Long, GroupMember> groupMembers) {
+		List<GameResult> orderResults, List<BoardGameRecord> boardGames, Map<Long, GroupMember> groupMembers,
+		Map<Long, String> guestNames) {
 }

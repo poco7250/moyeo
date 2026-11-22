@@ -55,8 +55,8 @@ class MeetingHistoryControllerTest {
 	@Test
 	@DisplayName("기본 0페이지·20건이고, 차수별 장소·참석자·게임 벌칙자가 공통 응답 래퍼로 내려간다")
 	void list() throws Exception {
-		HistoryMemberResponse minsu = new HistoryMemberResponse(3L, "민수", "🎳");
-		HistoryMemberResponse jiho = new HistoryMemberResponse(4L, "지호", null);
+		HistoryMemberResponse minsu = new HistoryMemberResponse(3L, "민수", "🎳", false);
+		HistoryMemberResponse jiho = new HistoryMemberResponse(4L, "지호", null, false);
 		RoundHistoryResponse round = new RoundHistoryResponse(20L, 1, "볼링",
 				new ConfirmedPlaceResponse("강남 볼링장", "https://map.kakao.com/link/search/강남 볼링장"),
 				List.of(minsu), List.of(jiho), List.of(new GameHistoryResponse(30L, GameType.LADDER, PenaltyKind.MONEY, "꽝이 볼링비",

@@ -60,6 +60,11 @@ public enum ErrorCode {
 	MEETING_DATE_CANDIDATE_LIMIT(HttpStatus.CONFLICT, "날짜 후보는 10개까지 둘 수 있습니다."),
 	// 결산 카드(H-3)는 시작 시각이 지난 모임만(날짜 투표 중·다가오는 모임 불가)
 	MEETING_NOT_PAST(HttpStatus.CONFLICT, "지난 모임만 결산 카드를 만들 수 있습니다."),
+	// 모임 게스트(G-6)
+	MEETING_GUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "모임 게스트를 찾을 수 없습니다."),
+	MEETING_GUEST_DUPLICATED(HttpStatus.CONFLICT, "같은 이름의 게스트가 이미 있습니다."),
+	MEETING_GUEST_LIMIT(HttpStatus.CONFLICT, "게스트는 모임당 20명까지 추가할 수 있습니다."),
+	MEETING_GUEST_IN_USE(HttpStatus.CONFLICT, "게임에 참가한 게스트는 삭제할 수 없습니다."),
 
 	// 참석
 	ATTENDANCE_DEADLINE_PASSED(HttpStatus.FORBIDDEN, "응답 마감 시간이 지났습니다. 호스트에게 수정을 요청해 주세요."),

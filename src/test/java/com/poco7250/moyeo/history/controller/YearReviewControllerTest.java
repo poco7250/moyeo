@@ -53,7 +53,7 @@ class YearReviewControllerTest {
 	@Test
 	@DisplayName("연말 결산을 공통 응답 래퍼로 준다")
 	void response() throws Exception {
-		HistoryMemberResponse minsu = new HistoryMemberResponse(3L, "민수", "🎳");
+		HistoryMemberResponse minsu = new HistoryMemberResponse(3L, "민수", "🎳", false);
 		given(yearReviewService.get(5L, 8L, 2026)).willReturn(new YearReviewResponse(2026, 23, 30, 1_420_000L, 20,
 				List.of(new AttendanceRankResponse(1, minsu, 20)), List.of(new ShareRankResponse(1, minsu, 300_000L)),
 				List.of(new PlaceVisitResponse(1, "강남 OO식당", 5, LocalDateTime.of(2026, 11, 1, 18, 0))),

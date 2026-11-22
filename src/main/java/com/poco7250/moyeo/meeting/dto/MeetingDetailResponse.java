@@ -12,6 +12,7 @@ import java.util.List;
  * shareText는 카카오톡 공유 문구, host는 요청자가 실제 호스트인지 여부다.
  * hostAuthority·settlementAuthority는 요청자가 호스트 권한(호스트·방장)·정산 권한(호스트·방장·총무)을 가졌는지다(G-4).
  * 날짜 투표 중(dateStatus = VOTING)이면 startAt은 null이고, 후보·득표는 날짜 투표 API로 본다.
+ * guests는 호스트가 이름만으로 추가한 모임 게스트(추가 순, G-6)로, 게임 참가자로만 쓴다.
  */
 public record MeetingDetailResponse(
 		Long id,
@@ -27,13 +28,14 @@ public record MeetingDetailResponse(
 		boolean settlementAuthority,
 		String url,
 		String shareText,
-		List<RoundResponse> rounds) {
+		List<RoundResponse> rounds,
+		List<MeetingGuestResponse> guests) {
 
 	/**
-	 * 모임·차수 엔티티와 요청자, 요청자 권한, 공유 URL로 응답 DTO를 만든다. 차수는 seq 순이어야 한다.
+	 * 모임·차수 엔티티와 게스트, 요청자, 요청자 권한, 공유 URL로 응답 DTO를 만든다. 차수는 seq 순이어야 한다.
 	 */
-	public static MeetingDetailResponse of(Meeting meeting, List<Round> rounds, Long viewerId,
-			ViewerAuthority authority, String url) {
+	public static MeetingDetailResponse of(Meeting meeting, List<Round> rounds, List<MeetingGuestResponse> guests,
+			Long viewerId, ViewerAuthority authority, String url) {
 		return new MeetingDetailResponse(
 				meeting.getId(),
 				meeting.getGroup().getId(),
@@ -49,7 +51,8 @@ public record MeetingDetailResponse(
 				url,
 				MeetingShareText.kakaoText(meeting.getTitle(), meeting.getStartAt(),
 						MeetingShareText.firstPlaceLabel(rounds), url),
-				rounds.stream().map(RoundResponse::from).toList());
+				rounds.stream().map(RoundResponse::from).toList(),
+				guests);
 	}
 
 	/**

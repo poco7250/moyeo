@@ -14,8 +14,10 @@ import com.poco7250.moyeo.meeting.dto.GroupMeetingsResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingCreateRequest;
 import com.poco7250.moyeo.meeting.dto.MeetingDetailResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingDetailResponse.ViewerAuthority;
+import com.poco7250.moyeo.meeting.dto.MeetingGuestResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingSummaryResponse;
 import com.poco7250.moyeo.meeting.repository.MeetingDateCandidateRepository;
+import com.poco7250.moyeo.meeting.repository.MeetingGuestRepository;
 import com.poco7250.moyeo.meeting.repository.MeetingRepository;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.settlement.domain.Settlement;
@@ -39,6 +41,7 @@ public class MeetingService {
 	private final MeetingRepository meetingRepository;
 	private final MeetingDateCandidateRepository meetingDateCandidateRepository;
 	private final RoundRepository roundRepository;
+	private final MeetingGuestRepository meetingGuestRepository;
 	private final SettlementRepository settlementRepository;
 	private final GroupRepository groupRepository;
 	private final GroupAccessChecker groupAccessChecker;
@@ -123,7 +126,9 @@ public class MeetingService {
 	private MeetingDetailResponse toDetail(Meeting meeting, List<Round> rounds, Long memberId) {
 		ViewerAuthority authority = new ViewerAuthority(meetingAccessChecker.hasHostAuthority(meeting, memberId),
 				meetingAccessChecker.hasSettlementAuthority(meeting, memberId));
-		return MeetingDetailResponse.of(meeting, rounds, memberId, authority,
+		List<MeetingGuestResponse> guests = meetingGuestRepository.findAllWithMemberByMeetingId(meeting.getId())
+				.stream().map(MeetingGuestResponse::from).toList();
+		return MeetingDetailResponse.of(meeting, rounds, guests, memberId, authority,
 				shareLinkProperties.meetingUrl(meeting.getShareToken()));
 	}
 
