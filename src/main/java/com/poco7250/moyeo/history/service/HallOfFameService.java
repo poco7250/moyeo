@@ -67,13 +67,15 @@ public class HallOfFameService {
 		List<Round> rounds = roundRepository.findAllByMeetingIdIn(meetingIds);
 		List<Long> roundIds = rounds.stream().map(Round::getId).toList();
 		if (roundIds.isEmpty()) {
-			return new HallOfFameSource(meetings, rounds, List.of(), List.of(), Map.of(), List.of(), groupMembers);
+			return new HallOfFameSource(meetings, rounds, List.of(), List.of(), List.of(), Map.of(), List.of(),
+					groupMembers);
 		}
 		List<Attendance> attendances = attendanceRepository.findAllAttendingByRoundIdIn(roundIds);
+		List<Attendance> noShows = attendanceRepository.findAllNoShowByRoundIdIn(roundIds);
 		List<Penalty> penalties = penaltyRepository.findAllActiveByRoundIdIn(roundIds);
 		List<BoardGameRecord> boardGames = boardGameRecordRepository.findAllByRoundIdInOrderByIdAsc(roundIds);
-		return new HallOfFameSource(meetings, rounds, attendances, penalties, penaltyAmounts(meetingIds), boardGames,
-				groupMembers);
+		return new HallOfFameSource(meetings, rounds, attendances, noShows, penalties, penaltyAmounts(meetingIds),
+				boardGames, groupMembers);
 	}
 
 	private Map<Long, Long> penaltyAmounts(List<Long> meetingIds) {

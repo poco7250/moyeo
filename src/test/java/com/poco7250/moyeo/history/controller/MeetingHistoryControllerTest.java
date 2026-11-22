@@ -56,9 +56,10 @@ class MeetingHistoryControllerTest {
 	@DisplayName("기본 0페이지·20건이고, 차수별 장소·참석자·게임 벌칙자가 공통 응답 래퍼로 내려간다")
 	void list() throws Exception {
 		HistoryMemberResponse minsu = new HistoryMemberResponse(3L, "민수", "🎳");
+		HistoryMemberResponse jiho = new HistoryMemberResponse(4L, "지호", null);
 		RoundHistoryResponse round = new RoundHistoryResponse(20L, 1, "볼링",
 				new ConfirmedPlaceResponse("강남 볼링장", "https://map.kakao.com/link/search/강남 볼링장"),
-				List.of(minsu), List.of(new GameHistoryResponse(30L, GameType.LADDER, PenaltyKind.MONEY, "꽝이 볼링비",
+				List.of(minsu), List.of(jiho), List.of(new GameHistoryResponse(30L, GameType.LADDER, PenaltyKind.MONEY, "꽝이 볼링비",
 						LocalDateTime.of(2026, 11, 1, 21, 0), List.of(minsu), List.of())),
 				List.of(new BoardGameHistoryResponse(40L, "스플렌더", List.of(new BoardGameRankHistoryResponse(1, minsu)), minsu)));
 		given(meetingHistoryService.list(5L, 8L, 0, 20)).willReturn(new MeetingHistoryPageResponse(List.of(
@@ -77,6 +78,7 @@ class MeetingHistoryControllerTest {
 				.andExpect(jsonPath("$.data.items[0].settlementRevisionNo").value(2))
 				.andExpect(jsonPath("$.data.items[0].rounds[0].place.label").value("강남 볼링장"))
 				.andExpect(jsonPath("$.data.items[0].rounds[0].attendees[0].nickname").value("민수"))
+				.andExpect(jsonPath("$.data.items[0].rounds[0].noShows[0].nickname").value("지호"))
 				.andExpect(jsonPath("$.data.items[0].rounds[0].games[0].type").value("LADDER"))
 				.andExpect(jsonPath("$.data.items[0].rounds[0].games[0].penalized[0].memberId").value(3))
 				.andExpect(jsonPath("$.data.items[0].rounds[0].boardGames[0].gameName").value("스플렌더"))

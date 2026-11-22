@@ -125,7 +125,7 @@ class MeetingHistoryIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("지난 모임의 차수별 확정 장소·참석자·지출 합계·정산 상태·최종 회차 벌칙자를 돌려준다")
+	@DisplayName("지난 모임의 차수별 확정 장소·참석자·노쇼·지출 합계·정산 상태·최종 회차 벌칙자를 돌려준다")
 	void assemblesMeeting() {
 		Meeting meeting = savePastMeeting("5월 모임", LocalDateTime.of(2020, 5, 1, 18, 0));
 		Round meal = roundRepository.save(Round.create(meeting, 1, "밥"));
@@ -134,7 +134,7 @@ class MeetingHistoryIntegrationTest {
 				PlaceCandidate.propose(meal, Place.of("강남 고깃집", null, null), host)));
 		respond(meal, host, AttendanceStatus.ATTEND);
 		respond(meal, minsu, AttendanceStatus.ATTEND);
-		respond(meal, younghee, AttendanceStatus.ABSENT);
+		saveNoShow(meal, younghee);
 		respond(bowling, younghee, AttendanceStatus.ATTEND);
 		respond(bowling, minsu, AttendanceStatus.UNDECIDED);
 		expenseRepository.save(Expense.create(meal, host, 50_000L, "고기"));
@@ -153,9 +153,11 @@ class MeetingHistoryIntegrationTest {
 		RoundHistoryResponse first = item.rounds().get(0);
 		assertThat(first.place().label()).isEqualTo("강남 고깃집");
 		assertThat(first.attendees()).extracting(HistoryMemberResponse::nickname).containsExactly("호스트", "민수");
+		assertThat(first.noShows()).extracting(HistoryMemberResponse::nickname).containsExactly("영희");
 		RoundHistoryResponse second = item.rounds().get(1);
 		assertThat(second.place()).isNull();
 		assertThat(second.attendees()).extracting(HistoryMemberResponse::nickname).containsExactly("영희");
+		assertThat(second.noShows()).isEmpty();
 		assertThat(second.games()).extracting(GameHistoryResponse::gameId).containsExactly(rerun.getId());
 		assertThat(second.games().get(0).penalized()).extracting(HistoryMemberResponse::nickname)
 				.containsExactly("영희");
@@ -292,6 +294,14 @@ class MeetingHistoryIntegrationTest {
 
 	private void respond(Round round, Member member, AttendanceStatus status) {
 		attendanceRepository.save(Attendance.respond(round, member, status, RESPONDED_AT));
+	}
+
+	// 참석으로 응답했다가 실제 참석자 확정 때 체크인이 없어 불참이 된 노쇼 행
+	private void saveNoShow(Round round, Member member) {
+		Attendance attendance = Attendance.respond(round, member, AttendanceStatus.ATTEND, RESPONDED_AT);
+		attendance.recordNoShowIfMissed();
+		attendance.changeStatus(AttendanceStatus.ABSENT, RESPONDED_AT);
+		attendanceRepository.save(attendance);
 	}
 
 	private Member joinGroup(Group target, String nickname) {

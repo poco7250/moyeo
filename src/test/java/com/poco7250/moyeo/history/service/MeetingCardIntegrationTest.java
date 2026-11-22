@@ -149,7 +149,7 @@ class MeetingCardIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("게임은 다시 돌린 회차의 벌칙자만, 보드게임은 꼴등과 함께, 장소는 확정 label로 나온다")
+	@DisplayName("게임은 다시 돌린 회차의 벌칙자만, 보드게임은 꼴등과 함께, 장소는 확정 label로, 노쇼 멤버도 나온다")
 	void gamesAndPlaces() {
 		Meeting meeting = saveConfirmedMeeting();
 
@@ -159,6 +159,7 @@ class MeetingCardIntegrationTest {
 		assertThat(meal.place().label()).isEqualTo("강남 고깃집");
 		assertThat(meal.attendees()).extracting(HistoryMemberResponse::nickname)
 				.containsExactly("호스트", "민수", "영희");
+		assertThat(meal.noShows()).extracting(HistoryMemberResponse::nickname).containsExactly("지수");
 		assertThat(meal.games()).hasSize(1);
 		assertThat(meal.games().getFirst().penalized()).extracting(HistoryMemberResponse::nickname)
 				.containsExactly("영희");
@@ -208,7 +209,7 @@ class MeetingCardIntegrationTest {
 	}
 
 	/**
-	 * 2019년 3월 모임: 1차 "강남 고깃집"(호스트·민수·영희 참석), 지출 50,000·30,000원, 리비전 1 → 재확정 리비전 2
+	 * 2019년 3월 모임: 1차 "강남 고깃집"(호스트·민수·영희 참석, 지수 노쇼), 지출 50,000·30,000원, 리비전 1 → 재확정 리비전 2
 	 * (호스트 25,000·민수 35,000·영희 20,000·지수 0). 금액형 사다리 민수 꽝 → 다시 돌린 회차 영희 꽝, 보드게임 꼴등 민수.
 	 */
 	private Meeting saveConfirmedMeeting() {
@@ -219,6 +220,11 @@ class MeetingCardIntegrationTest {
 		for (Member member : List.of(host, minsu, younghee)) {
 			attendanceRepository.save(Attendance.respond(meal, member, AttendanceStatus.ATTEND, AT));
 		}
+		// 지수는 참석한다고 했지만 체크인이 없어 실제 참석자 확정 때 노쇼가 됐다
+		Attendance jisuNoShow = Attendance.respond(meal, jisu, AttendanceStatus.ATTEND, AT);
+		jisuNoShow.recordNoShowIfMissed();
+		jisuNoShow.changeStatus(AttendanceStatus.ABSENT, AT);
+		attendanceRepository.save(jisuNoShow);
 		expenseRepository.save(Expense.create(meal, host, 50_000L, "고기"));
 		expenseRepository.save(Expense.create(meal, minsu, 30_000L, "술"));
 		Settlement settlement = settlementRepository.findByMeetingId(meeting.getId()).orElseThrow();

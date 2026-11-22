@@ -15,20 +15,22 @@ final class YearReviewShareText {
 	}
 
 	/**
-	 * 결산 문구를 만든다. 데이터가 없는 줄(최다 참석·많이 간 곳·벌칙왕)은 뺀다.
+	 * 결산 문구를 만든다. 데이터가 없는 줄(최다 참석·많이 간 곳·벌칙왕·노쇼왕)은 뺀다.
 	 *
 	 * @param topAttendees 참석 1위 닉네임과 참석 횟수(없으면 {@link Ranked#NONE})
 	 * @param topPlace 가장 많이 간 장소 이름과 방문 횟수(없으면 {@link Ranked#NONE})
 	 * @param penaltyKings 벌칙왕 닉네임과 당첨 횟수(없으면 {@link Ranked#NONE})
+	 * @param noShowKings 노쇼왕 닉네임과 노쇼 모임 수(없으면 {@link Ranked#NONE})
 	 */
 	static String of(String groupName, int year, long meetingCount, long totalExpense, Ranked topAttendees,
-			Ranked topPlace, Ranked penaltyKings) {
+			Ranked topPlace, Ranked penaltyKings, Ranked noShowKings) {
 		List<String> lines = new ArrayList<>();
 		lines.add("[%s] %d년 결산".formatted(groupName, year));
 		lines.add("올해 모임 %d번 · 총 %s원".formatted(meetingCount, new DecimalFormat("#,##0").format(totalExpense)));
 		addLine(lines, "최다 참석", topAttendees);
 		addLine(lines, "가장 많이 간 곳", topPlace);
 		addLine(lines, "벌칙왕", penaltyKings);
+		addLine(lines, "노쇼왕", noShowKings);
 		return String.join("\n", lines);
 	}
 

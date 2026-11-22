@@ -74,9 +74,11 @@ public class YearReviewService {
 		List<Long> roundIds = rounds.stream().map(Round::getId).toList();
 		List<Attendance> attendances = roundIds.isEmpty() ? List.of()
 				: attendanceRepository.findAllAttendingByRoundIdIn(roundIds);
+		List<Attendance> noShows = roundIds.isEmpty() ? List.of()
+				: attendanceRepository.findAllNoShowByRoundIdIn(roundIds);
 		List<Penalty> penalties = roundIds.isEmpty() ? List.of()
 				: penaltyRepository.findAllActiveByRoundIdIn(roundIds);
-		return new YearReviewSource(groupName, meetings, rounds, attendances, totalExpense(meetingIds),
+		return new YearReviewSource(groupName, meetings, rounds, attendances, noShows, totalExpense(meetingIds),
 				confirmedMeetingCount(meetingIds), penalties, penaltyAmounts(meetingIds), shareAmounts(meetingIds),
 				groupMembers);
 	}

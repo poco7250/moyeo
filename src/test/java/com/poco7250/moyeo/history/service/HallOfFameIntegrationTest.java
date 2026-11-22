@@ -156,6 +156,24 @@ class HallOfFameIntegrationTest {
 	}
 
 	@Test
+	@DisplayName("노쇼는 모임 단위로 센다(한 모임 두 차수 노쇼 = 1회). 출석부 줄에 노쇼 멤버가 나오고 다가오는·다른 그룹 모임은 빠진다")
+	void noShows() {
+		HallOfFameResponse all = hallOfFameService.get(group.getId(), host.getId(), null);
+		HallOfFameResponse year2019 = hallOfFameService.get(group.getId(), host.getId(), 2019);
+
+		assertThat(all.noShowRanking())
+				.extracting(r -> r.member().nickname(), r -> r.rank(), r -> r.noShowCount())
+				.containsExactly(tuple("민수", 1, 1L), tuple("지수", 1, 1L), tuple("호스트", 3, 0L),
+						tuple("영희", 3, 0L));
+		assertThat(all.attendanceLog().get(0).noShows()).extracting(HistoryMemberResponse::nickname)
+				.containsExactly("민수");
+		assertThat(all.attendanceLog().get(1).noShows()).extracting(HistoryMemberResponse::nickname)
+				.containsExactly("지수");
+		assertThat(year2019.noShowRanking()).extracting(r -> r.member().nickname(), r -> r.rank())
+				.containsExactly(tuple("지수", 1), tuple("호스트", 2), tuple("민수", 2), tuple("영희", 2));
+	}
+
+	@Test
 	@DisplayName("연도를 주면 그해에 시작한 모임만 센다. 횟수가 같으면 금액이 많은 순이고 순위는 같다")
 	void byYear() {
 		HallOfFameResponse result = hallOfFameService.get(group.getId(), host.getId(), 2019);
@@ -200,6 +218,8 @@ class HallOfFameIntegrationTest {
 		respond(round, host, AttendanceStatus.ATTEND);
 		respond(round, minsu, AttendanceStatus.ATTEND);
 		respond(round, younghee, AttendanceStatus.ABSENT);
+		saveNoShow(round, jisu);
+		saveNoShow(roundRepository.save(Round.create(meeting, 2, "노래방")), jisu);
 		Expense meal = expenseRepository.save(Expense.create(round, host, 50_000L, "고기"));
 		GameSession ladder = saveRevealedGame(GameSession.create(round, GameType.LADDER, host.getId(),
 				PenaltyKind.MONEY, "꽝이 고기값", 1));
@@ -229,6 +249,7 @@ class HallOfFameIntegrationTest {
 		respond(round, younghee, AttendanceStatus.ATTEND);
 		respond(round, jisu, AttendanceStatus.ATTEND);
 		respond(round, host, AttendanceStatus.UNDECIDED);
+		saveNoShow(round, minsu);
 		GameSession draw = saveRevealedGame(GameSession.create(round, GameType.DRAW, host.getId(),
 				PenaltyKind.MONEY, null, 1));
 		penaltyRepository.save(Penalty.assign(draw, younghee)).waive(host.getId(), AT);
@@ -241,6 +262,7 @@ class HallOfFameIntegrationTest {
 		Round upcoming = roundRepository.save(Round.create(
 				savePastMeeting("다가오는 모임", LocalDateTime.of(2099, 1, 1, 18, 0)), 1, "밥"));
 		respond(upcoming, jisu, AttendanceStatus.ATTEND);
+		saveNoShow(upcoming, younghee);
 		penaltyRepository.save(Penalty.assign(saveRevealedGame(GameSession.create(upcoming, GameType.LADDER,
 				host.getId(), PenaltyKind.ACTION, null, 1)), jisu));
 		Meeting voting = meetingRepository.save(Meeting.createWithDateVote(group, "날짜 투표", null, null, host.getId()));
@@ -251,6 +273,7 @@ class HallOfFameIntegrationTest {
 		settlementRepository.save(Settlement.createDraft(otherMeeting));
 		Round otherRound = roundRepository.save(Round.create(otherMeeting, 1, "밥"));
 		respond(otherRound, minsu, AttendanceStatus.ATTEND);
+		saveNoShow(otherRound, younghee);
 		penaltyRepository.save(Penalty.assign(saveRevealedGame(GameSession.create(otherRound, GameType.LADDER,
 				host.getId(), PenaltyKind.ACTION, null, 1)), minsu));
 	}
@@ -296,6 +319,14 @@ class HallOfFameIntegrationTest {
 
 	private void respond(Round round, Member member, AttendanceStatus status) {
 		attendanceRepository.save(Attendance.respond(round, member, status, AT));
+	}
+
+	// 참석으로 응답했다가 실제 참석자 확정 때 체크인이 없어 불참이 된 노쇼 행
+	private void saveNoShow(Round round, Member member) {
+		Attendance attendance = Attendance.respond(round, member, AttendanceStatus.ATTEND, AT);
+		attendance.recordNoShowIfMissed();
+		attendance.changeStatus(AttendanceStatus.ABSENT, AT);
+		attendanceRepository.save(attendance);
 	}
 
 	private Member joinGroup(Group target, String nickname) {

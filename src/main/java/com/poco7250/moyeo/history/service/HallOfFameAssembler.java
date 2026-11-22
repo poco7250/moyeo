@@ -10,9 +10,9 @@ import com.poco7250.moyeo.history.dto.AttendanceLogResponse;
 import com.poco7250.moyeo.history.dto.BoardGameLoserRankResponse;
 import com.poco7250.moyeo.history.dto.HallOfFameResponse;
 import com.poco7250.moyeo.history.dto.HistoryMemberResponse;
+import com.poco7250.moyeo.history.dto.NoShowRankResponse;
 import com.poco7250.moyeo.history.dto.PenaltyRankResponse;
 import com.poco7250.moyeo.meeting.domain.Attendance;
-import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.domain.Round;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -52,7 +52,7 @@ final class HallOfFameAssembler {
 	 * @param year 집계 연도(전체 기간이면 null), 응답에 그대로 싣는다
 	 */
 	HallOfFameResponse assemble(Integer year) {
-		return new HallOfFameResponse(year, penaltyRanking(), boardGameLoserRanking(), attendanceLog());
+		return new HallOfFameResponse(year, penaltyRanking(), boardGameLoserRanking(), noShowRanking(), attendanceLog());
 	}
 
 	/**
@@ -93,24 +93,50 @@ final class HallOfFameAssembler {
 		return result;
 	}
 
+	/**
+	 * 그룹 멤버 전원의 노쇼 순위를 구한다. 한 모임에서 여러 차수 노쇼여도 1회로 센다.
+	 * 연말 결산의 노쇼왕도 같은 계산을 쓴다.
+	 */
+	List<NoShowRankResponse> noShowRanking() {
+		Map<Long, Long> counts = new HashMap<>();
+		membersByMeeting(source.noShows()).values()
+				.forEach(memberIds -> memberIds.forEach(id -> counts.merge(id, 1L, Long::sum)));
+		ToLongFunction<Long> count = id -> counts.getOrDefault(id, 0L);
+		List<Long> sorted = memberIdsSortedBy(Comparator.comparingLong(count).reversed());
+		List<Integer> ranks = competitionRanks(sorted, count);
+		List<NoShowRankResponse> result = new ArrayList<>();
+		for (int i = 0; i < sorted.size(); i++) {
+			Long id = sorted.get(i);
+			result.add(new NoShowRankResponse(ranks.get(i), member(id), count.applyAsLong(id)));
+		}
+		return result;
+	}
+
 	private List<AttendanceLogResponse> attendanceLog() {
-		Map<Long, Long> meetingIdByRound = source.rounds().stream()
-				.collect(Collectors.toMap(Round::getId, round -> round.getMeeting().getId()));
-		Map<Long, Set<Long>> attendeesByMeeting = source.attendances().stream()
-				.collect(groupingBy((Attendance a) -> meetingIdByRound.get(a.getRound().getId()),
-						Collectors.mapping(a -> a.getMember().getId(), Collectors.toCollection(TreeSet::new))));
+		Map<Long, Set<Long>> attendeesByMeeting = membersByMeeting(source.attendances());
+		Map<Long, Set<Long>> noShowsByMeeting = membersByMeeting(source.noShows());
 		return source.meetings().stream()
-				.map(meeting -> attendanceRow(meeting, attendeesByMeeting.getOrDefault(meeting.getId(), Set.of())))
+				.map(meeting -> new AttendanceLogResponse(meeting.getId(), meeting.getTitle(), meeting.getStartAt(),
+						joinOrdered(attendeesByMeeting.getOrDefault(meeting.getId(), Set.of())),
+						joinOrdered(noShowsByMeeting.getOrDefault(meeting.getId(), Set.of()))))
 				.toList();
 	}
 
-	private AttendanceLogResponse attendanceRow(Meeting meeting, Set<Long> attendeeIds) {
-		List<HistoryMemberResponse> attendees = attendeeIds.stream()
+	// 모임 id → 그 모임 응답 행의 회원 id(중복 없음)
+	private Map<Long, Set<Long>> membersByMeeting(List<Attendance> attendances) {
+		Map<Long, Long> meetingIdByRound = source.rounds().stream()
+				.collect(Collectors.toMap(Round::getId, round -> round.getMeeting().getId()));
+		return attendances.stream()
+				.collect(groupingBy((Attendance a) -> meetingIdByRound.get(a.getRound().getId()),
+						Collectors.mapping(a -> a.getMember().getId(), Collectors.toCollection(TreeSet::new))));
+	}
+
+	private List<HistoryMemberResponse> joinOrdered(Set<Long> memberIds) {
+		return memberIds.stream()
 				.sorted(Comparator.comparing((Long id) -> joinOrder.getOrDefault(id, Integer.MAX_VALUE))
 						.thenComparing(Function.identity()))
 				.map(this::member)
 				.toList();
-		return new AttendanceLogResponse(meeting.getId(), meeting.getTitle(), meeting.getStartAt(), attendees);
 	}
 
 	// 그룹 멤버 전원을 주어진 기준으로 정렬한다. 기준이 같으면 가입 순(안정 정렬)

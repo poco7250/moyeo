@@ -260,6 +260,44 @@ class CheckInIntegrationTest {
 		assertThat(board.absent()).extracting(BoardMember::nickname).containsExactly("영희");
 	}
 
+	@Test
+	@DisplayName("확정 때 참석 응답인데 체크인 안 한 멤버만 노쇼가 되고, 체크인 없이 재확정하면 유지, 호스트가 참석으로 고치면 풀린다")
+	void recordsNoShow() {
+		respond(host, ATTEND);
+		respond(minsu, ATTEND);
+		respond(younghee, UNDECIDED);
+		checkInService.changeCheckIn(meal.getId(), host.getId(), host.getId(), true);
+
+		checkInService.confirm(meal.getId(), host.getId());
+
+		assertThat(attendanceOf(minsu).isNoShow()).isTrue();
+		assertThat(attendanceOf(host).isNoShow()).isFalse();
+		assertThat(attendanceOf(younghee).isNoShow()).isFalse();
+		assertThat(attendanceRepository.findAllNoShowByRoundIdIn(List.of(meal.getId())))
+				.extracting(a -> a.getMember().getId()).containsExactly(minsu.getId());
+
+		checkInService.confirm(meal.getId(), host.getId());
+		assertThat(attendanceOf(minsu).isNoShow()).isTrue();
+
+		attendanceService.respondFor(meeting.getId(), host.getId(), minsu.getId(),
+				new AttendanceRespondRequest(null, List.of(new RoundAttendanceItem(meal.getId(), ATTEND))));
+		assertThat(attendanceOf(minsu).isNoShow()).isFalse();
+	}
+
+	@Test
+	@DisplayName("노쇼였던 멤버가 늦게 체크인하고 다시 확정하면 참석이 되고 노쇼가 풀린다")
+	void lateCheckInClearsNoShow() {
+		respond(minsu, ATTEND);
+		checkInService.confirm(meal.getId(), host.getId());
+		assertThat(attendanceOf(minsu).isNoShow()).isTrue();
+
+		checkInService.changeCheckIn(meal.getId(), minsu.getId(), minsu.getId(), true);
+		checkInService.confirm(meal.getId(), host.getId());
+
+		assertThat(statusOf(minsu)).isEqualTo(ATTEND);
+		assertThat(attendanceOf(minsu).isNoShow()).isFalse();
+	}
+
 	private void assertError(Runnable action, ErrorCode errorCode) {
 		assertThatThrownBy(action::run).isInstanceOf(BusinessException.class)
 				.extracting("errorCode").isEqualTo(errorCode);

@@ -65,4 +65,10 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 	@Query("select a.member.id from Attendance a where a.round.id = :roundId "
 			+ "and a.status = com.poco7250.moyeo.meeting.domain.AttendanceStatus.ABSENT")
 	List<Long> findAbsentMemberIdsByRoundId(@Param("roundId") Long roundId);
+
+	/**
+	 * 여러 차수의 노쇼 행을 조회한다(명예의 전당·히스토리·연말 결산). 차수·회원은 id만 쓰므로 fetch join하지 않는다.
+	 */
+	@Query("select a from Attendance a where a.round.id in :roundIds and a.noShow = true")
+	List<Attendance> findAllNoShowByRoundIdIn(@Param("roundIds") Collection<Long> roundIds);
 }
