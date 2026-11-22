@@ -162,6 +162,7 @@ class AuthorizationMatrixTest {
 			endpoint(HttpMethod.GET, "/api/groups/{groupId}/meetings", Access.MEMBER),
 			endpoint(HttpMethod.GET, "/api/groups/{groupId}/history", Access.MEMBER),
 			endpoint(HttpMethod.GET, "/api/groups/{groupId}/hall-of-fame", Access.MEMBER),
+			endpoint(HttpMethod.GET, "/api/groups/{groupId}/year-review?year=2026", Access.MEMBER),
 			endpoint(HttpMethod.GET, "/api/groups/{groupId}/favorite-places", Access.MEMBER),
 			new Endpoint(HttpMethod.POST, "/api/groups/{groupId}/favorite-places", Access.MEMBER,
 					"{\"label\":\"볼링장\"}"),
@@ -504,8 +505,9 @@ class AuthorizationMatrixTest {
 	}
 
 	/** 경로 변수 이름은 컨트롤러마다 달라서 {}로 통일해 비교한다 */
+	// 필수 쿼리 파라미터(예: year)는 매핑 비교에서 뗀다
 	private static String normalize(String path) {
-		return PLACEHOLDER.matcher(path).replaceAll("{}");
+		return PLACEHOLDER.matcher(path.split("\\?", 2)[0]).replaceAll("{}");
 	}
 
 	private static Endpoint endpoint(HttpMethod method, String path, Access access) {
