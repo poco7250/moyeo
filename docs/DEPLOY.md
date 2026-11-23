@@ -1,6 +1,7 @@
 # moyeo 배포 가이드
 
-> Task 067(2026-11-22). PRD 오픈 이슈 1 종결 — React(Vite) 정적 SPA + 같은 도메인 + VM 1대 Docker Compose.
+> Task 067(2026-11-22). PRD 오픈 이슈 1 종결 — 정적 SPA + 같은 도메인 + VM 1대 Docker Compose.
+> Task 068(2026-11-23): SPA를 React(Vite) 별도 빌드 대신 **Spring 앱 정적 리소스(`src/main/resources/static`)의 바닐라 JS**로 바꿨다. 프론트 빌드·업로드 단계가 없고 앱 이미지 하나에 화면이 같이 들어간다.
 
 ## 1. 구성
 
@@ -9,11 +10,11 @@
                         │
                 ┌───────▼────────┐
                 │  proxy (Caddy) │  80/443, Let's Encrypt 자동 발급·갱신
-                └───┬────────┬───┘
-   /api/* /ws /share/*      │ 나머지 경로
-                    │        └──► /srv/frontend (SPA dist, 없는 경로는 index.html)
-            ┌───────▼───────┐
+                └───────┬────────┘
+                        │ /actuator만 404, 나머지 전부
+            ┌───────────▼───┐
             │  app (Spring) │  8080 (외부 비공개), Flyway로 스키마 적용
+            │               │  /api /ws /share + SPA 정적 파일(화면 경로는 index.html forward)
             └───────┬───────┘
             ┌───────▼───────┐
             │   db (MySQL)  │  8.4, utf8mb4, +09:00
@@ -56,15 +57,14 @@ compose가 직접 넣는 값: `SPRING_PROFILES_ACTIVE=prod`(기본 프로필이 
    - 동의 항목은 로컬과 같게
 3. 저장소를 받고 `./gradlew build`로 전체 테스트를 통과시킨다(이미지 빌드는 테스트를 건너뛴다)
 4. `deploy/.env` 작성(2장)
-5. 프론트 빌드 결과물(`npm run build`의 `dist/` 내용)을 `deploy/frontend-dist/`에 둔다
-6. `cd deploy && docker compose up -d --build`
-7. 확인
+5. `cd deploy && docker compose up -d --build`
+6. 확인
    - `docker compose ps` — db·app이 `healthy`
    - `docker compose logs app | grep -i flyway` — `Successfully applied ... now at version v1`
    - `curl -i https://{도메인}/api/members/me` → 401 JSON
-   - 브라우저로 `https://{도메인}/` → SPA
+   - 브라우저로 `https://{도메인}/`와 `https://{도메인}/invites/abc` → SPA 화면(새로고침해도 404 아님)
 
-업데이트: `git pull` → `./gradlew build` → `cd deploy && docker compose up -d --build app`. 새 마이그레이션은 앱이 뜰 때 자동 적용된다. 프론트만 바꿀 때는 `frontend-dist/`만 교체(재시작 불필요).
+업데이트: `git pull` → `./gradlew build` → `cd deploy && docker compose up -d --build app`. 새 마이그레이션은 앱이 뜰 때 자동 적용된다. 화면(`src/main/resources/static`)도 jar에 들어 있어 같은 절차로 바뀐다.
 
 ## 4. 스키마 마이그레이션 규칙
 

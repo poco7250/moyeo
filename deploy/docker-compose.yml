@@ -1,4 +1,5 @@
-# moyeo 운영 구성(Task 067): VM 1대에 MySQL · Spring 앱 · Caddy(리버스 프록시 + 자동 HTTPS + SPA 정적 파일)
+# moyeo 운영 구성(Task 067): VM 1대에 MySQL · Spring 앱 · Caddy(리버스 프록시 + 자동 HTTPS)
+# SPA는 앱 jar 안의 정적 리소스라 따로 올릴 프론트 파일이 없다(Task 068)
 # 실행: deploy/ 에서 cp .env.example .env 후 값 채우고 docker compose up -d --build
 # 앱은 인메모리 STOMP 브로커·빈도 제한·로컬 디스크 영수증을 써서 단일 인스턴스 전제다(app을 여러 개 띄우지 않는다)
 name: moyeo
@@ -64,8 +65,6 @@ services:
       - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      # 프론트(React Vite) 빌드 결과물(dist)을 여기에 둔다
-      - ./frontend-dist:/srv/frontend:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on:

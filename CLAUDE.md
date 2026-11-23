@@ -12,6 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 실시간 알림은 Service 트랜잭션 안에서 `RealtimeEvent` 구현 record를 `ApplicationEventPublisher`로 발행만 한다(전송은 `global/event/RealtimeBroadcaster`가 커밋 후에). 새 토픽 종류를 열면 `global/websocket/TopicGroupResolver` 구현을 같이 등록한다(없으면 구독이 거부됨)
 - 도메인 패키지는 `<도메인>/{domain,dto,repository,service,controller}` 구조를 따른다.
 - 진행 상황과 다음 작업은 `docs/ROADMAP.md`를 본다.
+- 화면은 `src/main/resources/static`의 바닐라 JS SPA다(빌드 도구 없음, 규칙은 ROADMAP Phase 14 공통 규칙). 새 화면 경로는 `static/js/app.js`의 `route(...)`와 `global/web/SpaRoutes.SCREEN_PATHS`(index.html forward + 공개 경로)에 같이 추가한다.
 
 ## 명령어
 

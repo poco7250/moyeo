@@ -46,6 +46,5 @@ application-local.properties
 ### Shrimp Task Manager ###
 shrimp_data/
 
-### Deploy (운영 비밀값·프론트 빌드 결과물) ###
+### Deploy (운영 비밀값) ###
 .env
-deploy/frontend-dist/
