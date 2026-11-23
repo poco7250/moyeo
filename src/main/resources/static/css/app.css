@@ -1,0 +1,37 @@
+/* 모바일 우선. 디자인은 Pico.css 기본값을 쓰고 여기에는 꼭 필요한 것만 둔다 */
+:root {
+	--app-max-width: 640px;
+}
+
+body > header.container,
+main.container {
+	max-width: var(--app-max-width);
+}
+
+.toasts {
+	position: fixed;
+	left: 50%;
+	bottom: 1rem;
+	transform: translateX(-50%);
+	width: min(calc(100% - 2rem), var(--app-max-width));
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	z-index: 1000;
+}
+
+.toast {
+	padding: 0.75rem 1rem;
+	border-radius: var(--pico-border-radius);
+	background: var(--pico-contrast-background);
+	color: var(--pico-contrast-inverse);
+}
+
+.toast.error {
+	background: var(--pico-del-color);
+	color: #fff;
+}
+
+.muted {
+	color: var(--pico-muted-color);
+}

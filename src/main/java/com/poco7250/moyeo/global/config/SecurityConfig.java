@@ -3,6 +3,7 @@ package com.poco7250.moyeo.global.config;
 import com.poco7250.moyeo.auth.security.JwtAuthenticationFilter;
 import com.poco7250.moyeo.auth.security.RestAuthenticationEntryPoint;
 import com.poco7250.moyeo.auth.token.JwtTokenProvider;
+import com.poco7250.moyeo.global.web.SpaRoutes;
 import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 /**
  * Spring Security 설정.
  * 세션 없이 HttpOnly 쿠키(access_token)의 JWT로 인증하는 SPA용 REST API 기준이다.
+ * 같은 앱이 서빙하는 정적 SPA 파일·화면 경로는 공개다({@link SpaRoutes}).
  * 공개 경로 외에는 인증이 필요하고, 미인증이면 RestAuthenticationEntryPoint가 401 JSON을 준다.
  */
 @Configuration
@@ -58,6 +60,9 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/share/meetings/*", "/share/invites/*").permitAll()
 				// 컨테이너 헬스 체크(Task 067). 리버스 프록시가 /actuator를 넘기지 않아 외부에서는 닿지 않는다
 				.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
+				// 정적 SPA 파일과 화면 경로(Task 068). HTML·JS에는 데이터가 없고, 화면 보호는 API 401로 한다
+				.requestMatchers(HttpMethod.GET, SpaRoutes.STATIC_PATHS).permitAll()
+				.requestMatchers(HttpMethod.GET, SpaRoutes.SCREEN_PATHS).permitAll()
 				// WebSocket 핸드셰이크(/ws)도 여기 걸려 access_token 쿠키 인증이 필요하다. 인증 결과가 STOMP Principal이 된다
 				.anyRequest().authenticated();
 	}
