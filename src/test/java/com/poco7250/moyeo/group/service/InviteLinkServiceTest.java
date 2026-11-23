@@ -115,6 +115,46 @@ class InviteLinkServiceTest {
 	}
 
 	@Test
+	void 현재_링크는_유효한_링크와_공유_URL을_준다() {
+		InviteLink link = InviteLink.issue(group, NEW_TOKEN, NOW.plusDays(3));
+		given(inviteLinkRepository.findAllByGroupIdAndRevokedAtIsNull(1L)).willReturn(List.of(link));
+
+		InviteLinkResponse response = inviteLinkService.getCurrent(1L, 7L);
+
+		assertThat(response.token()).isEqualTo(NEW_TOKEN);
+		assertThat(response.url()).isEqualTo("/share/invites/" + NEW_TOKEN);
+		assertThat(response.expiresAt()).isEqualTo(NOW.plusDays(3));
+	}
+
+	@Test
+	void 유효한_링크가_둘이면_가장_늦게_만료되는_링크를_준다() {
+		InviteLink earlier = InviteLink.issue(group, "e".repeat(43), NOW.plusDays(2));
+		InviteLink later = InviteLink.issue(group, "l".repeat(43), NOW.plusDays(5));
+		given(inviteLinkRepository.findAllByGroupIdAndRevokedAtIsNull(1L)).willReturn(List.of(earlier, later));
+
+		assertThat(inviteLinkService.getCurrent(1L, 7L).token()).isEqualTo("l".repeat(43));
+	}
+
+	@Test
+	void 만료된_링크만_있으면_현재_링크는_null() {
+		InviteLink expired = InviteLink.issue(group, "x".repeat(43), NOW);
+		given(inviteLinkRepository.findAllByGroupIdAndRevokedAtIsNull(1L)).willReturn(List.of(expired));
+
+		assertThat(inviteLinkService.getCurrent(1L, 7L)).isNull();
+	}
+
+	@Test
+	void 비멤버가_현재_링크를_보면_NOT_GROUP_MEMBER() {
+		willThrow(new BusinessException(ErrorCode.NOT_GROUP_MEMBER))
+				.given(groupAccessChecker).requireMember(1L, 8L);
+
+		assertThatThrownBy(() -> inviteLinkService.getCurrent(1L, 8L))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.NOT_GROUP_MEMBER);
+		verify(inviteLinkRepository, never()).findAllByGroupIdAndRevokedAtIsNull(any());
+	}
+
+	@Test
 	void 미리보기는_그룹_이름과_멤버_수와_만료_시각을_준다() {
 		ReflectionTestUtils.setField(group, "id", 1L);
 		InviteLink link = InviteLink.issue(group, NEW_TOKEN, NOW.plusDays(3));

@@ -50,6 +50,15 @@ public class GroupController {
 	}
 
 	/**
+	 * 지금 쓸 수 있는 초대 링크를 준다. 없으면 data가 null이다.
+	 */
+	@GetMapping("/{groupId}/invite-links/current")
+	public ApiResponse<InviteLinkResponse> currentInviteLink(
+			@LoginMember Long memberId, @PathVariable Long groupId) {
+		return ApiResponse.ok(inviteLinkService.getCurrent(groupId, memberId));
+	}
+
+	/**
 	 * 초대 링크를 재발급한다. 기존 링크는 폐기된다.
 	 */
 	@PostMapping("/{groupId}/invite-links")

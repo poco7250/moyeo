@@ -157,6 +157,7 @@ class AuthorizationMatrixTest {
 					"{\"tossLink\":\"https://toss.me/check\"}"),
 			endpoint(HttpMethod.DELETE, "/api/groups/{groupId}/members/me/payment", Access.MEMBER),
 			endpoint(HttpMethod.POST, "/api/groups/{groupId}/invite-links", Access.MEMBER),
+			endpoint(HttpMethod.GET, "/api/groups/{groupId}/invite-links/current", Access.MEMBER),
 			new Endpoint(HttpMethod.POST, "/api/groups/{groupId}/meetings", Access.MEMBER,
 					"{\"title\":\"점검 모임\",\"startAt\":\"2099-12-20T18:00:00\",\"template\":\"MEAL_BOWLING\"}"),
 			endpoint(HttpMethod.GET, "/api/groups/{groupId}/meetings", Access.MEMBER),
