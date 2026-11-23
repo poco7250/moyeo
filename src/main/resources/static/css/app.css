@@ -35,3 +35,47 @@ main.container {
 .muted {
 	color: var(--pico-muted-color);
 }
+
+/* 게임 실행 화면: 한 폰을 돌려 써도 보이게 크게 */
+.play h1 {
+	font-size: 2.5rem;
+	text-align: center;
+}
+
+.play-status {
+	text-align: center;
+	color: var(--pico-muted-color);
+}
+
+.play-names {
+	font-size: 1.6rem;
+	list-style: none;
+	padding: 0;
+}
+
+.play-names li {
+	padding: 0.5rem 0;
+	border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.play-lose {
+	color: var(--pico-del-color);
+	font-weight: bold;
+}
+
+.play-spin {
+	font-size: 3rem;
+	text-align: center;
+	padding: 2rem 0;
+}
+
+.play-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	justify-content: center;
+}
+
+.play-actions button {
+	font-size: 1.2rem;
+}

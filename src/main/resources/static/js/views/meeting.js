@@ -1,5 +1,5 @@
 /*
- * 모임 상세(PRD 5장 2번). 탭: 장소 / 참석 / 게임 / 정산(게임·정산은 Task 071).
+ * 모임 상세(PRD 5장 2번). 탭: 장소 / 참석 / 게임 / 정산.
  * 모임 토픽을 구독해 이벤트가 오면 지금 보이는 영역만 REST로 다시 받는다(payload는 해석하지 않음).
  */
 
@@ -10,13 +10,15 @@ import {getMe} from '../session.js';
 import {html, raw, render, showError} from '../ui.js';
 import {mountAttendanceTab} from './meeting/attendance.js';
 import {renderDateVote} from './meeting/date.js';
+import {mountGameTab} from './meeting/game.js';
 import {mountPlaceTab} from './meeting/place.js';
+import {mountSettlementTab} from './meeting/settlement.js';
 
 const TABS = {
 	place: {label: '장소', mount: mountPlaceTab},
 	attendance: {label: '참석', mount: mountAttendanceTab},
-	game: {label: '게임', mount: placeholderTab('게임 화면은 곧 열려요.')},
-	settlement: {label: '정산', mount: placeholderTab('정산 화면은 곧 열려요.')},
+	game: {label: '게임', mount: mountGameTab},
+	settlement: {label: '정산', mount: mountSettlementTab},
 };
 const MEETING_EVENTS = new Set(['DATE_VOTE_CHANGED', 'MEETING_DATE_CONFIRMED', 'MEETING_GUESTS_CHANGED',
 	'MEETING_HOST_CHANGED']);
@@ -116,16 +118,3 @@ function tabNav(meetingId, active) {
 	`);
 	return html`<nav><ul>${raw(items.join(''))}</ul></nav>`;
 }
-
-/**
- * 아직 없는 탭 자리.
- * @param {string} text 안내 문구
- * @returns {(container: HTMLElement) => {events: Set<string>, refresh: () => void}} 탭 마운트 함수
- */
-function placeholderTab(text) {
-	return (container) => {
-		container.innerHTML = html`<p class="muted">${text}</p>`;
-		return {events: new Set(), refresh: () => {}};
-	};
-}
-

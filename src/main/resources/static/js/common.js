@@ -173,3 +173,37 @@ export async function runAction(event, task) {
 		showError(error);
 	}
 }
+
+/**
+ * 모임 화면에서 쓸 회원 이름표를 만든다(그룹 멤버 + 이 모임 게스트). 정산·벌칙 응답은 id만 줘서 이걸로 이름을 찾는다.
+ * @param {{groupId: number, guests: Array<{guestId: number, name: string}>}} detail 모임 상세
+ * @returns {Promise<Map<number, {nickname: string, emoji: string|null, guest: boolean}>>} 회원 id → 표시 정보
+ */
+export async function memberDirectory(detail) {
+	const members = await api.get(`/api/groups/${detail.groupId}/members`);
+	const directory = new Map(members.map((member) => [member.memberId, {...member, guest: false}]));
+	detail.guests.forEach((guest) => directory.set(guest.guestId, {nickname: guest.name, emoji: null, guest: true}));
+	return directory;
+}
+
+/**
+ * 이름표에서 회원 이름을 찾아 표시한다(없으면 '알 수 없음').
+ * @param {Map<number, object>} directory memberDirectory 결과
+ * @param {number} memberId 회원 id
+ * @returns {string} 이스케이프된 HTML
+ */
+export function nameOf(directory, memberId) {
+	const member = directory.get(memberId);
+	return member ? memberName(member) : html`알 수 없음(#${memberId})`;
+}
+
+/**
+ * https 링크만 새 창 링크로 그린다(사용자가 넣은 링크·서버가 만든 지도 링크용). 아니면 빈 문자열.
+ * @param {string|null} url 링크
+ * @param {string} label 링크 글자
+ * @returns {string} HTML
+ */
+export function safeLink(url, label) {
+	return url && url.startsWith('https://')
+		? html`<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>` : '';
+}

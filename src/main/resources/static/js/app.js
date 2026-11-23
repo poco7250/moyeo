@@ -8,6 +8,7 @@ import {groupHomeView} from './views/groupHome.js';
 import {groupMeView} from './views/groupMe.js';
 import {groupMembersView} from './views/groupMembers.js';
 import {hallOfFameView} from './views/hallOfFame.js';
+import {gamePlayView} from './views/gamePlay.js';
 import {homeView} from './views/home.js';
 import {inviteView} from './views/invite.js';
 import {loginView} from './views/login.js';
@@ -30,6 +31,7 @@ route('/groups/:groupId/hall-of-fame', hallOfFameView);
 route('/groups/:groupId/year-review', yearReviewView);
 route('/groups/:groupId/meetings/new', meetingCreateView);
 route('/meetings/:meetingId', meetingView);
+route('/meetings/:meetingId/games/:gameId', gamePlayView);
 notFound(notFoundView);
 
 /**
