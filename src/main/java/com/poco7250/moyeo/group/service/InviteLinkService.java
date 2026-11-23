@@ -15,6 +15,7 @@ import com.poco7250.moyeo.group.repository.InviteLinkRepository;
 import com.poco7250.moyeo.group.token.InviteTokenGenerator;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,6 +63,24 @@ public class InviteLinkService {
 		inviteLinkRepository.findAllByGroupIdAndRevokedAtIsNull(groupId)
 				.forEach(link -> link.revoke(now));
 		return issue(group);
+	}
+
+	/**
+	 * 지금 쓸 수 있는 초대 링크를 준다(멤버 화면에서 다시 보여 주기용). 그룹 멤버라면 누구나 볼 수 있다.
+	 * 동시 재발급으로 유효 링크가 둘 남을 수 있어 가장 늦게 만료되는 링크를 고른다.
+	 *
+	 * @return 유효 링크, 만료·폐기돼 없으면 null
+	 * @throws BusinessException 멤버가 아니면 NOT_GROUP_MEMBER
+	 */
+	@Transactional(readOnly = true)
+	public InviteLinkResponse getCurrent(Long groupId, Long memberId) {
+		groupAccessChecker.requireMember(groupId, memberId);
+		LocalDateTime now = LocalDateTime.now(clock);
+		return inviteLinkRepository.findAllByGroupIdAndRevokedAtIsNull(groupId).stream()
+				.filter(link -> link.isUsable(now))
+				.max(Comparator.comparing(InviteLink::getExpiresAt))
+				.map(link -> InviteLinkResponse.of(link, shareLinkProperties.inviteUrl(link.getToken())))
+				.orElse(null);
 	}
 
 	/**

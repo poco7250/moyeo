@@ -144,6 +144,42 @@ class GroupControllerTest {
 				.andExpect(jsonPath("$.error.code").value(ErrorCode.NOT_GROUP_MEMBER.name()));
 	}
 
+	@Test
+	@DisplayName("현재 초대 링크를 조회하면 그 링크를 준다")
+	void currentInviteLink() throws Exception {
+		given(inviteLinkService.getCurrent(1L, 7L))
+				.willReturn(new InviteLinkResponse(TOKEN, "/invites/" + TOKEN, EXPIRES_AT));
+
+		mockMvc.perform(get("/api/groups/1/invite-links/current").cookie(accessCookie(7L)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.token").value(TOKEN))
+				.andExpect(jsonPath("$.data.url").value("/invites/" + TOKEN));
+	}
+
+	@Test
+	@DisplayName("유효한 초대 링크가 없으면 data가 null이다")
+	void noCurrentInviteLink() throws Exception {
+		given(inviteLinkService.getCurrent(1L, 7L)).willReturn(null);
+
+		mockMvc.perform(get("/api/groups/1/invite-links/current").cookie(accessCookie(7L)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data").doesNotExist());
+	}
+
+	@Test
+	@DisplayName("비멤버가 현재 초대 링크를 보면 403, 비로그인이면 401")
+	void currentInviteLinkDenied() throws Exception {
+		given(inviteLinkService.getCurrent(1L, 8L)).willThrow(new BusinessException(ErrorCode.NOT_GROUP_MEMBER));
+
+		mockMvc.perform(get("/api/groups/1/invite-links/current").cookie(accessCookie(8L)))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error.code").value(ErrorCode.NOT_GROUP_MEMBER.name()));
+		mockMvc.perform(get("/api/groups/1/invite-links/current"))
+				.andExpect(status().isUnauthorized());
+	}
+
 	private Cookie accessCookie(Long memberId) {
 		return new Cookie(TokenCookieFactory.ACCESS_TOKEN_COOKIE, jwtTokenProvider.createAccessToken(memberId));
 	}

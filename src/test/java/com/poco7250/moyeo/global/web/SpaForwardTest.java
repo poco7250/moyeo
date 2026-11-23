@@ -37,7 +37,7 @@ class SpaForwardTest {
 
 	@ParameterizedTest(name = "{0}")
 	@ValueSource(strings = {"/", "/login", "/invites/abc", "/groups/1", "/groups/1/members", "/meetings/7",
-			"/meetings/7/settlement"})
+			"/meetings/7/settlement", "/groups", "/groups/1/hall-of-fame", "/settings"})
 	@DisplayName("비로그인으로 화면 경로를 열면 index.html로 forward 된다")
 	void screenPathForwardsToIndex(String path) throws Exception {
 		mockMvc.perform(get(path))

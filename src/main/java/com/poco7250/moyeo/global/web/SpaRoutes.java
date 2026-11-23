@@ -19,6 +19,7 @@ public final class SpaRoutes {
 			"/invites/*",
 			"/groups/**",
 			"/meetings/**",
+			"/settings",
 	};
 
 	/** 정적 파일 경로(src/main/resources/static) */

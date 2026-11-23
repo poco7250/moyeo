@@ -50,6 +50,7 @@ export function raw(value) {
 
 /**
  * 메인 영역에 HTML을 그린다.
+ * 돌려받은 #app 자체에는 이벤트 리스너를 달지 않는다(화면을 바꿔도 남아 쌓인다). 안쪽 요소에 단다.
  * @param {string} content html``로 만든 HTML
  * @returns {HTMLElement} 메인 영역
  */

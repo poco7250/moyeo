@@ -1,0 +1,10 @@
+{
+	"name": "모여",
+	"short_name": "모여",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"lang": "ko",
+	"background_color": "#ffffff",
+	"theme_color": "#ffffff"
+}
