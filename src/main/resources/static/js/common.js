@@ -1,7 +1,7 @@
 /* 여러 화면이 같이 쓰는 표시·그룹 도우미 */
 
 import {api} from './api.js';
-import {html, raw, toast} from './ui.js';
+import {html, raw, showError, toast} from './ui.js';
 
 const ROLE_LABELS = {OWNER: '방장', TREASURER: '총무', MEMBER: '멤버'};
 const dateFormat = new Intl.DateTimeFormat('ko-KR', {
@@ -139,4 +139,37 @@ export function yearOptions(selected) {
 	const years = Array.from({length: YEARS_BACK}, (_, i) => String(thisYear - i));
 	return years.map((year) => html`<option value="${year}" ${raw(year === selected ? 'selected' : '')}>${year}년</option>`)
 		.join('');
+}
+
+/**
+ * 서버 LocalDateTime 문자열을 datetime-local 입력값('yyyy-MM-ddTHH:mm')으로 바꾼다.
+ * @param {string|null} value 서버 값
+ * @returns {string} 입력값(없으면 빈 문자열)
+ */
+export function toLocalInput(value) {
+	return value ? value.slice(0, 16) : '';
+}
+
+/**
+ * datetime-local 입력값을 서버 LocalDateTime 문자열로 바꾼다.
+ * @param {string} value 입력값
+ * @returns {string|null} 'yyyy-MM-ddTHH:mm:00'(비었으면 null)
+ */
+export function fromLocalInput(value) {
+	return value ? `${value}:00` : null;
+}
+
+/**
+ * 기본 동작(폼 제출 등)을 막고 작업을 돌린다. 실패하면 토스트로 보여 준다.
+ * @param {Event} event 이벤트
+ * @param {() => Promise<unknown>} task 작업
+ * @returns {Promise<void>}
+ */
+export async function runAction(event, task) {
+	event.preventDefault();
+	try {
+		await task();
+	} catch (error) {
+		showError(error);
+	}
 }

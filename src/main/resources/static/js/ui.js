@@ -74,10 +74,11 @@ export function toast(message, kind = 'info') {
 }
 
 /**
- * 에러를 토스트로 보여 준다. 서버 에러면 error.message를 쓴다.
+ * 에러를 토스트로 보여 준다. 서버 입력값 에러면 첫 필드 에러 문구를, 아니면 error.message를 쓴다.
  * @param {unknown} error 잡은 에러
  */
 export function showError(error) {
-	const message = error instanceof Error && error.message ? error.message : '알 수 없는 오류가 났어요';
+	const fieldMessage = error?.fieldErrors?.[0]?.reason;
+	const message = fieldMessage || (error instanceof Error && error.message) || '알 수 없는 오류가 났어요';
 	toast(message, 'error');
 }

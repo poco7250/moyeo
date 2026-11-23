@@ -74,6 +74,35 @@ class RoundPlaceServiceTest {
 	}
 
 	@Test
+	@DisplayName("장소 조회는 차수 상태와 후보를 id 순으로 주고 이벤트를 발행하지 않는다")
+	void getPlace() {
+		given(meetingAccessChecker.requireRoundMember(ROUND_ID, MEMBER_ID)).willReturn(round);
+		round.openVoting(DEADLINE);
+		PlaceCandidate first = PlaceServiceFixture.candidate(round, 500L, "고깃집");
+		PlaceCandidate second = PlaceServiceFixture.candidate(round, 501L, "볼링장");
+		given(placeCandidateRepository.findAllByRoundIdOrderById(ROUND_ID)).willReturn(List.of(first, second));
+
+		RoundPlaceResponse response = service.get(ROUND_ID, MEMBER_ID);
+
+		assertThat(response.placeStatus()).isEqualTo(PlaceStatus.VOTING);
+		assertThat(response.placeVoteDeadline()).isEqualTo(DEADLINE);
+		assertThat(response.candidates()).extracting("id").containsExactly(500L, 501L);
+		verifyNoInteractions(eventPublisher);
+	}
+
+	@Test
+	@DisplayName("그룹 멤버가 아니면 장소를 조회할 수 없다(403)")
+	void getPlaceByNonMember() {
+		given(meetingAccessChecker.requireRoundMember(ROUND_ID, MEMBER_ID))
+				.willThrow(new BusinessException(ErrorCode.NOT_GROUP_MEMBER));
+
+		assertThatThrownBy(() -> service.get(ROUND_ID, MEMBER_ID))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.NOT_GROUP_MEMBER);
+		verifyNoInteractions(placeCandidateRepository);
+	}
+
+	@Test
 	@DisplayName("바로 확정하면 후보 1개를 만들고 CONFIRMED로 바꾼 뒤 이벤트를 발행한다")
 	void confirmDirectly() {
 		givenHost();

@@ -347,6 +347,34 @@ class RoundPlaceControllerTest {
 		verifyNoInteractions(placeRouletteService);
 	}
 
+	@Test
+	@DisplayName("장소 조회는 상태·후보·확정 후보를 준다")
+	void getPlace() throws Exception {
+		given(roundPlaceService.get(100L, 8L)).willReturn(new RoundPlaceResponse(100L, PlaceStatus.VOTING,
+				LocalDateTime.of(2026, 12, 19, 18, 0), false, null, List.of(CANDIDATE)));
+
+		mockMvc.perform(get("/api/rounds/100/place").cookie(accessCookie(8L)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.roundId").value(100))
+				.andExpect(jsonPath("$.data.placeStatus").value("VOTING"))
+				.andExpect(jsonPath("$.data.placeVoteDeadline").value("2026-12-19T18:00:00"))
+				.andExpect(jsonPath("$.data.confirmedCandidateId").doesNotExist())
+				.andExpect(jsonPath("$.data.candidates[0].id").value(500))
+				.andExpect(jsonPath("$.data.candidates[0].mapUrl").value(CANDIDATE.mapUrl()));
+	}
+
+	@Test
+	@DisplayName("비멤버가 장소를 조회하면 403, 비로그인이면 401")
+	void getPlaceDenied() throws Exception {
+		given(roundPlaceService.get(100L, 9L)).willThrow(new BusinessException(ErrorCode.NOT_GROUP_MEMBER));
+
+		mockMvc.perform(get("/api/rounds/100/place").cookie(accessCookie(9L)))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error.code").value(ErrorCode.NOT_GROUP_MEMBER.name()));
+		mockMvc.perform(get("/api/rounds/100/place"))
+				.andExpect(status().isUnauthorized());
+	}
+
 	private static MockHttpServletRequestBuilder postJson(String url, String body) {
 		return post(url).contentType(MediaType.APPLICATION_JSON).content(body);
 	}

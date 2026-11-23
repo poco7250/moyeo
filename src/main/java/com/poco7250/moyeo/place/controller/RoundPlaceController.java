@@ -49,6 +49,11 @@ public class RoundPlaceController {
 	/**
 	 * 호스트가 투표 없이 장소를 바로 확정한다.
 	 */
+	@GetMapping("/place")
+	public ApiResponse<RoundPlaceResponse> getPlace(@LoginMember Long memberId, @PathVariable Long roundId) {
+		return ApiResponse.ok(roundPlaceService.get(roundId, memberId));
+	}
+
 	@PostMapping("/place/confirm-direct")
 	public ApiResponse<RoundPlaceResponse> confirmDirectly(@LoginMember Long memberId, @PathVariable Long roundId,
 			@Valid @RequestBody PlaceInput request) {

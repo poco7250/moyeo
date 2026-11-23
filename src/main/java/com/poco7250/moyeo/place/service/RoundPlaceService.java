@@ -32,6 +32,18 @@ public class RoundPlaceService {
 	private final MeetingPushPublisher meetingPushPublisher;
 
 	/**
+	 * 차수의 지금 장소 상태와 후보 목록을 준다(화면 첫 진입·재연결 복구용, Task 070). 그룹 멤버라면 누구나 본다.
+	 * PLACE_CHANGED 이벤트와 같은 형식이고 이벤트는 발행하지 않는다.
+	 *
+	 * @throws BusinessException 비멤버·없는 차수 NOT_GROUP_MEMBER
+	 */
+	@Transactional(readOnly = true)
+	public RoundPlaceResponse get(Long roundId, Long memberId) {
+		Round round = meetingAccessChecker.requireRoundMember(roundId, memberId);
+		return RoundPlaceResponse.of(round, placeCandidateRepository.findAllByRoundIdOrderById(round.getId()));
+	}
+
+	/**
 	 * 투표 없이 장소를 바로 확정한다. 후보 1개짜리 PlaceCandidate를 만들고 CONFIRMED로 바꾼다(PRD P-2).
 	 *
 	 * @throws BusinessException 호스트 아님 NOT_MEETING_HOST,
