@@ -1,6 +1,6 @@
 /* 장소 탭 차수 카드의 데이터 영역(확정 장소·후보·득표·호스트 결정). HTML만 만들고 이벤트는 place.js가 단다 */
 
-import {formatDate, memberName} from '../../common.js';
+import {formatDate, memberName, safeLink} from '../../common.js';
 import {html, raw} from '../../ui.js';
 
 /**
@@ -68,6 +68,5 @@ function voteOf(votes, candidateId) {
  * @returns {string} HTML
  */
 export function mapLink(url) {
-	return url && url.startsWith('https://')
-		? html`<a href="${url}" target="_blank" rel="noopener noreferrer">지도</a>` : '';
+	return safeLink(url, '지도');
 }
