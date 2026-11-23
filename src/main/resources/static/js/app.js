@@ -11,6 +11,8 @@ import {hallOfFameView} from './views/hallOfFame.js';
 import {homeView} from './views/home.js';
 import {inviteView} from './views/invite.js';
 import {loginView} from './views/login.js';
+import {meetingView} from './views/meeting.js';
+import {meetingCreateView} from './views/meetingCreate.js';
 import {notFoundView} from './views/notFound.js';
 import {settingsView} from './views/settings.js';
 import {yearReviewView} from './views/yearReview.js';
@@ -26,6 +28,8 @@ route('/groups/:groupId/me', groupMeView);
 route('/groups/:groupId/history', groupHistoryView);
 route('/groups/:groupId/hall-of-fame', hallOfFameView);
 route('/groups/:groupId/year-review', yearReviewView);
+route('/groups/:groupId/meetings/new', meetingCreateView);
+route('/meetings/:meetingId', meetingView);
 notFound(notFoundView);
 
 /**

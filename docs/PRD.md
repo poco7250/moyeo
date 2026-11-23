@@ -193,7 +193,7 @@
 |---|---|
 | P-1 | Given 검색어 "강남 볼링" / When 장소를 검색하면 / Then 서버가 매 요청마다 카카오 로컬 API를 실시간 호출해 결과 목록을 반환하고(클라이언트 응답·네트워크에 REST 키 없음), 검색 결과는 DB·캐시에 저장되지 않는다. When 검색 결과를 참고해 후보를 등록하면 / Then 후보는 사용자가 직접 입력한 이름(필수) + 주소·지도 링크(선택)로만 저장되고, `PlaceCandidate`·`Place`에는 장소 ID를 포함해 카카오 응답 값을 담는 컬럼이 없다. Given 카카오 API 실패·쿼터 초과 / When 검색하면 / Then 직접 입력 안내를 받고 같은 방식으로 후보를 등록할 수 있다. Given 직접 입력 / When `manualMapUrl`이 `http://…`·`javascript:…`이거나 2,048자를 넘으면 / Then 400과 `manualMapUrl` 필드 에러를 받고 후보는 저장되지 않는다. |
 | P-2 | Given `UNDECIDED` 차수 / When 호스트가 장소를 바로 지정하면 / Then 후보 1개짜리 `PlaceCandidate`가 생성되고 차수는 `CONFIRMED`가 된다. When 호스트가 투표를 열면 / Then 차수는 `VOTING`이 되고 마감 시각이 필수로 저장되며, 그룹 멤버 누구나 후보를 추가할 수 있다. |
-| P-3 | Given `VOTING` 차수 / When 멤버가 후보 2곳에 투표하면 / Then 두 표가 저장되고 WebSocket으로 득표 수·투표자 목록이 모든 접속자에게 갱신된다. 같은 후보에 다시 투표하면 표는 1개로 유지된다(유니크 제약). |
+| P-3 | Given `VOTING` 차수 / When 멤버가 후보 2곳에 투표하면 / Then 두 표가 저장되고 WebSocket으로 득표 수·투표자 목록이 모든 접속자에게 갱신된다. 같은 후보에 다시 투표하면 표는 1개로 유지된다(유니크 제약). Given 그룹 멤버 / When 차수 장소를 조회하면(`GET /api/rounds/{roundId}/place`) / Then 장소 상태·마감 시각·호스트 결정 필요 여부·확정 후보·후보 목록을 실시간 `PLACE_CHANGED`와 같은 형식으로 받는다(화면 첫 진입·재연결 복구, 2026-11-23). |
 | P-4 | Given 마감 시각이 지난 `VOTING` 차수, 최다 득표 후보가 1개 / When 마감 처리가 실행되면 / Then 그 후보로 `CONFIRMED` 된다. 동점이면 `VOTING`을 유지한 채 호스트에게 선택을 요청한다. 마감 처리와 호스트 수동 확정이 동시에 들어오면 하나만 반영되고 다른 요청은 충돌 응답을 받는다. |
 | P-5 | Given 1차 장소가 확정된 모임 / When 모임 링크의 OG 메타를 요청하면 / Then 미리보기 설명에 사용자가 입력한 확정 장소 label이 포함되고, 모임 상세에는 `manualMapUrl`이 있으면 그 링크, 없으면 `https://map.kakao.com/link/search/{manualAddress 또는 label}` 지도 링크가 노출된다(카카오 API 호출·저장 없음). |
 
@@ -831,6 +831,7 @@ Member(kakaoId?, guest) ─┬─< GroupMember(nickname, emoji, role: OWNER|TREA
 | 모임 게스트 (G-6 재정의, 2026-11-22) | **호스트 권한자가 이름만으로 모임에 추가(모임마다 별개, 다음 모임엔 새 게스트), 그 모임 게임 참가·벌칙 당첨만. 참석·현황판·장소·정산 분배 제외, 금액형 게스트 벌칙은 정산·확정 게이트에서 제외(앱 밖 정산), 순위 통계 제외. 저장은 카카오 id 없는 게스트 `Member` + `MeetingGuest`** | 4.1 G-6 설계 포인트·P2 수용 기준, 7장 `Member.guest`·`MeetingGuest` |
 | 회비 통장 모드(S-9)·장소 정하기 벌칙 권한(P-9) 제외 (2026-11-22) | **둘 다 하지 않는다(사용자 결정). 행동형 벌칙 "다음 모임 장소 정하기"는 안내 문구로만 남는다** | 4.3 P-9, 4.4 R-4, 4.5 S-9, 8장 |
 | 배포 방식 (오픈 이슈 1 종결, 2026-11-22 · 2026-11-23 변경) | ~~**React(Vite) 정적 SPA**~~ → **Spring 정적 리소스 바닐라 JS SPA(2026-11-23) + 같은 도메인 + VM 1대 Docker Compose(MySQL·앱·Caddy).** 프록시는 `/actuator`만 막고 전부 앱으로 보낸다(별도 프론트 빌드 결과물·`frontend-dist` 볼륨 없음). CORS 없음, 인증 쿠키 `Domain` 없이 `SameSite=Lax`, 로그인 후 리다이렉트·WebSocket 허용 오리진은 같은 출처. 단일 인스턴스 전제(인메모리 STOMP 브로커·빈도 제한·로컬 디스크 영수증). 운영 스키마는 Flyway 마이그레이션, Hibernate는 `validate`만 | 6장 플랫폼·외부 API, S-1 영수증 저장소, `docs/DEPLOY.md` |
+| 차수 장소 조회 (P-3, 2026-11-23) | **그룹 멤버는 차수의 지금 장소 상태와 후보 목록을 조회할 수 있다**(`GET /api/rounds/{roundId}/place`, 응답은 `PLACE_CHANGED`와 같은 `RoundPlaceResponse`, 이벤트 발행 없음). 지금까지는 쓰기 응답과 실시간 이벤트로만 받을 수 있어 화면 첫 진입·재연결 때 후보를 그릴 수 없었다(Task 070) | 4.3 P-3 수용 기준 |
 | 현재 초대 링크 조회 (G-1, 2026-11-23) | **그룹 멤버는 지금 쓸 수 있는 초대 링크를 다시 볼 수 있다**(`GET /api/groups/{groupId}/invite-links/current`, 없으면 `data = null`). 재발급하지 않고 화면에서 링크를 다시 보여 주려는 것이다(Task 069) | 4.1 G-1 수용 기준 |
 | 노쇼 기록·통계 (M-8, 2026-11-22) | **노쇼 = 실제 참석자 확정 때 참석 응답인데 체크인 안 한 멤버(`Attendance.noShow`), 응답이 참석으로 바뀌면 해제. 모임 단위로 세어 명예의 전당 노쇼 순위·출석부, 히스토리·결산 카드 차수별 노쇼 멤버, 연말 결산 노쇼왕(공유 문구 포함)에 반영. 새 API 없음** | 4.2 M-7·M-8 설계 포인트·P2 수용 기준, 4.6 H-1·H-2·H-4, 7장 `Attendance` |
 

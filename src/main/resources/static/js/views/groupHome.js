@@ -22,6 +22,7 @@ export async function groupHomeView({params}) {
 	render(html`
 		<h2>${group.name}</h2>
 		${raw(menu(group.id))}
+		<a href="/groups/${group.id}/meetings/new" data-link role="button">모임 만들기</a>
 		<h3>다가오는 모임</h3>
 		${raw(meetingList(meetings.upcoming, '예정된 모임이 없어요'))}
 		<h3>지난 모임</h3>
