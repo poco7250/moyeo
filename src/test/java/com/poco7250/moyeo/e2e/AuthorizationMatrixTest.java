@@ -202,6 +202,7 @@ class AuthorizationMatrixTest {
 			new Endpoint(HttpMethod.POST, "/api/rounds/{roundId}/candidates", Access.MEMBER, "{\"label\":\"볼링장\"}"),
 			endpoint(HttpMethod.PUT, "/api/rounds/{roundId}/candidates/{candidateId}/vote", Access.MEMBER),
 			endpoint(HttpMethod.DELETE, "/api/rounds/{roundId}/candidates/{candidateId}/vote", Access.MEMBER),
+			endpoint(HttpMethod.DELETE, "/api/rounds/{roundId}/candidates/{candidateId}", Access.HOST),
 			endpoint(HttpMethod.GET, "/api/rounds/{roundId}/votes", Access.MEMBER),
 			new Endpoint(HttpMethod.POST, "/api/rounds/{roundId}/place/confirm-direct", Access.HOST,
 					"{\"label\":\"고깃집\"}"),

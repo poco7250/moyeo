@@ -117,4 +117,25 @@ class RoundPlaceServiceIntegrationTest {
 				.containsExactly(confirmed.confirmedCandidateId());
 		assertThat(placeVoteRepository.count()).isZero();
 	}
+
+	@Test
+	void 호스트가_후보를_지우면_그_후보의_표도_지워지고_다른_후보는_남는다() {
+		roundPlaceService.openVoting(round.getId(), host.getId(), DEADLINE);
+		CandidateResponse kept = placeCandidateService.add(round.getId(), member.getId(),
+				new PlaceInput("강남 볼링", null, null));
+		CandidateResponse wrong = placeCandidateService.add(round.getId(), member.getId(),
+				new PlaceInput("잘못 넣은 곳", null, null));
+		placeVoteRepository.save(PlaceVote.cast(placeCandidateRepository.getReferenceById(wrong.id()), member));
+		placeVoteRepository.save(PlaceVote.cast(placeCandidateRepository.getReferenceById(kept.id()), host));
+
+		RoundPlaceResponse response = placeCandidateService.delete(round.getId(), host.getId(), wrong.id());
+
+		assertThat(response.candidates()).extracting(CandidateResponse::id).containsExactly(kept.id());
+		assertThat(placeCandidateRepository.findById(wrong.id())).isEmpty();
+		assertThat(placeVoteRepository.findAllByRoundId(round.getId()))
+				.singleElement().satisfies(v -> assertThat(v.getCandidate().getId()).isEqualTo(kept.id()));
+		assertThatThrownBy(() -> placeCandidateService.delete(round.getId(), member.getId(), kept.id()))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.NOT_MEETING_HOST);
+	}
 }

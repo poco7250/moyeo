@@ -1,5 +1,6 @@
 package com.poco7250.moyeo.place.service;
 
+import static com.poco7250.moyeo.place.service.PlaceServiceFixture.HOST_ID;
 import static com.poco7250.moyeo.place.service.PlaceServiceFixture.MEETING_ID;
 import static com.poco7250.moyeo.place.service.PlaceServiceFixture.MEMBER_ID;
 import static com.poco7250.moyeo.place.service.PlaceServiceFixture.ROUND_ID;
@@ -20,10 +21,16 @@ import com.poco7250.moyeo.member.repository.MemberRepository;
 import com.poco7250.moyeo.place.domain.PlaceCandidate;
 import com.poco7250.moyeo.place.dto.CandidateResponse;
 import com.poco7250.moyeo.place.dto.PlaceInput;
+import com.poco7250.moyeo.place.dto.RoundPlaceResponse;
 import com.poco7250.moyeo.place.repository.PlaceCandidateRepository;
+import com.poco7250.moyeo.place.repository.PlaceRouletteRepository;
+import com.poco7250.moyeo.place.repository.PlaceVoteRepository;
 import com.poco7250.moyeo.support.TestClocks;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,7 +54,16 @@ class PlaceCandidateServiceTest {
 	PlaceCandidateRepository placeCandidateRepository;
 
 	@Mock
+	PlaceVoteRepository placeVoteRepository;
+
+	@Mock
+	PlaceRouletteRepository placeRouletteRepository;
+
+	@Mock
 	MemberRepository memberRepository;
+
+	@Mock
+	EntityManager entityManager;
 
 	@Mock
 	ApplicationEventPublisher eventPublisher;
@@ -57,8 +73,9 @@ class PlaceCandidateServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		service = new PlaceCandidateService(meetingAccessChecker, placeCandidateRepository, memberRepository,
-				new RoundPlaceSnapshot(placeCandidateRepository, eventPublisher), TestClocks.fixed(DEADLINE));
+		service = new PlaceCandidateService(meetingAccessChecker, placeCandidateRepository, placeVoteRepository,
+				placeRouletteRepository, memberRepository, new RoundPlaceSnapshot(placeCandidateRepository, eventPublisher),
+				entityManager, TestClocks.fixed(DEADLINE));
 		round = PlaceServiceFixture.round();
 	}
 
@@ -133,6 +150,87 @@ class PlaceCandidateServiceTest {
 				.isInstanceOf(BusinessException.class)
 				.extracting("errorCode").isEqualTo(ErrorCode.NOT_GROUP_MEMBER);
 		verifyNoInteractions(placeCandidateRepository, eventPublisher);
+	}
+
+	@Test
+	@DisplayName("호스트가 투표 중인 차수의 후보를 지우면 표·후보를 지우고 차수 version을 올린 뒤 PLACE_CHANGED를 발행한다")
+	void delete() {
+		givenHost();
+		round.openVoting(DEADLINE);
+		PlaceCandidate target = PlaceServiceFixture.candidate(round, 501L, "잘못 넣은 곳");
+		given(placeCandidateRepository.findByIdAndRoundId(501L, ROUND_ID)).willReturn(Optional.of(target));
+		given(placeCandidateRepository.findAllByRoundIdOrderById(ROUND_ID))
+				.willReturn(List.of(PlaceServiceFixture.candidate(round, 500L, "강남 볼링")));
+
+		RoundPlaceResponse response = service.delete(ROUND_ID, HOST_ID, 501L);
+
+		verify(entityManager).lock(round, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
+		verify(placeVoteRepository).deleteAllByCandidateId(501L);
+		verify(placeCandidateRepository).delete(target);
+		assertThat(response.candidates()).extracting(CandidateResponse::id).containsExactly(500L);
+		ArgumentCaptor<PlaceChangedEvent> event = ArgumentCaptor.forClass(PlaceChangedEvent.class);
+		verify(eventPublisher).publishEvent(event.capture());
+		assertThat(event.getValue().data().candidates()).extracting(CandidateResponse::id).containsExactly(500L);
+	}
+
+	@Test
+	@DisplayName("마감이 지나 호스트 선택을 기다리는 차수에서도 후보를 지울 수 있다")
+	void deleteAfterDeadline() {
+		givenHost();
+		round.openVoting(DEADLINE.minusSeconds(1));
+		PlaceCandidate target = PlaceServiceFixture.candidate(round, 501L, "잘못 넣은 곳");
+		given(placeCandidateRepository.findByIdAndRoundId(501L, ROUND_ID)).willReturn(Optional.of(target));
+
+		service.delete(ROUND_ID, HOST_ID, 501L);
+
+		verify(placeCandidateRepository).delete(target);
+	}
+
+	@Test
+	@DisplayName("투표 중이 아닌 차수의 후보는 지울 수 없다(409, 삭제 없음)")
+	void deleteNotVoting() {
+		givenHost();
+		round.confirmDirectly(PlaceServiceFixture.candidate(round, 501L, "고깃집"));
+
+		assertDeleteFails(501L, ErrorCode.ROUND_PLACE_INVALID_TRANSITION);
+	}
+
+	@Test
+	@DisplayName("이 차수의 후보가 아니면 404, 룰렛 기록에 남은 후보면 409(둘 다 삭제 없음)")
+	void deleteMissingOrInRoulette() {
+		givenHost();
+		round.openVoting(DEADLINE);
+		given(placeCandidateRepository.findByIdAndRoundId(999L, ROUND_ID)).willReturn(Optional.empty());
+		given(placeCandidateRepository.findByIdAndRoundId(501L, ROUND_ID))
+				.willReturn(Optional.of(PlaceServiceFixture.candidate(round, 501L, "고깃집")));
+		given(placeRouletteRepository.existsByCandidateId(501L)).willReturn(true);
+
+		assertDeleteFails(999L, ErrorCode.PLACE_CANDIDATE_NOT_FOUND);
+		assertDeleteFails(501L, ErrorCode.PLACE_CANDIDATE_IN_ROULETTE);
+	}
+
+	@Test
+	@DisplayName("호스트가 아니면 후보를 지울 수 없다(403, 삭제 없음)")
+	void deleteByNonHost() {
+		given(meetingAccessChecker.requireRoundHost(ROUND_ID, MEMBER_ID))
+				.willThrow(new BusinessException(ErrorCode.NOT_MEETING_HOST));
+
+		assertThatThrownBy(() -> service.delete(ROUND_ID, MEMBER_ID, 501L))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(ErrorCode.NOT_MEETING_HOST);
+		verifyNoInteractions(placeCandidateRepository, placeVoteRepository, entityManager, eventPublisher);
+	}
+
+	private void givenHost() {
+		given(meetingAccessChecker.requireRoundHost(ROUND_ID, HOST_ID)).willReturn(round);
+	}
+
+	private void assertDeleteFails(Long candidateId, ErrorCode errorCode) {
+		assertThatThrownBy(() -> service.delete(ROUND_ID, HOST_ID, candidateId))
+				.isInstanceOf(BusinessException.class)
+				.extracting("errorCode").isEqualTo(errorCode);
+		verify(placeCandidateRepository, never()).delete(any());
+		verifyNoInteractions(placeVoteRepository, entityManager, eventPublisher);
 	}
 
 	private void assertInvalidTransitionWithoutSave() {

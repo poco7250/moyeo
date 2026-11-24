@@ -80,7 +80,7 @@ async function refreshRound(tab, state, roundId) {
 }
 
 /**
- * 데이터 영역의 버튼(투표·취소·호스트 확정·룰렛)을 처리한다.
+ * 데이터 영역의 버튼(투표·취소·호스트 확정·룰렛·후보 삭제)을 처리한다.
  * @param {HTMLElement} area 데이터 영역 안쪽 요소
  * @param {number} roundId 차수 id
  * @param {() => Promise<void>} reload 다시 그리기
@@ -92,9 +92,12 @@ function bindRoundData(area, roundId, reload) {
 		if (!button) {
 			return;
 		}
-		const {act, candidate} = button.dataset;
+		const {act, candidate, label} = button.dataset;
 		runAction(event, async () => {
-			if (act === 'vote' || act === 'unvote') {
+			if (act === 'delete' && window.confirm(`'${label}' 후보를 지울까요? 이 후보에 들어간 표도 같이 지워져요.`)) {
+				await api.delete(`${base}/candidates/${candidate}`);
+				toast('후보를 지웠어요');
+			} else if (act === 'vote' || act === 'unvote') {
 				await api[act === 'vote' ? 'put' : 'delete'](`${base}/candidates/${candidate}/vote`);
 			} else if (act === 'confirm' && window.confirm('이 후보로 확정할까요?')) {
 				await api.post(`${base}/place/confirm`, {candidateId: Number(candidate)});

@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,6 +45,15 @@ public class RoundPlaceController {
 	public ApiResponse<CandidateResponse> addCandidate(@LoginMember Long memberId, @PathVariable Long roundId,
 			@Valid @RequestBody PlaceInput request) {
 		return ApiResponse.ok(placeCandidateService.add(roundId, memberId, request));
+	}
+
+	/**
+	 * 호스트가 투표 중인 차수의 후보를 그 후보에 달린 표와 함께 지운다.
+	 */
+	@DeleteMapping("/candidates/{candidateId}")
+	public ApiResponse<RoundPlaceResponse> deleteCandidate(@LoginMember Long memberId, @PathVariable Long roundId,
+			@PathVariable Long candidateId) {
+		return ApiResponse.ok(placeCandidateService.delete(roundId, memberId, candidateId));
 	}
 
 	/**
