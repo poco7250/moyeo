@@ -33,7 +33,8 @@ export function roundData(place, votes, ctx) {
 }
 
 /**
- * 후보 한 줄: 이름·주소·지도 링크, 득표 막대·투표한 사람, 내 투표 버튼, 호스트 결정 대기면 확정 버튼.
+ * 후보 한 줄: 이름·주소·지도 링크, 득표 막대·투표한 사람, 내 투표 버튼, 호스트 결정 대기면 확정 버튼,
+ * 투표 중이면 호스트에게 삭제 버튼.
  * @param {{id: number, label: string, manualAddress: string|null, mapUrl: string}} candidate 후보
  * @param {{voteCount: number, voters: Array}|null} vote 이 후보 득표
  * @param {{placeStatus: string, hostDecisionRequired: boolean}} place 차수 장소 상태
@@ -49,6 +50,9 @@ function candidateRow(candidate, vote, place, ctx, maxVotes) {
 	const confirmButton = place.hostDecisionRequired && ctx.detail.hostAuthority
 		? html`<button type="button" class="small secondary" data-act="confirm" data-candidate="${candidate.id}">이걸로 확정</button>`
 		: '';
+	const deleteButton = place.placeStatus === 'VOTING' && ctx.detail.hostAuthority
+		? html`<button type="button" class="small secondary danger-text" data-act="delete" data-candidate="${candidate.id}" data-label="${candidate.label}">삭제</button>`
+		: '';
 	const voteInfo = vote ? html`<div class="vote-bar"><i style="width:${Math.round((vote.voteCount / maxVotes) * 100)}%"></i></div>
 		<span class="row-sub">${vote.voteCount}표 ${raw(vote.voters.map(memberName).join(', '))}</span>` : '';
 	return html`<li><div class="list-row">
@@ -57,7 +61,7 @@ function candidateRow(candidate, vote, place, ctx, maxVotes) {
 			${raw(candidate.manualAddress ? html`<span class="row-sub">${candidate.manualAddress}</span>` : '')}
 			${raw(voteInfo)}
 		</span>
-		${raw(voteButton)}${raw(confirmButton)}
+		${raw(voteButton)}${raw(confirmButton)}${raw(deleteButton)}
 	</div></li>`;
 }
 

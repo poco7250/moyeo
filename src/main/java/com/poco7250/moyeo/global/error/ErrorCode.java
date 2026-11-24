@@ -90,6 +90,7 @@ public enum ErrorCode {
 	// 차수가 아직 VOTING이어도 마감 시각이 지나면 표를 바꿀 수 없다(동점이면 호스트 선택을 기다리는 중일 수 있음)
 	PLACE_VOTE_DEADLINE_PASSED(HttpStatus.CONFLICT, "투표가 마감되었습니다."),
 	PLACE_CANDIDATE_NOT_FOUND(HttpStatus.NOT_FOUND, "장소 후보를 찾을 수 없습니다."),
+	PLACE_CANDIDATE_IN_ROULETTE(HttpStatus.CONFLICT, "룰렛 기록에 남은 후보라 지울 수 없습니다."),
 	// 장소 동점 룰렛(P-6)은 대상 후보가 2개 이상일 때만 돌릴 수 있다
 	PLACE_ROULETTE_NOT_ENOUGH_CANDIDATES(HttpStatus.CONFLICT, "룰렛을 돌릴 동점 후보가 2개 이상이어야 합니다."),
 	// 그룹 단골 장소(P-8): label·주소·지도 링크가 모두 같은 장소는 한 번만 저장한다

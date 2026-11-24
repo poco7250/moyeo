@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -372,6 +373,36 @@ class RoundPlaceControllerTest {
 				.andExpect(status().isForbidden())
 				.andExpect(jsonPath("$.error.code").value(ErrorCode.NOT_GROUP_MEMBER.name()));
 		mockMvc.perform(get("/api/rounds/100/place"))
+				.andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	@DisplayName("호스트가 후보를 지우면 200과 남은 후보 목록을 준다")
+	void deleteCandidate() throws Exception {
+		given(placeCandidateService.delete(100L, 7L, 501L)).willReturn(new RoundPlaceResponse(100L, PlaceStatus.VOTING,
+				LocalDateTime.of(2026, 12, 19, 18, 0), false, null, List.of(CANDIDATE)));
+
+		mockMvc.perform(delete(CANDIDATES_URL + "/501").cookie(accessCookie(7L)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.placeStatus").value("VOTING"))
+				.andExpect(jsonPath("$.data.candidates.length()").value(1))
+				.andExpect(jsonPath("$.data.candidates[0].id").value(500));
+	}
+
+	@Test
+	@DisplayName("후보 삭제: 호스트 아님 403, 룰렛 기록 후보 409, 비로그인 401")
+	void deleteCandidateDenied() throws Exception {
+		given(placeCandidateService.delete(100L, 8L, 501L)).willThrow(new BusinessException(ErrorCode.NOT_MEETING_HOST));
+		given(placeCandidateService.delete(100L, 7L, 502L))
+				.willThrow(new BusinessException(ErrorCode.PLACE_CANDIDATE_IN_ROULETTE));
+
+		mockMvc.perform(delete(CANDIDATES_URL + "/501").cookie(accessCookie(8L)))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.error.code").value(ErrorCode.NOT_MEETING_HOST.name()));
+		mockMvc.perform(delete(CANDIDATES_URL + "/502").cookie(accessCookie(7L)))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.error.code").value(ErrorCode.PLACE_CANDIDATE_IN_ROULETTE.name()));
+		mockMvc.perform(delete(CANDIDATES_URL + "/501"))
 				.andExpect(status().isUnauthorized());
 	}
 

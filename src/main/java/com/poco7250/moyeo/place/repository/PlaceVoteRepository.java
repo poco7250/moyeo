@@ -42,4 +42,10 @@ public interface PlaceVoteRepository extends JpaRepository<PlaceVote, Long> {
 	@Query("delete from PlaceVote v where v.candidate.id in "
 			+ "(select c.id from PlaceCandidate c where c.round.id = :roundId)")
 	int deleteAllByRoundId(@Param("roundId") Long roundId);
+
+	/**
+	 * 후보에 달린 표를 지운다(후보 삭제 시). 벌크 delete와 달리 표를 엔티티로 읽어 지우므로
+	 * 영속성 컨텍스트에 남은 표가 지운 후보를 가리키는 일이 없다(후보당 표는 멤버 수만큼이라 적다).
+	 */
+	void deleteAllByCandidateId(Long candidateId);
 }

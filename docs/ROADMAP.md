@@ -2030,6 +2030,20 @@ Phase 14 067 → 068(정적 SPA 서빙) → 069(로그인·그룹) → 070(모�
   - [x] 가짜 API 미리보기 서버 + 헤드리스 크롬(390px)으로 홈·그룹 홈·멤버·설정·모임(장소·참석·게임·정산 탭 포함)·비로그인 소개·초대 화면 캡처 확인
   - [ ] 실제 로그인 상태로 전 화면 브라우저 수동 확인(사용자) — 특히 날짜 투표·게임 실행 화면·정산 이력은 캡처 안 함
 
+### Task 073: 장소 후보 삭제(호스트) · 후보 폼 상태별 표시   ✅ 완료 (브라우저 수동 확인 대기)
+
+- **완료일:** 2026-11-24 · 브랜치 `feature/place-candidate-form-fix`(폼 표시) → `feature/place-candidate-delete`(삭제)
+- **배경:** 사용자 제보(2026-11-24). 장소 미정 차수에서 "후보 추가"를 누르면 서버가 409 `ROUND_PLACE_INVALID_TRANSITION`으로 거절했다 — 화면은 확정 전이면 늘 후보 폼을 보였지만 서버(P-2)는 투표 중에만 받는다. 이어서 잘못 올린 후보를 지울 방법이 없다는 요청으로 호스트 전용 후보 삭제를 추가했다(PRD P-2 보완)
+- **결정(2026-11-24, 사용자):** 삭제는 호스트 권한(`requireRoundHost`, 방장 포함)만, `VOTING`이면 마감 뒤 호스트 선택 대기 중에도 가능. 동점 룰렛 기록(`PlaceRoulette` 대상·당첨)에 들어간 후보는 기록 보존을 위해 409 `PLACE_CANDIDATE_IN_ROULETTE`(소프트 삭제·마이그레이션 없음)
+- **구현 사항**
+  - [x] 화면 후보 폼(`views/meeting/place.js`): 투표 중(마감 전)엔 후보 추가, 미정+호스트엔 바로 확정·투표 열기, 미정+멤버엔 안내 문구, 마감 뒤엔 안내 문구. 보고 있는 중에 마감되면 마감 시각에 차수를 다시 받아 폼을 숨긴다(차수당 타이머 하나)
+  - [x] `PlaceCandidateService.delete` + `DELETE /api/rounds/{roundId}/candidates/{candidateId}`(200 `RoundPlaceResponse`, `PLACE_CHANGED` 발행). 후보의 표는 엔티티로 읽어 지운다(`PlaceVoteRepository.deleteAllByCandidateId`, 벌크 delete면 영속성 컨텍스트의 표가 지운 후보를 가리켜 flush 실패). `Round`를 `OPTIMISTIC_FORCE_INCREMENT`로 잠가 같은 차수의 수동 확정·마감 처리·룰렛과 겹치면 늦은 쪽이 409. 삭제 중 들어온 투표는 FK 위반 → 기존 재시도에서 404 `PLACE_CANDIDATE_NOT_FOUND`
+  - [x] `PlaceRouletteRepository.existsByCandidateId`(당첨 또는 `member of candidateIds`), `ErrorCode.PLACE_CANDIDATE_IN_ROULETTE`
+  - [x] 화면: 투표 중 후보 줄에 호스트만 "삭제" 버튼(확인 창에서 표도 지워진다고 안내)
+- **테스트**
+  - [x] `PlaceCandidateServiceTest`(삭제 성공·마감 뒤 삭제·미투표 409·없는 후보 404·룰렛 후보 409·비호스트 403), `RoundPlaceControllerTest`(200·403·409·401), `RoundPlaceServiceIntegrationTest`(후보·표 삭제, 다른 후보와 표는 남음), `PlaceRouletteIntegrationTest`(재투표 뒤 룰렛 기록 후보 삭제 409), `AuthorizationMatrixTest`에 새 엔드포인트(HOST) 등록
+  - [ ] 브라우저 수동 확인(사용자): 미정·투표 중·마감 뒤 폼 표시, 호스트 삭제 버튼·다른 창 실시간 반영
+
 ---
 
 ## 기능 ID 매핑
@@ -2051,7 +2065,7 @@ Phase 14 067 → 068(정적 SPA 서빙) → 069(로그인·그룹) → 070(모�
 | M-7 | P1 | 046 |
 | M-8 | P2 | 066 ✅ |
 | P-1 | P0 | 014, 015, 016 |
-| P-2 | P0 | 014, 016 |
+| P-2 | P0 | 014, 016, 073 |
 | P-3 | P0 | 010, 017 |
 | P-4 | P0 | 018 |
 | P-5 | P0 | 014, 019 |

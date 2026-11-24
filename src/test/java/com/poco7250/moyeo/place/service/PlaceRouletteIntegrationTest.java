@@ -71,6 +71,9 @@ class PlaceRouletteIntegrationTest {
 	RoundPlaceService roundPlaceService;
 
 	@Autowired
+	PlaceCandidateService placeCandidateService;
+
+	@Autowired
 	MemberRepository memberRepository;
 
 	@Autowired
@@ -167,6 +170,19 @@ class PlaceRouletteIntegrationTest {
 		verify(messagingTemplate).convertAndSend(eq(topic),
 				eq(new RealtimeMessage(PlaceRouletteSpunEvent.TYPE, roulette)));
 		verify(messagingTemplate, times(2)).convertAndSend(anyString(), any(Object.class));
+	}
+
+	@Test
+	void 재투표_뒤에도_룰렛_기록에_남은_후보는_지울_수_없다() {
+		placeRouletteService.spin(round.getId(), host.getId());
+		roundPlaceService.openVoting(round.getId(), host.getId(), FUTURE_DEADLINE);
+
+		for (PlaceCandidate candidate : List.of(first, second)) {
+			assertThatThrownBy(() -> placeCandidateService.delete(round.getId(), host.getId(), candidate.getId()))
+					.isInstanceOf(BusinessException.class)
+					.extracting("errorCode").isEqualTo(ErrorCode.PLACE_CANDIDATE_IN_ROULETTE);
+		}
+		assertThat(placeCandidateRepository.findAllByRoundIdOrderById(round.getId())).hasSize(2);
 	}
 
 	@Test
