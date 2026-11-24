@@ -1,7 +1,7 @@
 /* 여러 화면이 같이 쓰는 표시·그룹 도우미 */
 
 import {api} from './api.js';
-import {html, raw, showError, toast} from './ui.js';
+import {html, icon, raw, showError, toast} from './ui.js';
 
 const ROLE_LABELS = {OWNER: '방장', TREASURER: '총무', MEMBER: '멤버'};
 const dateFormat = new Intl.DateTimeFormat('ko-KR', {
@@ -9,6 +9,7 @@ const dateFormat = new Intl.DateTimeFormat('ko-KR', {
 });
 const wonFormat = new Intl.NumberFormat('ko-KR');
 const YEARS_BACK = 5;
+const TONE_COUNT = 6;
 
 /**
  * 서버 LocalDateTime 문자열을 "11월 23일 (일) 오후 07:00" 꼴로 바꾼다.
@@ -47,6 +48,19 @@ export function memberName(member) {
 }
 
 /**
+ * 멤버들을 이름 칩 묶음으로 그린다.
+ * @param {Array<{nickname: string, emoji?: string|null, guest?: boolean}>} members 멤버
+ * @param {string} emptyText 비었을 때 글자
+ * @returns {string} HTML
+ */
+export function peopleChips(members, emptyText = '없음') {
+	if (members.length === 0) {
+		return html`<span class="muted">${emptyText}</span>`;
+	}
+	return members.map((member) => html`<span class="chip">${raw(memberName(member))}</span>`).join(' ');
+}
+
+/**
  * 글자를 클립보드에 복사한다. 막힌 환경(인앱 브라우저 등)이면 직접 복사하도록 띄운다.
  * @param {string} text 복사할 글자
  * @returns {Promise<void>}
@@ -71,16 +85,43 @@ export async function findGroup(groupId) {
 }
 
 /**
- * 그룹 하위 화면 위에 그룹 이름과 그룹 홈 링크를 그린다.
+ * 그룹 하위 화면 위에 그룹 홈으로 가는 뒤로 가기 링크와 화면 제목을 그린다.
  * @param {{id: number, name: string}} group 그룹
  * @param {string} title 화면 제목
  * @returns {string} HTML
  */
 export function groupHeader(group, title) {
 	return html`
-		<p><a href="/groups/${group.id}" data-link>← ${group.name}</a></p>
+		${raw(backLink(`/groups/${group.id}`, group.name))}
 		<h2>${title}</h2>
 	`;
+}
+
+/**
+ * 화면 맨 위 뒤로 가기 링크.
+ * @param {string} href 돌아갈 경로
+ * @param {string} label 링크 글자
+ * @returns {string} HTML
+ */
+export function backLink(href, label) {
+	return html`<a href="${href}" data-link class="back-link">${icon('back', 18)}${label}</a>`;
+}
+
+/**
+ * 이름 첫 글자(또는 이모지)를 담은 색 썸네일. 같은 seed면 늘 같은 색이다.
+ * @param {string} label 이름
+ * @param {number|string} seed 색을 고를 값(보통 id)
+ * @param {{emoji?: string|null, image?: string|null, small?: boolean}} options https 사진이 있으면 사진을,
+ *   이모지가 있으면 글자 대신 이모지를 쓴다. small이면 동그란 작은 크기
+ * @returns {string} HTML
+ */
+export function thumb(label, seed, {emoji = null, image = null, small = false} = {}) {
+	if (image && image.startsWith('https://')) {
+		return html`<img class="thumb ${small ? 'sm' : ''}" src="${image}" alt="" referrerpolicy="no-referrer">`;
+	}
+	const tone = Math.abs(Number.parseInt(String(seed), 10) || String(seed).length) % TONE_COUNT;
+	const text = emoji || Array.from(String(label ?? '?').trim())[0] || '?';
+	return html`<span class="thumb tone-${tone} ${small ? 'sm' : ''}" aria-hidden="true">${text}</span>`;
 }
 
 /**
@@ -89,9 +130,11 @@ export function groupHeader(group, title) {
  */
 export function notMemberNotice() {
 	return html`
-		<h2>그룹을 볼 수 없어요</h2>
-		<p>이 그룹의 멤버가 아니에요. 초대 링크로 먼저 참여해 주세요.</p>
-		<a href="/" data-link>홈으로</a>
+		<div class="empty">
+			<h2>그룹을 볼 수 없어요</h2>
+			<p>이 그룹의 멤버가 아니에요. 초대 링크로 먼저 참여해 주세요.</p>
+			<a href="/" data-link role="button">홈으로</a>
+		</div>
 	`;
 }
 
@@ -122,10 +165,14 @@ export function absoluteUrl(url) {
  */
 export function rankSection(title, rows, describe) {
 	const body = rows.length === 0
-		? html`<p class="muted">기록이 없어요</p>`
-		: html`<table><tbody>${raw(rows.map((row) => html`
-			<tr><td>${row.rank}위</td><td>${raw(memberName(row.member))}</td><td>${describe(row)}</td></tr>
-		`).join(''))}</tbody></table>`;
+		? html`<p class="empty">기록이 없어요</p>`
+		: html`<ul class="list">${raw(rows.map((row) => html`
+			<li><div class="list-row">
+				<span class="rank-no">${row.rank}</span>
+				<span class="row-body"><span class="row-title">${raw(memberName(row.member))}</span></span>
+				<span class="chip">${describe(row)}</span>
+			</div></li>
+		`).join(''))}</ul>`;
 	return html`<h3>${title}</h3>${raw(body)}`;
 }
 

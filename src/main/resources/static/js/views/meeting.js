@@ -4,7 +4,7 @@
  */
 
 import {ApiError, api} from '../api.js';
-import {absoluteUrl, copyText, formatDate, notMemberNotice} from '../common.js';
+import {absoluteUrl, backLink, copyText, formatDate, notMemberNotice} from '../common.js';
 import {subscribe} from '../realtime.js';
 import {getMe} from '../session.js';
 import {html, raw, render, showError} from '../ui.js';
@@ -93,13 +93,16 @@ async function renderMeetingLevel(ctx) {
 	const {detail} = ctx;
 	const info = ctx.root.querySelector('#meeting-info');
 	info.innerHTML = html`
-		<p><a href="/groups/${detail.groupId}" data-link>← 그룹으로</a></p>
+		${raw(backLink(`/groups/${detail.groupId}`, '그룹으로'))}
 		<h2>${detail.title}</h2>
-		<p>${detail.dateStatus === 'VOTING' ? '날짜 투표 중' : formatDate(detail.startAt)}
-			${raw(detail.host ? html`<mark>내가 호스트</mark>` : '')}</p>
+		<p class="meeting-when">
+			${raw(detail.dateStatus === 'VOTING' ? html`<span class="chip primary">날짜 투표 중</span>` : html`📅 ${formatDate(detail.startAt)}`)}
+			${raw(detail.host ? html`<span class="chip primary">내가 호스트</span>` : '')}</p>
 		${raw(detail.memo ? html`<p class="muted">${detail.memo}</p>` : '')}
-		<button type="button" class="secondary" data-copy="share">공유 문구 복사</button>
-		<button type="button" class="secondary outline" data-copy="url">링크 복사</button>
+		<div class="button-row">
+			<button type="button" class="secondary" data-copy="share">공유 문구 복사</button>
+			<button type="button" class="secondary" data-copy="url">링크 복사</button>
+		</div>
 	`;
 	info.querySelector('[data-copy="share"]').addEventListener('click', () => copyText(detail.shareText));
 	info.querySelector('[data-copy="url"]').addEventListener('click', () => copyText(absoluteUrl(detail.url)));
@@ -116,5 +119,5 @@ function tabNav(meetingId, active) {
 	const items = Object.entries(TABS).map(([key, {label}]) => html`
 		<li><a href="/meetings/${meetingId}?tab=${key}" data-link ${raw(key === active ? 'aria-current="page"' : '')}>${label}</a></li>
 	`);
-	return html`<nav><ul>${raw(items.join(''))}</ul></nav>`;
+	return html`<nav class="tabs"><ul>${raw(items.join(''))}</ul></nav>`;
 }

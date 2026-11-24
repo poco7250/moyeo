@@ -19,7 +19,7 @@ export function renderPenalties(box, state) {
 		box.innerHTML = '';
 		return;
 	}
-	box.innerHTML = html`<div class="penalty-area"><h3>벌칙 금액</h3>
+	box.innerHTML = html`<div class="penalty-area"><h3 class="band">벌칙 금액</h3>
 		${raw(games.map((penalties) => penaltyCard(penalties, state)).join(''))}</div>`;
 	const area = box.querySelector('.penalty-area');
 	area.addEventListener('submit', (event) => runAction(event, async () => {
@@ -49,12 +49,14 @@ function groupByGame(penalties) {
  */
 function penaltyCard(penalties, state) {
 	const [first] = penalties;
-	const people = penalties.map((p) => `${nameOf(state.directory, p.memberId)}${p.chargeAmount != null ? ` ${formatWon(p.chargeAmount)}` : ''}`);
+	const people = penalties.map((p) => html`<span class="chip danger">${raw(nameOf(state.directory, p.memberId))}${p.chargeAmount != null ? ` ${formatWon(p.chargeAmount)}` : ''}</span>`);
 	const editable = state.ctx.detail.settlementAuthority;
+	const tone = {APPLIED: 'success', ASSIGNED: 'warn'}[first.status] ?? '';
 	return html`<article>
-		<header>${first.game.roundName} · ${GAME_TYPES[first.game.type]} — ${PENALTY_STATUS[first.status] ?? first.status}</header>
-		<p>벌칙자: ${raw(people.join(', '))}</p>
-		${raw(first.rule ? html`<p><small>${ruleText(first.rule)}</small></p>` : '')}
+		<div class="card-head"><h4>🎯 ${first.game.roundName} · ${GAME_TYPES[first.game.type]}</h4>
+			<span class="chip ${tone}">${PENALTY_STATUS[first.status] ?? first.status}</span></div>
+		<div class="people-line"><small>벌칙자</small><div>${raw(people.join(' '))}</div></div>
+		${raw(first.rule ? html`<p class="muted"><small>${ruleText(first.rule)}</small></p>` : '')}
 		${raw(editable ? ruleForm(first, state.expenses, state.ctx.detail.rounds) : '')}
 	</article>`;
 }
@@ -84,15 +86,17 @@ function ruleForm(penalty, expenses, rounds) {
 		${roundName(e.roundId)} ${e.memo ?? '지출'} ${formatWon(e.amount)}</option>`);
 	const gameId = penalty.game.gameId;
 	if (penalty.status === 'WAIVED') {
-		return html`<button type="button" class="outline" data-act="unwaive" data-game="${gameId}">면제 취소</button>`;
+		return html`<button type="button" class="secondary block-button" data-act="unwaive" data-game="${gameId}">면제 취소</button>`;
 	}
 	return html`<form data-game="${gameId}" class="rule-form">
 		<select name="moneyType"><option value="RATIO">비율</option><option value="FULL">전액</option><option value="FIXED_AMOUNT">고정 금액</option></select>
 		<input name="value" type="number" min="1" placeholder="비율(%) 또는 금액(원)">
 		<select name="targetExpenseId" required>${raw(targets.join('') || html`<option value="">지출을 먼저 넣어 주세요</option>`)}</select>
-		<button type="submit">조건 적용</button>
-		<button type="button" class="secondary outline" data-act="waive" data-game="${gameId}">금액 벌칙 없음</button>
-		${raw(penalty.status === 'APPLIED' ? html`<button type="button" class="outline" data-act="clear" data-game="${gameId}">조건 해제</button>` : '')}
+		<button type="submit" class="block-button">조건 적용</button>
+		<div class="button-row">
+			<button type="button" class="secondary" data-act="waive" data-game="${gameId}">금액 벌칙 없음</button>
+			${raw(penalty.status === 'APPLIED' ? html`<button type="button" class="secondary" data-act="clear" data-game="${gameId}">조건 해제</button>` : '')}
+		</div>
 	</form>`;
 }
 

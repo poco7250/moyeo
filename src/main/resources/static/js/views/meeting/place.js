@@ -22,7 +22,7 @@ export async function mountPlaceTab(container, ctx) {
 	container.innerHTML = html`<div class="place-tab">
 		${raw(ctx.detail.rounds.map((round) => html`
 			<article data-round="${round.id}">
-				<h3>${round.name}</h3>
+				<div class="card-head"><h3>${round.name}</h3></div>
 				<div class="round-data"></div>
 				<div class="round-forms"></div>
 			</article>`).join(''))}
@@ -118,7 +118,7 @@ function renderForms(box, place, state, reload) {
 	}
 	const hostUndecided = state.ctx.detail.hostAuthority && place.placeStatus === 'UNDECIDED';
 	box.innerHTML = html`<div class="round-form-area">
-		<details><summary>장소 후보 넣기</summary>${raw(candidateForm(state.saved, hostUndecided))}</details>
+		<details><summary>➕ 장소 후보 넣기</summary>${raw(candidateForm(state.saved, hostUndecided))}</details>
 		${raw(hostUndecided ? votingForm() : '')}
 	</div>`;
 	bindForms(box.querySelector('.round-form-area'), place.roundId, state, reload);
@@ -139,9 +139,11 @@ function candidateForm(saved, canConfirm) {
 		<input name="label" placeholder="장소 이름(직접 입력)" maxlength="50" required>
 		<input name="manualAddress" placeholder="주소(선택)" maxlength="200">
 		<input name="manualMapUrl" type="url" placeholder="지도 링크 https://(선택)">
-		<button type="submit" name="mode" value="candidate">후보 추가</button>
-		${raw(canConfirm ? html`<button type="submit" name="mode" value="direct" class="secondary">바로 확정</button>` : '')}
-		<button type="button" class="outline" data-favorite>단골로 저장</button>
+		<div class="button-row">
+			<button type="submit" name="mode" value="candidate">후보 추가</button>
+			${raw(canConfirm ? html`<button type="submit" name="mode" value="direct" class="secondary">바로 확정</button>` : '')}
+		</div>
+		<button type="button" class="secondary block-button" data-favorite>⭐ 단골로 저장</button>
 	</form>`;
 }
 

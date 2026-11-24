@@ -17,9 +17,11 @@ export async function loginView({query}) {
 		return;
 	}
 	render(html`
-		<h2>로그인</h2>
-		<p>카카오 계정으로 바로 시작해요.</p>
-		<a href="${loginUrl(returnUrl)}" role="button">카카오로 로그인</a>
+		<div class="hero">
+			<h2>모여에 오신 걸 환영해요 👋</h2>
+			<p>카카오 계정으로 따로 가입 없이 바로 시작해요.</p>
+		</div>
+		<a href="${loginUrl(returnUrl)}" role="button" class="kakao-button">카카오로 로그인</a>
 	`);
 }
 

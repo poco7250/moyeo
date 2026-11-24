@@ -7,7 +7,10 @@ import {html, render} from '../ui.js';
  */
 export function notFoundView() {
 	render(html`
-		<h2>페이지를 찾을 수 없어요</h2>
-		<a href="/" data-link>홈으로</a>
+		<div class="empty">
+			<p class="empty-icon">🧭</p>
+			<h2>페이지를 찾을 수 없어요</h2>
+			<a href="/" data-link role="button">홈으로</a>
+		</div>
 	`);
 }

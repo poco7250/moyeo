@@ -15,10 +15,10 @@ import {html, raw, toast} from '../../ui.js';
  */
 export function mountExpenses(box, state) {
 	const rounds = state.ctx.detail.rounds;
-	box.innerHTML = html`<div class="expenses-area"><h3>지출</h3>
-		${raw(rounds.map((round) => html`<article data-round="${round.id}"><h4>${round.name}</h4>
+	box.innerHTML = html`<div class="expenses-area"><h3 class="band">지출</h3>
+		${raw(rounds.map((round) => html`<article data-round="${round.id}"><div class="card-head"><h4>${round.name}</h4></div>
 			<div class="expense-rows"></div>
-			<details><summary>지출 추가</summary>${raw(expenseForm(state, null))}</details></article>`).join(''))}
+			<details><summary>➕ 지출 추가</summary>${raw(expenseForm(state, null))}</details></article>`).join(''))}
 	</div>`;
 	const area = box.querySelector('.expenses-area');
 	area.querySelectorAll('article[data-round] > details form').forEach((form) => {
@@ -46,7 +46,7 @@ function expenseForm(state, expense) {
 		<input name="amount" type="number" min="1" max="100000000" placeholder="금액(원)" value="${expense?.amount ?? ''}" required>
 		<select name="payerId">${raw(payers.join(''))}</select>
 		<input name="memo" maxlength="100" placeholder="메모(예: 고기)" value="${expense?.memo ?? ''}">
-		<button type="submit">${expense ? '수정' : '추가'}</button>
+		<button type="submit" class="block-button">${expense ? '수정' : '추가'}</button>
 	</form>`;
 }
 
@@ -71,7 +71,7 @@ function renderRows(area, expenses, state) {
 		const rows = expenses.filter((e) => String(e.roundId) === article.dataset.round);
 		const box = article.querySelector('.expense-rows');
 		box.innerHTML = html`<div class="expense-rows-area">${raw(rows.length
-			? rows.map((e) => expenseRow(e, state)).join('') : html`<p class="muted">지출 없음</p>`)}</div>`;
+			? rows.map((e) => expenseRow(e, state)).join('') : html`<p class="empty">아직 지출이 없어요</p>`)}</div>`;
 		const rowsArea = box.querySelector('.expense-rows-area');
 		rowsArea.addEventListener('submit', (event) => onRowSubmit(event, state));
 		rowsArea.addEventListener('click', (event) => onRowClick(event, state));
@@ -86,17 +86,25 @@ function renderRows(area, expenses, state) {
  */
 function expenseRow(expense, state) {
 	const receiptUrl = expense.receipt?.url;
+	const receipt = receiptUrl && receiptUrl.startsWith('/')
+		? html`<a href="${receiptUrl}" target="_blank"><img class="receipt-thumb" src="${receiptUrl}" alt="영수증" loading="lazy"></a>`
+		: html`<span class="icon-tile">🧾</span>`;
 	return html`<div class="expense" data-expense="${expense.id}">
-		<p><strong>${formatWon(expense.amount)}</strong> · ${raw(nameOf(state.directory, expense.payerId))} 결제
-			${expense.memo ? ` · ${expense.memo}` : ''}</p>
-		${raw(receiptUrl && receiptUrl.startsWith('/') ? html`<a href="${receiptUrl}" target="_blank"><img src="${receiptUrl}" alt="영수증" width="80" loading="lazy"></a>` : '')}
-		<details><summary>관리</summary>
+		<div class="list-row">
+			${raw(receipt)}
+			<span class="row-body"><span class="row-title">${expense.memo || '지출'}</span>
+				<span class="row-sub">${raw(nameOf(state.directory, expense.payerId))} 결제</span></span>
+			<span class="amount">${formatWon(expense.amount)}</span>
+		</div>
+		<details><summary>수정·나누기 조정·영수증</summary>
 			${raw(expenseForm(state, expense))}
 			${raw(sharesForm(expense, state))}
 			<form data-form="receipt"><input type="file" name="file" accept="image/jpeg,image/png,image/webp" required>
-				<button type="submit" class="secondary">영수증 ${expense.receipt ? '교체' : '올리기'}</button></form>
-			${raw(expense.receipt ? html`<button type="button" class="outline secondary" data-act="receipt-delete">영수증 삭제</button>` : '')}
-			<button type="button" class="outline secondary" data-act="delete">지출 삭제</button>
+				<button type="submit" class="secondary block-button">영수증 ${expense.receipt ? '교체' : '올리기'}</button></form>
+			<div class="button-row">
+				${raw(expense.receipt ? html`<button type="button" class="secondary" data-act="receipt-delete">영수증 삭제</button>` : '')}
+				<button type="button" class="secondary danger-text" data-act="delete">지출 삭제</button>
+			</div>
 		</details>
 	</div>`;
 }
@@ -113,7 +121,7 @@ function sharesForm(expense, state) {
 		<td><input type="number" name="amount" min="1" value="${s.amount ?? ''}" placeholder="고정"></td>
 		<td><input type="number" name="weight" min="1" max="100" value="${s.weight ?? ''}" placeholder="가중치"></td></tr>`);
 	return html`<form data-form="shares"><table><thead><tr><th>멤버</th><th>제외</th><th>고정 금액</th><th>가중치</th></tr></thead>
-		<tbody>${raw(rows.join(''))}</tbody></table><button type="submit" class="secondary">나누기 조정 저장</button></form>`;
+		<tbody>${raw(rows.join(''))}</tbody></table><button type="submit" class="secondary block-button">나누기 조정 저장</button></form>`;
 }
 
 /**

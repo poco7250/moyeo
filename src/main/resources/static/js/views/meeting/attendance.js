@@ -4,7 +4,7 @@
  */
 
 import {ApiError, api} from '../../api.js';
-import {copyText, formatDate, memberName, runAction} from '../../common.js';
+import {copyText, formatDate, memberName, peopleChips, runAction, thumb} from '../../common.js';
 import {html, raw, toast} from '../../ui.js';
 import {mountManage} from './manage.js';
 
@@ -55,7 +55,7 @@ export async function mountAttendanceTab(container, ctx) {
  */
 function renderBoard(box, board, ctx, reload) {
 	box.innerHTML = html`<div class="board-area">
-		<p>${board.closed ? '응답 마감됨' : `응답 마감 ${formatDate(board.responseDeadline)}`}</p>
+		<p class="muted">⏰ ${board.closed ? '응답 마감됨' : `응답 마감 ${formatDate(board.responseDeadline)}`}</p>
 		${raw(board.rounds.map((round) => roundBoard(round, ctx)).join(''))}
 	</div>`;
 	box.querySelector('.board-area').addEventListener('click', (event) => {
@@ -70,7 +70,7 @@ function renderBoard(box, board, ctx, reload) {
 }
 
 /**
- * 차수 하나의 현황.
+ * 차수 하나의 현황 카드: 참석자 목록(체크인 표시·버튼), 나머지 응답 칩, 호스트 확정 버튼.
  * @param {{roundId: number, name: string, attend: Array, absent: Array, undecided: Array, noResponse: Array,
  *   checkedInMemberIds: Array<number>, attendanceConfirmedAt: string|null}} round 차수 현황
  * @param {{me: {id: number}, detail: {hostAuthority: boolean}}} ctx 모임 화면 상태
@@ -78,19 +78,44 @@ function renderBoard(box, board, ctx, reload) {
  */
 function roundBoard(round, ctx) {
 	const checked = new Set(round.checkedInMemberIds);
-	const attendee = (member) => {
-		const isChecked = checked.has(member.memberId);
-		const canToggle = member.memberId === ctx.me.id || ctx.detail.hostAuthority;
-		return html`<li>${raw(memberName(member))} ${isChecked ? '✅' : ''}
-			${raw(canToggle ? html`<button type="button" class="outline" data-act="${isChecked ? 'uncheck' : 'check'}" data-round="${round.roundId}" data-member="${member.memberId}" data-me="${member.memberId === ctx.me.id}">${isChecked ? '체크인 취소' : '체크인'}</button>` : '')}</li>`;
-	};
-	const names = (members) => members.map(memberName).join(', ') || '-';
+	const rows = round.attend.map((member) => attendeeRow(member, round.roundId, checked.has(member.memberId), ctx));
 	return html`<article>
-		<h4>${round.name} ${raw(round.attendanceConfirmedAt ? html`<small>(실제 참석자 확정 ${formatDate(round.attendanceConfirmedAt)})</small>` : '')}</h4>
-		<p>참석 ${round.attend.length}명</p><ul>${raw(round.attend.map(attendee).join(''))}</ul>
-		<p><small>불참: ${raw(names(round.absent))} · 미정: ${raw(names(round.undecided))} · 미응답: ${raw(names(round.noResponse))}</small></p>
-		${raw(ctx.detail.hostAuthority ? html`<button type="button" class="secondary" data-act="confirm" data-round="${round.roundId}">실제 참석자 확정</button>` : '')}
+		<div class="card-head"><h4>${round.name}</h4><span class="chip primary">참석 ${round.attend.length}명</span></div>
+		${raw(round.attendanceConfirmedAt ? html`<p class="muted"><small>✅ 실제 참석자 확정 ${formatDate(round.attendanceConfirmedAt)}</small></p>` : '')}
+		${raw(rows.length ? html`<ul class="list">${raw(rows.join(''))}</ul>` : html`<p class="empty">아직 참석하는 사람이 없어요</p>`)}
+		${raw(peopleLine('불참', round.absent))}${raw(peopleLine('미정', round.undecided))}${raw(peopleLine('미응답', round.noResponse))}
+		${raw(ctx.detail.hostAuthority ? html`<button type="button" class="secondary block-button" data-act="confirm" data-round="${round.roundId}">실제 참석자 확정</button>` : '')}
 	</article>`;
+}
+
+/**
+ * 참석자 한 줄: 썸네일·이름·체크인 칩, 나(호스트는 누구나)면 체크인 버튼.
+ * @param {{memberId: number, nickname: string, emoji: string|null}} member 참석자
+ * @param {number} roundId 차수 id
+ * @param {boolean} isChecked 체크인했는지
+ * @param {{me: {id: number}, detail: {hostAuthority: boolean}}} ctx 모임 화면 상태
+ * @returns {string} HTML
+ */
+function attendeeRow(member, roundId, isChecked, ctx) {
+	const isMe = member.memberId === ctx.me.id;
+	const button = isMe || ctx.detail.hostAuthority
+		? html`<button type="button" class="small ${isChecked ? 'secondary' : ''}" data-act="${isChecked ? 'uncheck' : 'check'}" data-round="${roundId}" data-member="${member.memberId}" data-me="${isMe}">${isChecked ? '체크인 취소' : '체크인'}</button>`
+		: '';
+	return html`<li><div class="list-row">
+		${raw(thumb(member.nickname, member.memberId, {emoji: member.emoji, small: true}))}
+		<span class="row-body"><span class="row-title">${raw(memberName(member))}${isMe ? ' (나)' : ''}</span></span>
+		${raw(isChecked ? html`<span class="chip success">체크인</span>` : '')}${raw(button)}
+	</div></li>`;
+}
+
+/**
+ * "불참: 칩 칩" 꼴 한 줄. 비었으면 그리지 않는다.
+ * @param {string} label 라벨
+ * @param {Array} members 멤버
+ * @returns {string} HTML
+ */
+function peopleLine(label, members) {
+	return members.length ? html`<div class="people-line"><small>${label}</small><div>${raw(peopleChips(members))}</div></div>` : '';
 }
 
 /**
@@ -118,13 +143,13 @@ async function boardAction({act, round, member, me}) {
  * @param {() => Promise<object>} reloadBoard 현황판 다시 그리기
  */
 function renderMine(box, board, ctx, reloadBoard) {
-	const rows = board.rounds.map((round) => html`<fieldset><legend>${round.name}</legend>
-		${raw(Object.entries(STATUS_LABELS).map(([status, label]) => html`<label><input type="radio" name="r${round.roundId}" value="${status}" ${raw(myStatus(round, ctx.me.id) === status ? 'checked' : '')}> ${label}</label>`).join(''))}
-	</fieldset>`);
-	box.innerHTML = html`<form class="mine-form"><h3>내 응답</h3>${raw(rows.join(''))}
-		<button type="submit">응답 보내기</button>
-		${raw(board.rounds.length > 1 ? html`<button type="button" class="secondary" data-shortcut="FIRST_ONLY">1차만</button>
-			<button type="button" class="secondary" data-shortcut="LATE_FROM_SECOND">2차부터</button>` : '')}
+	const rows = board.rounds.map((round) => html`<div class="field-row"><span>${round.name}</span><div class="segmented">
+		${raw(Object.entries(STATUS_LABELS).map(([status, label]) => html`<label><input type="radio" name="r${round.roundId}" value="${status}" ${raw(myStatus(round, ctx.me.id) === status ? 'checked' : '')}><span>${label}</span></label>`).join(''))}
+	</div></div>`);
+	box.innerHTML = html`<form class="mine-form"><h3 class="band">내 응답</h3>${raw(rows.join(''))}
+		${raw(board.rounds.length > 1 ? html`<div class="button-row"><button type="button" class="secondary" data-shortcut="FIRST_ONLY">1차만</button>
+			<button type="button" class="secondary" data-shortcut="LATE_FROM_SECOND">2차부터</button></div>` : '')}
+		<button type="submit" class="block-button">응답 보내기</button>
 	</form>`;
 	const form = box.querySelector('.mine-form');
 	const send = async (body) => {
@@ -172,9 +197,9 @@ function renderReminder(box, board, ctx) {
 		return;
 	}
 	const base = `/api/meetings/${ctx.meetingId}/attendance-reminder`;
-	box.innerHTML = html`<div class="reminder-area"><h3>미응답자 리마인드</h3>
-		<button type="button" class="secondary" data-remind="copy">카톡 문구 복사</button>
-		<button type="button" class="secondary outline" data-remind="push">알림 보내기</button></div>`;
+	box.innerHTML = html`<div class="reminder-area"><h3 class="band">미응답자 리마인드</h3>
+		<div class="button-row"><button type="button" class="secondary" data-remind="copy">💬 카톡 문구 복사</button>
+		<button type="button" class="secondary" data-remind="push">🔔 알림 보내기</button></div></div>`;
 	box.querySelector('.reminder-area').addEventListener('click', (event) => {
 		const kind = event.target.closest('[data-remind]')?.dataset.remind;
 		if (kind) {

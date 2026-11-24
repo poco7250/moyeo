@@ -4,10 +4,10 @@
  */
 
 import {ApiError, api, loginUrl} from '../api.js';
-import {formatDate} from '../common.js';
+import {formatDate, thumb} from '../common.js';
 import {navigate} from '../router.js';
 import {getMe} from '../session.js';
-import {html, render} from '../ui.js';
+import {html, raw, render} from '../ui.js';
 
 /**
  * 초대 미리보기를 그리고, 로그인 상태면 가입까지 한다.
@@ -26,9 +26,16 @@ export async function inviteView({params}) {
 		return;
 	}
 	render(html`
-		<h2>${preview.groupName} 모임에 초대받았어요</h2>
-		<p>지금 멤버 ${preview.memberCount}명 · 링크 만료 ${formatDate(preview.expiresAt)}</p>
-		<a href="${loginUrl()}" role="button">카카오로 로그인하고 참여하기</a>
+		<div class="hero invite-hero">
+			${raw(thumb(preview.groupName, preview.groupName))}
+			<h2>${preview.groupName}</h2>
+			<p>모임에 초대받았어요 💌</p>
+		</div>
+		<div class="stat-row">
+			<div><b>${preview.memberCount}명</b><small>지금 멤버</small></div>
+			<div><b>${formatDate(preview.expiresAt)}</b><small>링크 만료</small></div>
+		</div>
+		<a href="${loginUrl()}" role="button" class="kakao-button">카카오로 로그인하고 참여하기</a>
 	`);
 }
 
@@ -45,9 +52,11 @@ async function loadPreview(token) {
 			throw error;
 		}
 		render(html`
-			<h2>초대 링크를 쓸 수 없어요</h2>
-			<p>${error.message}</p>
-			<p class="muted">그룹 멤버에게 새 초대 링크를 받아 주세요.</p>
+			<div class="empty">
+				<h2>초대 링크를 쓸 수 없어요</h2>
+				<p>${error.message}</p>
+				<p class="muted">그룹 멤버에게 새 초대 링크를 받아 주세요.</p>
+			</div>
 		`);
 		return null;
 	}

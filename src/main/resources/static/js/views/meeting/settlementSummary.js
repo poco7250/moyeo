@@ -1,6 +1,6 @@
 /* 정산 요약: 1인당 부담액·순잔액, 경고, 송금 안내(받는 사람 송금 정보·카톡 문구), 재확정 변동액 카드 */
 
-import {copyText, formatWon, nameOf, safeLink} from '../../common.js';
+import {copyText, formatWon, nameOf, safeLink, thumb} from '../../common.js';
 import {html, raw} from '../../ui.js';
 
 /**
@@ -10,15 +10,14 @@ import {html, raw} from '../../ui.js';
  */
 export function renderSummary(box, state) {
 	const {settlement, directory} = state;
-	const rows = settlement.members.map((m) => html`<tr><td>${raw(nameOf(directory, m.memberId))}</td>
-		<td>${formatWon(m.shareAmount)}</td><td>${m.netBalance >= 0 ? '받을 돈' : '낼 돈'} ${formatWon(Math.abs(m.netBalance))}</td></tr>`);
+	const rows = settlement.members.map((m) => memberRow(m, directory));
 	box.innerHTML = html`<div class="summary-area">
 		${raw(changeCard(settlement.revisionChange, directory))}
-		<h4>1인당 금액</h4>
-		${raw(rows.length ? html`<table><thead><tr><th>멤버</th><th>부담액</th><th>순잔액</th></tr></thead><tbody>${raw(rows.join(''))}</tbody></table>`
-		: html`<p class="muted">아직 지출이 없어요</p>`)}
-		${raw(settlement.warnings.length ? html`<p><mark>${warningText(settlement.warnings)}</mark></p>` : '')}
-		<h4>송금 안내 <small class="muted">(송금은 토스·카카오페이 등 앱 밖에서 해요)</small></h4>
+		<h3 class="band">1인당 금액</h3>
+		${raw(rows.length ? html`<ul class="list">${raw(rows.join(''))}</ul>` : html`<p class="empty">아직 지출이 없어요</p>`)}
+		${raw(settlement.warnings.length ? html`<p><span class="chip warn">⚠️ ${warningText(settlement.warnings)}</span></p>` : '')}
+		<h3 class="band">송금 안내</h3>
+		<p class="muted"><small>송금은 토스·카카오페이 등 앱 밖에서 해요</small></p>
 		${raw(transferList(settlement, directory))}
 	</div>`;
 	box.querySelector('.summary-area').addEventListener('click', (event) => {
@@ -27,6 +26,24 @@ export function renderSummary(box, state) {
 			copyText(button.dataset.copy === 'transfers' ? transferText(settlement, directory) : button.dataset.copy);
 		}
 	});
+}
+
+/**
+ * 멤버 한 줄: 썸네일·이름·부담액, 오른쪽에 받을 돈(초록)·낼 돈(빨강).
+ * @param {{memberId: number, shareAmount: number, netBalance: number}} m 멤버 정산
+ * @param {Map<number, object>} directory 이름표
+ * @returns {string} HTML
+ */
+function memberRow(m, directory) {
+	const member = directory.get(m.memberId);
+	const receive = m.netBalance >= 0;
+	return html`<li><div class="list-row">
+		${raw(thumb(member?.nickname, m.memberId, {emoji: member?.emoji, small: true}))}
+		<span class="row-body"><span class="row-title">${raw(nameOf(directory, m.memberId))}</span>
+			<span class="row-sub">부담 ${formatWon(m.shareAmount)}</span></span>
+		<span class="amount ${receive ? 'plus' : 'minus'}">${receive ? '+' : '-'}${formatWon(Math.abs(m.netBalance))}
+			<small>${receive ? '받을 돈' : '낼 돈'}</small></span>
+	</div></li>`;
 }
 
 /**
@@ -41,11 +58,14 @@ function transferList(settlement, directory) {
 	}
 	const items = settlement.transfers.map((t) => {
 		const payee = settlement.payees.find((p) => p.memberId === t.toMemberId);
-		return html`<li>${raw(nameOf(directory, t.fromMemberId))} → ${raw(nameOf(directory, t.toMemberId))}
-			<strong>${formatWon(t.amount)}</strong>${raw(payeeLinks(payee))}</li>`;
+		return html`<li><div class="list-row">
+			<span class="row-body"><span class="row-title">${raw(nameOf(directory, t.fromMemberId))} → ${raw(nameOf(directory, t.toMemberId))}</span>
+				${raw(payeeLinks(payee))}</span>
+			<span class="amount">${formatWon(t.amount)}</span>
+		</div></li>`;
 	});
-	return html`<ul>${raw(items.join(''))}</ul>
-		<button type="button" class="secondary" data-copy="transfers">송금 안내 카톡 문구 복사</button>`;
+	return html`<ul class="list">${raw(items.join(''))}</ul>
+		<button type="button" class="secondary block-button" data-copy="transfers">💬 송금 안내 카톡 문구 복사</button>`;
 }
 
 /**
@@ -59,10 +79,11 @@ function payeeLinks(payee) {
 		return '';
 	}
 	const account = payee.accountNumber ? `${payee.bankName ?? ''} ${payee.accountNumber} ${payee.accountHolder ?? ''}`.trim() : '';
-	return html`<br><small>
-		${raw(safeLink(payee.tossLink, '토스'))}
-		${raw(safeLink(payee.kakaoPayLink, '카카오페이'))}
-		${raw(account ? html`<button type="button" class="outline" data-copy="${account}">계좌 복사</button>` : '')}</small>`;
+	const chip = (link) => (link ? html`<span class="chip primary">${raw(link)}</span>` : '');
+	return html`<span class="row-actions">
+		${raw(chip(safeLink(payee.tossLink, '토스')))}
+		${raw(chip(safeLink(payee.kakaoPayLink, '카카오페이')))}
+		${raw(account ? html`<button type="button" class="secondary" data-copy="${account}">계좌 복사</button>` : '')}</span>`;
 }
 
 /**
@@ -89,12 +110,15 @@ function changeCard(change, directory) {
 	if (!change) {
 		return '';
 	}
-	const items = change.changes.map((c) => html`<li>${raw(nameOf(directory, c.memberId))}
-		${c.delta > 0 ? '+' : ''}${formatWon(c.delta)} <small class="muted">(${formatWon(c.previousNetBalance)} → ${formatWon(c.currentNetBalance)})</small></li>`);
-	return html`<article><header>리비전 ${change.previousRevisionNo} 대비 변동</header>
-		<ul>${raw(items.join('') || html`<li>변동 없음</li>`)}</ul>
-		<p class="muted">${change.notice}</p>
-		<button type="button" class="secondary" data-copy="${change.shareText}">변동 안내 카톡 문구 복사</button></article>`;
+	const items = change.changes.map((c) => html`<li><div class="list-row">
+		<span class="row-body"><span class="row-title">${raw(nameOf(directory, c.memberId))}</span>
+			<span class="row-sub">${formatWon(c.previousNetBalance)} → ${formatWon(c.currentNetBalance)}</span></span>
+		<span class="amount ${c.delta >= 0 ? 'plus' : 'minus'}">${c.delta > 0 ? '+' : ''}${formatWon(c.delta)}</span>
+	</div></li>`);
+	return html`<article><div class="card-head"><h4>🔄 리비전 ${change.previousRevisionNo} 대비 변동</h4></div>
+		${raw(items.length ? html`<ul class="list">${raw(items.join(''))}</ul>` : html`<p class="empty">변동 없음</p>`)}
+		<p class="muted"><small>${change.notice}</small></p>
+		<button type="button" class="secondary block-button" data-copy="${change.shareText}">💬 변동 안내 카톡 문구 복사</button></article>`;
 }
 
 /**
