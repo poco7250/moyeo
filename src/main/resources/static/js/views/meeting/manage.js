@@ -1,7 +1,7 @@
 /* 모임 관리(호스트 권한자만): 게스트(G-6), 다른 멤버 응답 대신 입력(M-4), 호스트 위임(G-4) */
 
 import {api} from '../../api.js';
-import {formValues, memberName, runAction} from '../../common.js';
+import {formValues, memberName, runAction, thumb} from '../../common.js';
 import {html, raw, toast} from '../../ui.js';
 
 const STATUS_LABELS = {ATTEND: '참석', ABSENT: '불참', UNDECIDED: '미정'};
@@ -18,7 +18,7 @@ export async function mountManage(box, ctx) {
 		return;
 	}
 	const members = await api.get(`/api/groups/${ctx.detail.groupId}/members`);
-	box.innerHTML = html`<details class="manage-area"><summary>모임 관리(호스트)</summary>
+	box.innerHTML = html`<h3 class="band">모임 관리</h3><details class="manage-area"><summary>⚙️ 게스트·대신 응답·호스트 넘기기</summary>
 		${raw(guestSection(ctx.detail.guests))}
 		${raw(respondForForm(members, ctx.detail.rounds))}
 		${raw(hostForm(members, ctx.detail.hostMemberId))}
@@ -32,11 +32,13 @@ export async function mountManage(box, ctx) {
  * @returns {string} HTML
  */
 function guestSection(guests) {
-	const items = guests.map((guest) => html`<li>${guest.name}
-		<button type="button" class="outline secondary" data-remove-guest="${guest.guestId}">빼기</button></li>`);
+	const items = guests.map((guest) => html`<li><div class="list-row">
+		${raw(thumb(guest.name, guest.guestId, {small: true}))}
+		<span class="row-body"><span class="row-title">${guest.name} <span class="chip">게스트</span></span></span>
+		<button type="button" class="small secondary" data-remove-guest="${guest.guestId}">빼기</button></div></li>`);
 	return html`<h4>게스트</h4>
 		<p class="muted"><small>카카오 계정 없는 친구를 이름만으로 넣어요. 이 모임 게임에만 참가하고 정산에는 안 들어가요.</small></p>
-		<ul>${raw(items.join('') || html`<li class="muted">없음</li>`)}</ul>
+		${raw(items.length ? html`<ul class="list">${raw(items.join(''))}</ul>` : html`<p class="empty">게스트가 없어요</p>`)}
 		<form class="guest-form" role="group"><input name="name" placeholder="게스트 이름" maxlength="20" required>
 			<button type="submit" class="secondary">추가</button></form>`;
 }

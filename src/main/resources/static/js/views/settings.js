@@ -1,10 +1,11 @@
-/* 설정 화면: 이 기기 웹 푸시 구독과 푸시 종류별 받기(Task 056 서버 API) */
+/* 설정 화면: 내 프로필, 이 기기 웹 푸시 구독과 푸시 종류별 받기(Task 056 서버 API), 로그아웃 */
 
 import {api} from '../api.js';
 import {currentSubscription, pushSupported, serverPublicKey, subscribePush, unsubscribePush} from '../push.js';
-import {getMe} from '../session.js';
+import {thumb} from '../common.js';
+import {getMe, logout} from '../session.js';
 import {navigate} from '../router.js';
-import {html, raw, render, showError, toast} from '../ui.js';
+import {html, icon, raw, render, showError, toast} from '../ui.js';
 
 const PUSH_LABELS = {
 	ATTENDANCE_REMINDER: '참석 응답 리마인드',
@@ -18,19 +19,28 @@ const PUSH_LABELS = {
  * @returns {Promise<void>}
  */
 export async function settingsView() {
-	if (!await getMe()) {
+	const me = await getMe();
+	if (!me) {
 		navigate(`/login?returnUrl=${encodeURIComponent('/settings')}`, {replace: true});
 		return;
 	}
 	const preferences = await api.get('/api/members/me/push-preferences');
 	const root = render(html`<div id="settings-root">
 		<h2>설정</h2>
+		<div class="list-row profile-row">
+			${raw(thumb(me.nickname, me.id, {image: me.profileImageUrl}))}
+			<span class="row-body"><span class="row-title">${me.nickname}</span>
+				<span class="row-sub">카카오 계정으로 로그인했어요</span></span>
+		</div>
 		<h3>이 기기 알림</h3>
 		<div id="device-push"><p class="muted">확인 중…</p></div>
 		<h3>받을 알림</h3>
 		${raw(preferenceForm(preferences.enabled))}
+		<h3>계정</h3>
+		<ul class="menu-list"><li><button type="button" id="logout">로그아웃 ${icon('chevron', 20)}</button></li></ul>
 	</div>`).querySelector('#settings-root');
 	root.querySelector('#push-preferences').addEventListener('change', onPreferenceChange);
+	root.querySelector('#logout').addEventListener('click', onLogout);
 	await renderDevicePush(root.querySelector('#device-push'));
 }
 
@@ -41,7 +51,7 @@ export async function settingsView() {
  */
 function preferenceForm(enabled) {
 	const rows = Object.entries(PUSH_LABELS).map(([type, label]) => html`
-		<label><input type="checkbox" role="switch" name="${type}" ${raw(enabled[type] ? 'checked' : '')}> ${label}</label>
+		<label class="switch-row">${label}<input type="checkbox" role="switch" name="${type}" ${raw(enabled[type] ? 'checked' : '')}></label>
 	`);
 	return html`<fieldset id="push-preferences">${raw(rows.join(''))}</fieldset>`;
 }
@@ -87,4 +97,17 @@ async function renderDevicePush(box) {
 			showError(error);
 		}
 	});
+}
+
+/**
+ * 로그아웃하고 홈으로 새로 들어간다(상단 바·하단 탭도 다시 그리게 새로고침).
+ * @returns {Promise<void>}
+ */
+async function onLogout() {
+	try {
+		await logout();
+		window.location.assign('/');
+	} catch (error) {
+		showError(error);
+	}
 }

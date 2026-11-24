@@ -1,7 +1,7 @@
 /* 멤버·초대 화면: 멤버 목록·역할(G-2, G-4), 초대 링크 보기·복사·새로 만들기(G-1) */
 
 import {api} from '../api.js';
-import {absoluteUrl, copyText, findGroup, formatDate, groupHeader, memberName, notMemberNotice, roleLabel}
+import {absoluteUrl, copyText, findGroup, formatDate, groupHeader, notMemberNotice, roleLabel, thumb}
 	from '../common.js';
 import {getMe} from '../session.js';
 import {html, raw, render, showError, toast} from '../ui.js';
@@ -43,16 +43,18 @@ function inviteCard(invite) {
 	}
 	return html`
 		<article>
+			<p><strong>초대 링크</strong> <small>만료 ${formatDate(invite.expiresAt)}</small></p>
 			<p><code>${absoluteUrl(invite.url)}</code></p>
-			<p class="muted">만료 ${formatDate(invite.expiresAt)}</p>
-			<button type="button" data-action="copy" data-url="${absoluteUrl(invite.url)}">링크 복사</button>
-			<button type="button" data-action="reissue" class="secondary">새로 만들기</button>
+			<div class="button-row">
+				<button type="button" data-action="copy" data-url="${absoluteUrl(invite.url)}">링크 복사</button>
+				<button type="button" data-action="reissue" class="secondary">새로 만들기</button>
+			</div>
 		</article>
 	`;
 }
 
 /**
- * 멤버 표. 방장이면 다른 멤버 행에 총무 지정·해제와 방장 넘기기 버튼을 붙인다.
+ * 멤버 목록. 방장이면 다른 멤버 행에 총무 지정·해제와 방장 넘기기 버튼을 붙인다.
  * @param {Array<{memberId: number, nickname: string, emoji: string|null, role: string}>} members 멤버
  * @param {number} myId 내 회원 id
  * @param {boolean} isOwner 내가 방장인지
@@ -60,13 +62,16 @@ function inviteCard(invite) {
  */
 function memberTable(members, myId, isOwner) {
 	const rows = members.map((member) => html`
-		<tr>
-			<td>${raw(memberName(member))}${member.memberId === myId ? ' (나)' : ''}</td>
-			<td>${roleLabel(member.role)}</td>
-			<td>${raw(isOwner && member.memberId !== myId ? roleButtons(member) : '')}</td>
-		</tr>
+		<li><div class="list-row">
+			${raw(thumb(member.nickname, member.memberId, {emoji: member.emoji, small: true}))}
+			<span class="row-body">
+				<span class="row-title">${member.nickname}${member.memberId === myId ? ' (나)' : ''}
+					${raw(member.role === 'MEMBER' ? '' : html`<span class="chip primary">${roleLabel(member.role)}</span>`)}</span>
+				${raw(isOwner && member.memberId !== myId ? html`<span class="row-actions">${raw(roleButtons(member))}</span>` : '')}
+			</span>
+		</div></li>
 	`);
-	return html`<table><tbody>${raw(rows.join(''))}</tbody></table>`;
+	return html`<ul class="list">${raw(rows.join(''))}</ul>`;
 }
 
 /**
@@ -78,8 +83,8 @@ function roleButtons(member) {
 	const nextRole = member.role === 'TREASURER' ? 'MEMBER' : 'TREASURER';
 	const label = member.role === 'TREASURER' ? '총무 해제' : '총무 지정';
 	return html`
-		<button type="button" class="outline" data-action="role" data-id="${member.memberId}" data-role="${nextRole}">${label}</button>
-		<button type="button" class="outline secondary" data-action="owner" data-id="${member.memberId}">방장 넘기기</button>
+		<button type="button" class="secondary" data-action="role" data-id="${member.memberId}" data-role="${nextRole}">${label}</button>
+		<button type="button" class="secondary" data-action="owner" data-id="${member.memberId}">방장 넘기기</button>
 	`;
 }
 

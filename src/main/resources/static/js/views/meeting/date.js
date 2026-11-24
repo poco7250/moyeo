@@ -21,9 +21,10 @@ export async function renderDateVote(container, ctx) {
 	const votes = await api.get(`/api/meetings/${ctx.meetingId}/date-votes`);
 	const kept = keptSelection(container);
 	container.innerHTML = html`<article class="date-area">
-		<h3>날짜 투표</h3>
-		<form class="date-mine">${raw(votes.candidates.map((c) => candidateRow(c, ctx, kept)).join(''))}
-			<button type="submit">내 가능 날짜 보내기</button>
+		<div class="card-head"><h3>🗳️ 날짜 투표</h3><span class="chip primary">가능한 날짜를 모두 골라요</span></div>
+		<form class="date-mine">${raw(votes.candidates.map((c) => candidateRow(c, ctx, kept)).join('')
+			|| html`<p class="empty">아직 날짜 후보가 없어요</p>`)}
+			<button type="submit" class="block-button">내 가능 날짜 보내기</button>
 		</form>
 		${raw(ctx.detail.hostAuthority ? addCandidateForm() : '')}
 	</article>`;
@@ -54,11 +55,12 @@ function candidateRow(candidate, ctx, kept) {
 	const mine = kept ? kept.has(String(candidate.candidateId))
 		: candidate.available.some((member) => member.memberId === ctx.me.id);
 	return html`
-		<label>
+		<label class="check-row">
 			<input type="checkbox" value="${candidate.candidateId}" ${raw(mine ? 'checked' : '')}>
-			<strong>${formatDate(candidate.startAt)}</strong> — 가능 ${candidate.availableCount}명
-			<small class="muted">${raw(candidate.available.map(memberName).join(', '))}</small>
-			${raw(ctx.detail.hostAuthority ? html`<button type="button" class="outline" data-confirm="${candidate.candidateId}">이 날짜로 확정</button>` : '')}
+			<span class="row-body"><span class="row-title">${formatDate(candidate.startAt)}</span>
+				<span class="row-sub">${raw(candidate.available.map(memberName).join(', ') || '아직 없음')}</span></span>
+			<span class="chip ${candidate.availableCount ? 'primary' : ''}">${candidate.availableCount}명</span>
+			${raw(ctx.detail.hostAuthority ? html`<button type="button" class="small secondary" data-confirm="${candidate.candidateId}">확정</button>` : '')}
 		</label>
 	`;
 }

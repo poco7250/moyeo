@@ -42,6 +42,7 @@ export function navigate(path, {replace = false} = {}) {
 		window.history.replaceState(null, '', path);
 	} else {
 		window.history.pushState(null, '', path);
+		window.scrollTo(0, 0);
 	}
 	renderCurrent();
 }
@@ -64,6 +65,7 @@ export function startRouter() {
 
 /**
  * 지금 주소에 맞는 화면을 그린다. 화면 함수가 던진 에러는 토스트로 보여 준다.
+ * 그리기 전에 'routechange' 이벤트를 띄워 하단 탭 같은 공통 영역이 따라 바뀌게 한다.
  */
 async function renderCurrent() {
 	if (typeof cleanup === 'function') {
@@ -71,6 +73,7 @@ async function renderCurrent() {
 	}
 	cleanup = null;
 	const {view, params} = match(window.location.pathname);
+	window.dispatchEvent(new Event('routechange'));
 	try {
 		cleanup = await view({params, query: new URLSearchParams(window.location.search)});
 	} catch (error) {

@@ -18,7 +18,7 @@ const CHANGE_LABELS = {CREATE: '추가', UPDATE: '변경', DELETE: '삭제'};
  * @param {{ctx: object, directory: Map}} state 정산 탭 상태
  */
 export function mountHistory(box, state) {
-	box.innerHTML = html`<details class="history-area"><summary>정산 이력(리비전·변경 로그)</summary>
+	box.innerHTML = html`<h3 class="band">정산 이력</h3><details class="history-area"><summary>📜 리비전·변경 로그 보기</summary>
 		<div class="revisions"></div><h4>변경 로그</h4><ul class="change-logs"></ul>
 		<button type="button" class="secondary logs-more" hidden>더 보기</button></details>`;
 	const area = box.querySelector('.history-area');
@@ -61,7 +61,8 @@ function revisionCard(revision, directory) {
 		· 순잔액 ${formatWon(m.netBalance)}${delta.get(m.memberId) ? ` (변동 ${formatWon(delta.get(m.memberId))})` : ''}</li>`);
 	const transfers = revision.transfers.map((t) => html`<li>${raw(nameOf(directory, t.fromMemberId))} → ${raw(nameOf(directory, t.toMemberId))} ${formatWon(t.amount)}</li>`);
 	const charges = revision.penaltyCharges.map((c) => html`<li>${raw(nameOf(directory, c.memberId))} 벌칙 ${formatWon(c.amount)}</li>`);
-	return html`<article><header>리비전 ${revision.revisionNo} · ${raw(nameOf(directory, revision.confirmedBy))} · ${formatDate(revision.confirmedAt)}</header>
+	return html`<article><div class="card-head"><h4>리비전 ${revision.revisionNo}</h4>
+		<small class="muted">${raw(nameOf(directory, revision.confirmedBy))} · ${formatDate(revision.confirmedAt)}</small></div>
 		<ul>${raw(members.join(''))}</ul>
 		<p><small>송금 안내</small></p><ul>${raw(transfers.join('') || html`<li>없음</li>`)}</ul>
 		${raw(charges.length ? html`<p><small>벌칙 부담</small></p><ul>${raw(charges.join(''))}</ul>` : '')}</article>`;
@@ -103,10 +104,15 @@ export async function mountMeetingCard(box, ctx) {
 		throw error;
 	}
 	const {meeting} = card;
-	const shares = card.shares.map((s) => html`<li>${raw(memberName(s.member))} ${formatWon(s.shareAmount)}</li>`);
-	const places = meeting.rounds.map((r) => html`<li>${r.name}: ${r.place?.label ?? '장소 미정'}</li>`);
-	box.innerHTML = html`<article class="meeting-card"><header><small>${card.groupName}</small>
-		<h3>${meeting.title}</h3><small>${formatDate(meeting.startAt)} · 참석 ${meeting.attendeeCount}명 · 총 ${formatWon(meeting.totalExpenseAmount)}</small></header>
-		<ul>${raw(places.join(''))}</ul>
-		${raw(shares.length ? html`<p>1인당 부담(마지막 확정 기준)</p><ul>${raw(shares.join(''))}</ul>` : '')}</article>`;
+	const shares = card.shares.map((s) => html`<li><div class="list-row"><span class="row-body"><span class="row-title">${raw(memberName(s.member))}</span></span>
+		<span class="amount">${formatWon(s.shareAmount)}</span></div></li>`);
+	const places = meeting.rounds.map((r) => html`<li><div class="list-row"><span class="icon-tile">📍</span><span class="row-body">
+		<span class="row-sub">${r.name}</span><span class="row-title">${r.place?.label ?? '장소 미정'}</span></span></div></li>`);
+	box.innerHTML = html`<h3 class="band">모임 결산 카드</h3><article class="meeting-card">
+		<div class="hero"><small>${card.groupName}</small><h2>${meeting.title}</h2>
+			<p><small>${formatDate(meeting.startAt)}</small></p></div>
+		<div class="stat-row"><div><b>${meeting.attendeeCount}명</b><small>참석</small></div>
+			<div><b>${formatWon(meeting.totalExpenseAmount)}</b><small>총 지출</small></div></div>
+		<ul class="list">${raw(places.join(''))}</ul>
+		${raw(shares.length ? html`<p class="muted"><small>1인당 부담(마지막 확정 기준)</small></p><ul class="list">${raw(shares.join(''))}</ul>` : '')}</article>`;
 }

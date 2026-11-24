@@ -12,11 +12,11 @@ import {html, raw} from '../../ui.js';
  * @param {HTMLElement} box 검색 영역
  */
 export function mountPlaceSearch(box) {
-	box.innerHTML = html`<details class="search-area"><summary>장소 검색(참고용)</summary>
+	box.innerHTML = html`<details class="search-area"><summary>🔍 장소 검색(참고용)</summary>
 		<form role="search"><input name="query" type="search" placeholder="예: 강남역 고깃집" maxlength="100" required>
 			<button type="submit">검색</button></form>
 		<p class="muted"><small>검색 결과는 참고만 할 수 있어요. 마음에 들면 후보 칸에 직접 적어 주세요.</small></p>
-		<ul class="search-results"></ul>
+		<ul class="search-results list"></ul>
 		<button type="button" class="secondary search-more" hidden>더 보기</button>
 	</details>`;
 	const area = box.querySelector('.search-area');
@@ -38,11 +38,12 @@ export function mountPlaceSearch(box) {
 async function loadPage(area, state) {
 	const query = encodeURIComponent(state.query);
 	const result = await api.get(`/api/places/search?query=${query}&page=${state.page}`);
-	const items = result.places.map((place) => html`<li><strong>${place.name}</strong>
-		<small class="muted">${place.categoryName ?? ''}</small> ${raw(externalLink(place.placeUrl))}
-		<br><small>${place.roadAddress || place.address || ''}</small></li>`);
+	const items = result.places.map((place) => html`<li><div class="list-row"><span class="row-body">
+		<span class="row-title">${place.name} ${raw(externalLink(place.placeUrl))}</span>
+		<span class="row-sub">${place.categoryName ?? ''}</span>
+		<span class="row-sub">${place.roadAddress || place.address || ''}</span></span></div></li>`);
 	area.querySelector('.search-results').insertAdjacentHTML('beforeend',
-		items.length ? items.join('') : html`<li class="muted">결과가 없어요</li>`);
+		items.length ? items.join('') : html`<li class="empty">결과가 없어요</li>`);
 	area.querySelector('.search-more').hidden = result.isEnd;
 	state.page += 1;
 }
@@ -54,5 +55,5 @@ async function loadPage(area, state) {
  */
 function externalLink(url) {
 	return url && /^https?:\/\//.test(url)
-		? html`<a href="${url}" target="_blank" rel="noopener noreferrer">카카오맵</a>` : '';
+		? html`<span class="chip"><a href="${url}" target="_blank" rel="noopener noreferrer">카카오맵</a></span>` : '';
 }

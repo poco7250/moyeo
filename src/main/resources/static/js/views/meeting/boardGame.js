@@ -12,9 +12,9 @@ import {html, raw, toast} from '../../ui.js';
  * @returns {Promise<{refresh: () => Promise<void>}>} 다시 그리기 핸들
  */
 export async function mountBoardGames(box, board, state) {
-	box.innerHTML = html`<div class="board-game-area"><h3>보드게임 기록</h3>
+	box.innerHTML = html`<div class="board-game-area"><h3 class="band">보드게임 기록</h3>
 		<div class="board-game-list"></div>
-		<details class="board-game-editor"><summary>기록 남기기</summary>${raw(recordForm(board))}</details>
+		<details class="board-game-editor"><summary>✏️ 기록 남기기</summary>${raw(recordForm(board))}</details>
 	</div>`;
 	const area = box.querySelector('.board-game-area');
 	const form = area.querySelector('.board-game-form');
@@ -43,7 +43,8 @@ async function renderList(list, board, state, form, reload) {
 	const perRound = await Promise.all(board.rounds.map((r) => api.get(`/api/rounds/${r.roundId}/board-games`)));
 	const records = perRound.flat();
 	list.innerHTML = html`<div class="board-game-rows">${raw(records.length
-		? records.map((record) => recordRow(record, state)).join('') : html`<p class="muted">기록이 없어요</p>`)}</div>`;
+		? html`<ul class="list">${raw(records.map((record) => recordRow(record, state)).join(''))}</ul>`
+		: html`<p class="empty">기록이 없어요</p>`)}</div>`;
 	list.querySelector('.board-game-rows').addEventListener('click', (event) => {
 		const button = event.target.closest('button[data-record]');
 		const record = records.find((r) => String(r.id) === button?.dataset.record);
@@ -72,13 +73,16 @@ async function renderList(list, board, state, form, reload) {
  */
 function recordRow(record, state) {
 	const ranks = [...record.ranks].sort((a, b) => a.rank - b.rank)
-		.map((r) => `${r.rank}위 ${nameOf(state.directory, r.memberId)}`).join(', ');
+		.map((r) => `${r.rank}위 ${nameOf(state.directory, r.memberId)}`).join(' · ');
 	const editable = record.recordedByMemberId === state.ctx.me.id || state.ctx.detail.hostAuthority;
-	return html`<article><strong>${record.gameName}</strong>
-		<p><small>${raw(ranks)}</small></p><p>꼴등: ${raw(nameOf(state.directory, record.loserMemberId))}</p>
-		${raw(editable ? html`<button type="button" class="outline" data-act="edit" data-record="${record.id}">수정</button>
-			<button type="button" class="outline secondary" data-act="delete" data-record="${record.id}">삭제</button>` : '')}
-	</article>`;
+	return html`<li><div class="list-row">
+		<span class="icon-tile">🧩</span>
+		<span class="row-body"><span class="row-title">${record.gameName}
+			<span class="chip danger">꼴등 ${raw(nameOf(state.directory, record.loserMemberId))}</span></span>
+			<span class="row-sub">${raw(ranks)}</span>
+			${raw(editable ? html`<span class="row-actions"><button type="button" class="secondary" data-act="edit" data-record="${record.id}">수정</button>
+				<button type="button" class="secondary" data-act="delete" data-record="${record.id}">삭제</button></span>` : '')}</span>
+	</div></li>`;
 }
 
 /**
@@ -94,7 +98,7 @@ function recordForm(board) {
 		<p class="muted"><small>참가한 사람만 순위를 적어요(같은 순위 가능).</small></p>
 		<div class="rank-inputs"></div>
 		<label>꼴등 <select name="loserMemberId" required></select></label>
-		<button type="submit">저장</button>
+		<button type="submit" class="block-button">저장</button>
 	</form>`;
 }
 

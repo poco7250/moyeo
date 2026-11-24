@@ -14,6 +14,7 @@ import {renderSummary, warningText} from './settlementSummary.js';
 const EVENTS = new Set(['SETTLEMENT_REOPENED', 'SETTLEMENT_RECONFIRMED', 'EXPENSE_RECEIPT_CHANGED',
 	'PENALTY_CONDITION_RESET', 'GAME_STATE_CHANGED']);
 const STATUS_LABELS = {DRAFT: '정산 전', CONFIRMED: '정산 확정', REOPENED: '재확정 필요'};
+const STATUS_TONES = {DRAFT: '', CONFIRMED: 'success', REOPENED: 'warn'};
 
 /**
  * 정산 탭을 그린다.
@@ -68,12 +69,17 @@ function renderHead(box, state) {
 	const label = settlement.preview ? '미리보기' : `리비전 ${settlement.basisRevisionNo} 기준`;
 	const total = state.expenses.reduce((sum, expense) => sum + expense.amount, 0);
 	box.innerHTML = html`<div class="settle-head-area">
-		<h3>${STATUS_LABELS[settlement.status] ?? settlement.status} <small class="muted">${label}</small></h3>
-		<p>총 지출 ${formatWon(total)}</p>
-		${raw(settlement.status === 'REOPENED' ? html`<p><mark>정산이 바뀌었어요. 재확정이 필요해요. (아래 "정산 이력"에서 변경 내역을 볼 수 있어요)</mark></p>` : '')}
-		<button type="button" class="secondary outline" data-act="refresh">새로고침</button>
-		${raw(ctx.detail.settlementAuthority && settlement.status !== 'CONFIRMED'
+		<div class="highlight">
+			<div class="card-head"><small>총 지출</small>
+				<span class="chip ${STATUS_TONES[settlement.status] ?? ''}">${STATUS_LABELS[settlement.status] ?? settlement.status} · ${label}</span></div>
+			<span class="big">${formatWon(total)}</span>
+		</div>
+		${raw(settlement.status === 'REOPENED' ? html`<p><span class="chip warn">정산이 바뀌었어요. 재확정이 필요해요. (아래 "정산 이력"에서 변경 내역을 볼 수 있어요)</span></p>` : '')}
+		<div class="button-row">
+			<button type="button" class="secondary" data-act="refresh">↻ 새로고침</button>
+			${raw(ctx.detail.settlementAuthority && settlement.status !== 'CONFIRMED'
 		? html`<button type="button" data-act="confirm">${settlement.status === 'REOPENED' ? '재확정' : '정산 확정'}</button>` : '')}
+		</div>
 	</div>`;
 	box.querySelector('.settle-head-area').addEventListener('click', (event) => {
 		const act = event.target.closest('[data-act]')?.dataset.act;
