@@ -60,7 +60,7 @@ async function refreshAll(tab, state, expenses) {
 }
 
 /**
- * 상단: 상태·리비전 라벨·새로고침, 재확정 필요 배너, 확정·재확정 버튼(정산 권한).
+ * 상단: 상태·리비전 라벨·새로고침, 재확정 필요 배너, 확정·재확정 버튼(정산 권한), 확정 되돌리기 버튼(호스트 권한).
  * @param {HTMLElement} box 상단 영역
  * @param {{ctx: object, settlement: object, expenses: Array}} state 탭 상태
  */
@@ -79,6 +79,8 @@ function renderHead(box, state) {
 			<button type="button" class="secondary" data-act="refresh">↻ 새로고침</button>
 			${raw(ctx.detail.settlementAuthority && settlement.status !== 'CONFIRMED'
 		? html`<button type="button" data-act="confirm">${settlement.status === 'REOPENED' ? '재확정' : '정산 확정'}</button>` : '')}
+			${raw(ctx.detail.hostAuthority && settlement.status === 'CONFIRMED'
+		? html`<button type="button" class="secondary" data-act="reopen">확정 되돌리기</button>` : '')}
 		</div>
 	</div>`;
 	box.querySelector('.settle-head-area').addEventListener('click', (event) => {
@@ -87,11 +89,26 @@ function renderHead(box, state) {
 			runAction(event, async () => {
 				if (act === 'confirm') {
 					await confirmSettlement(ctx.meetingId, false);
+				} else if (act === 'reopen') {
+					await reopenSettlement(ctx.meetingId);
 				}
 				await state.reload();
 			});
 		}
 	});
+}
+
+/**
+ * 확정된 정산을 재확정 필요 상태로 되돌린다(호스트 권한). 확인 창에서 취소하면 아무것도 하지 않는다.
+ * @param {string} meetingId 모임 id
+ * @returns {Promise<void>}
+ */
+async function reopenSettlement(meetingId) {
+	if (!window.confirm('확정을 되돌리면 재확정 필요 상태가 돼요. 확정 기록은 이력에 남아요.\n되돌릴까요?')) {
+		return;
+	}
+	await api.post(`/api/meetings/${meetingId}/settlement/reopen`);
+	toast('확정을 되돌렸어요. 다시 확정해 주세요');
 }
 
 /**

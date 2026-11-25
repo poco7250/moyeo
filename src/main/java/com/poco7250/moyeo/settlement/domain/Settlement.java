@@ -83,6 +83,17 @@ public class Settlement extends BaseTimeEntity {
 	}
 
 	/**
+	 * 호스트가 확정을 되돌릴 수 있는 상태인지 검사한다(Task 075). CONFIRMED만 되돌릴 수 있다.
+	 *
+	 * @throws BusinessException CONFIRMED가 아니면 SETTLEMENT_NOT_CONFIRMED
+	 */
+	public void requireReopenable() {
+		if (status != SettlementStatus.CONFIRMED) {
+			throw new BusinessException(ErrorCode.SETTLEMENT_NOT_CONFIRMED);
+		}
+	}
+
+	/**
 	 * 정산이 한 번이라도 확정됐는지(리비전 1 이상이 있는지) 돌려준다.
 	 */
 	public boolean hasBeenConfirmed() {

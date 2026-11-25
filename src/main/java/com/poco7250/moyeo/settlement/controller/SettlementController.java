@@ -8,6 +8,7 @@ import com.poco7250.moyeo.settlement.dto.SettlementRevisionResponse;
 import com.poco7250.moyeo.settlement.service.SettlementConfirmService;
 import com.poco7250.moyeo.settlement.service.SettlementHistoryService;
 import com.poco7250.moyeo.settlement.service.SettlementQueryService;
+import com.poco7250.moyeo.settlement.service.SettlementReopenService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +19,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 정산 조회·확정·이력 API. 조회·이력은 그룹 멤버, 확정·재확정은 모임 호스트만 할 수 있다.
+ * 정산 조회·확정·되돌리기·이력 API. 조회·이력은 그룹 멤버, 확정·재확정은 정산 권한자(호스트·방장·총무),
+ * 확정 되돌리기는 호스트 권한자(호스트·방장)만 할 수 있다.
  */
 @RestController
 @RequestMapping("/api/meetings/{meetingId}/settlement")
@@ -28,6 +30,7 @@ public class SettlementController {
 	private final SettlementQueryService settlementQueryService;
 	private final SettlementConfirmService settlementConfirmService;
 	private final SettlementHistoryService settlementHistoryService;
+	private final SettlementReopenService settlementReopenService;
 
 	/**
 	 * 모임의 정산을 돌려준다.
@@ -54,5 +57,13 @@ public class SettlementController {
 			@RequestBody(required = false) SettlementConfirmRequest request) {
 		boolean acknowledged = request != null && request.acknowledged();
 		return ApiResponse.ok(settlementConfirmService.confirm(meetingId, memberId, acknowledged));
+	}
+
+	/**
+	 * 확정된 정산을 재확정 필요 상태로 되돌린다. 확정 리비전은 이력에 그대로 남는다.
+	 */
+	@PostMapping("/reopen")
+	public ApiResponse<SettlementResponse> reopen(@LoginMember Long memberId, @PathVariable Long meetingId) {
+		return ApiResponse.ok(settlementReopenService.reopen(meetingId, memberId));
 	}
 }

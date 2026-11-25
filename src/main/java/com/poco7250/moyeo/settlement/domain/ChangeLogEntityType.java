@@ -11,5 +11,8 @@ public enum ChangeLogEntityType {
 	PENALTY_RULE,
 
 	/** 게임 단위 벌칙 면제·면제 취소. 전원이 함께 바뀌므로 대상 id는 게임 id다 */
-	PENALTY
+	PENALTY,
+
+	/** 호스트의 정산 확정 되돌리기(Task 075). 대상 id는 정산 id다 */
+	SETTLEMENT
 }

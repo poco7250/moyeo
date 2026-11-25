@@ -2064,6 +2064,23 @@ Phase 14 067 → 068(정적 SPA 서빙) → 069(로그인·그룹) → 070(모�
   - [x] 게임·벌칙 단위/슬라이스 테스트, `AuthorizationMatrixTest` 엔드포인트 갱신, `./gradlew build` 전체 통과
   - [ ] 브라우저 수동 확인(사용자): 게임 만들기(차수 섞인 참가자·게스트·금액 입력), 사다리 공개 후 정산 탭 금액 반영·면제/면제 취소, 지난 모임 벌칙 표시
 
+### Task 075: 정산 확정 되돌리기(호스트)   🚧 진행 중 (브라우저 수동 확인 대기)
+
+- **브랜치:** `feature/settlement-reopen`
+- **배경:** 사용자 요청(2026-11-25). 확정된 정산은 금액 영향 변경이 있어야만 `REOPENED`가 돼서, 실수로 확정했거나 금액 변화 없이 다시 확인하고 싶을 때 사람이 직접 되돌릴 방법이 없었다(PRD S-10·S-11 보완)
+- **결정(2026-11-25, 사용자):** 되돌리기 = `CONFIRMED → REOPENED` 상태 전환만 한다. 확정 리비전·송금 안내는 지우지 않아(리비전 불변 원칙 유지) 재확정하면 리비전 +1과 직전 리비전 대비 변동액이 나온다. 권한은 호스트 권한(호스트·방장, `requireHost`)이고 총무는 403 `NOT_MEETING_HOST`
+- **구현 사항**
+  - [x] `Settlement.requireReopenable()`(CONFIRMED가 아니면 409 `SETTLEMENT_NOT_CONFIRMED`), `ErrorCode.SETTLEMENT_NOT_CONFIRMED`
+  - [x] `SettlementReopenService.reopen` + `POST /api/meetings/{meetingId}/settlement/reopen`(본문 없음, 200 `SettlementResponse`). `SettlementGuard.lockForAmountChange`로 확정·금액 영향 쓰기와 직렬화, 동시 요청은 늦은 쪽이 409
+  - [x] 변경 로그: `ChangeLogEntityType.SETTLEMENT`(대상 id = 정산 id, `UPDATE`), 전/후 `SettlementStatusSnapshot(status, revisionNo)`. `V3__change_log_settlement_entity.sql`로 `change_log.entity_type` enum에 추가
+  - [x] 실시간: 기존 `SettlementReopenedEvent`(`SETTLEMENT_REOPENED`) 재사용, 변경 요약 `(SETTLEMENT, 정산 id, UPDATE)`. 새 토픽 없음
+  - [x] 화면: 정산 탭 상단에 호스트 권한자 + `CONFIRMED`일 때만 "확정 되돌리기" 버튼(확인 창), 정산 이력에 "정산 확정 되돌림" 표시
+- **테스트**
+  - [x] `SettlementTest`(CONFIRMED만 되돌리기 가능), `SettlementControllerTest`(200·403·409·401), `AuthorizationMatrixTest`에 새 엔드포인트(HOST) 등록
+  - [x] `SettlementReopenIntegrationTest`: 호스트 되돌리기 → REOPENED·리비전 1 유지·변경 로그·이벤트 1회 → 재확정 리비전 2·변동액 0 / 방장 성공 / 총무·멤버 403 / DRAFT·REOPENED 409 / 동시 되돌리기 1건만 성공
+  - [x] `SchemaMigrationTest` 통과(V3 반영)
+  - [ ] 브라우저 수동 확인(사용자): 호스트·방장 화면에만 버튼, 되돌린 뒤 다른 창 "재확정 필요" 배너 실시간 반영, 이력 표시, 재확정 시 리비전 2
+
 ---
 
 ## 기능 ID 매핑
@@ -2114,8 +2131,8 @@ Phase 14 067 → 068(정적 SPA 서빙) → 069(로그인·그룹) → 070(모�
 | S-7 | P1 | 048 |
 | S-8 | P0 | 023, 035 |
 | S-9 | 제외(2026-11-22) | — (Task 062 제외) |
-| S-10 | P0 | 024, 038, 039, 074 |
-| S-11 | P0 | 021, 025, 039, 040 |
+| S-10 | P0 | 024, 038, 039, 074, 075 |
+| S-11 | P0 | 021, 025, 039, 040, 075 |
 | H-1 | P1 | 052 |
 | H-2 | P1 | 051 ✅ |
 | H-3 | P2 | 060 ✅ |

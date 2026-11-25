@@ -30,6 +30,7 @@ import com.poco7250.moyeo.settlement.dto.SettlementWarningResponse;
 import com.poco7250.moyeo.settlement.service.SettlementConfirmService;
 import com.poco7250.moyeo.settlement.service.SettlementHistoryService;
 import com.poco7250.moyeo.settlement.service.SettlementQueryService;
+import com.poco7250.moyeo.settlement.service.SettlementReopenService;
 import com.poco7250.moyeo.support.SecurityTestConfig;
 import jakarta.servlet.http.Cookie;
 import java.time.LocalDateTime;
@@ -84,6 +85,9 @@ class SettlementControllerTest {
 
 	@MockitoBean
 	SettlementHistoryService settlementHistoryService;
+
+	@MockitoBean
+	SettlementReopenService settlementReopenService;
 
 	@Test
 	@DisplayName("DRAFT 조회는 기준 리비전 null·미리보기 표시와 계산값·경고를 준다")
@@ -222,11 +226,36 @@ class SettlementControllerTest {
 	}
 
 	@Test
+	@DisplayName("확정 되돌리기는 본문 없이 200과 REOPENED 정산을 준다")
+	void reopen() throws Exception {
+		SettlementResponse reopened = new SettlementResponse(SettlementStatus.REOPENED, 1, false,
+				CONFIRMED.members(), CONFIRMED.transfers(), List.of(), List.of(), null, List.of());
+		given(settlementReopenService.reopen(10L, 8L)).willReturn(reopened);
+
+		mockMvc.perform(post("/api/meetings/10/settlement/reopen").cookie(accessCookie()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.status").value("REOPENED"))
+				.andExpect(jsonPath("$.data.basisRevisionNo").value(1));
+	}
+
+	@ParameterizedTest
+	@EnumSource(value = ErrorCode.class, names = {"NOT_GROUP_MEMBER", "NOT_MEETING_HOST", "SETTLEMENT_NOT_CONFIRMED"})
+	@DisplayName("확정 되돌리기 거부는 에러 코드의 상태와 코드로 응답한다")
+	void reopenRejected(ErrorCode errorCode) throws Exception {
+		given(settlementReopenService.reopen(10L, 8L)).willThrow(new BusinessException(errorCode));
+
+		mockMvc.perform(post("/api/meetings/10/settlement/reopen").cookie(accessCookie()))
+				.andExpect(status().is(errorCode.getStatus().value()))
+				.andExpect(jsonPath("$.error.code").value(errorCode.name()));
+	}
+
+	@Test
 	@DisplayName("비로그인 요청은 401이고 서비스를 부르지 않는다")
 	void unauthenticated() throws Exception {
 		mockMvc.perform(get("/api/meetings/10/settlement")).andExpect(status().isUnauthorized());
 		mockMvc.perform(post("/api/meetings/10/settlement/confirm")).andExpect(status().isUnauthorized());
-		verifyNoInteractions(settlementQueryService, settlementConfirmService);
+		mockMvc.perform(post("/api/meetings/10/settlement/reopen")).andExpect(status().isUnauthorized());
+		verifyNoInteractions(settlementQueryService, settlementConfirmService, settlementReopenService);
 	}
 
 	@Test
