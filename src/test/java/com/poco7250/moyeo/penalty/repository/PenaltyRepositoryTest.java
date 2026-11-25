@@ -97,7 +97,7 @@ class PenaltyRepositoryTest {
 	}
 
 	@Test
-	@DisplayName("저장한 벌칙은 ASSIGNED이고 면제 정보와 버전이 저장·조회된다")
+	@DisplayName("저장한 금액형 벌칙을 면제하면 면제 정보와 버전이 저장·조회된다")
 	void savesAndReads() {
 		Penalty penalty = penaltyRepository.saveAndFlush(Penalty.assign(session, first));
 		penalty.waive(second.getId(), WAIVED_AT);
@@ -118,9 +118,9 @@ class PenaltyRepositoryTest {
 	@DisplayName("게임의 비무효 벌칙만 조회한다(무효·다른 게임 제외)")
 	void findsNonVoidedOfGame() {
 		penaltyRepository.saveAndFlush(Penalty.assign(session, first));
-		Penalty applied = Penalty.assign(session, second);
-		applied.apply();
-		penaltyRepository.saveAndFlush(applied);
+		Penalty waived = Penalty.assign(session, second);
+		waived.waive(first.getId(), WAIVED_AT);
+		penaltyRepository.saveAndFlush(waived);
 		Penalty voided = Penalty.assign(session, third);
 		voided.voidOut();
 		penaltyRepository.saveAndFlush(voided);
@@ -134,6 +134,6 @@ class PenaltyRepositoryTest {
 
 	private GameSession saveGame(Round round) {
 		return gameSessionRepository.saveAndFlush(
-				GameSession.create(round, GameType.LADDER, 1L, PenaltyKind.MONEY, null, 1));
+				GameSession.create(round.getMeeting(), GameType.LADDER, 1L, PenaltyKind.MONEY, 10_000L, null, 1));
 	}
 }

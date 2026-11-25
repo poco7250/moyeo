@@ -3,7 +3,7 @@ package com.poco7250.moyeo.game.domain;
 import com.poco7250.moyeo.global.common.BaseTimeEntity;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
-import com.poco7250.moyeo.meeting.domain.Round;
+import com.poco7250.moyeo.meeting.domain.Meeting;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -25,7 +25,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 차수에서 벌칙자를 정하는 게임 한 회차. 상태 전이는 version 낙관적 락으로 먼저 온 요청만 반영한다.
+ * 모임에서 벌칙자를 정하는 게임 한 회차(참가자는 모임 아무 차수 참석자·게스트). 상태 전이는 version 낙관적 락으로 먼저 온 요청만 반영한다.
  * seed는 결과를 재현하는 값이라 공개 뒤에만 응답에 싣는다.
  */
 @Getter
@@ -44,8 +44,8 @@ public class GameSession extends BaseTimeEntity {
 	private Long id;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "round_id", nullable = false)
-	private Round round;
+	@JoinColumn(name = "meeting_id", nullable = false)
+	private Meeting meeting;
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
@@ -62,6 +62,9 @@ public class GameSession extends BaseTimeEntity {
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
 	private PenaltyKind penaltyKind;
+
+	// 금액형(MONEY) 벌칙자 1인이 내는 금액(원). 금액형만 값이 있고, 옛 차수 게임에서 옮겨 온 금액 없는 게임은 비어 있다
+	private Long penaltyAmount;
 
 	// 공개 전부터 보이는 안내 문구. 정산 계산에는 쓰지 않는다
 	@Column(length = 100)
@@ -97,32 +100,39 @@ public class GameSession extends BaseTimeEntity {
 	@Version
 	private Long version;
 
-	private GameSession(Round round, GameType type, Long createdBy, PenaltyKind penaltyKind,
-			String penaltyNote, int penaltyCount) {
-		this.round = round;
+	private GameSession(Meeting meeting, GameType type, Long createdBy, PenaltyKind penaltyKind,
+			Long penaltyAmount, String penaltyNote, int penaltyCount) {
+		this.meeting = meeting;
 		this.type = type;
 		this.status = GameStatus.WAITING;
 		this.createdBy = createdBy;
 		this.penaltyKind = penaltyKind;
+		this.penaltyAmount = penaltyAmount;
 		this.penaltyNote = penaltyNote;
 		this.penaltyCount = penaltyCount;
 	}
 
 	/**
 	 * 대기(WAITING) 상태의 새 게임을 만든다. 만든 회원이 진행자가 된다.
+	 * 금액은 금액형(MONEY)일 때만 받는다(값 검증은 요청 DTO가 한다).
+	 *
+	 * @throws IllegalArgumentException 금액형인데 금액이 없거나, 금액형이 아닌데 금액이 있으면(호출 쪽 버그)
 	 */
-	public static GameSession create(Round round, GameType type, Long createdBy, PenaltyKind penaltyKind,
-			String penaltyNote, int penaltyCount) {
-		return new GameSession(round, type, createdBy, penaltyKind, penaltyNote, penaltyCount);
+	public static GameSession create(Meeting meeting, GameType type, Long createdBy, PenaltyKind penaltyKind,
+			Long penaltyAmount, String penaltyNote, int penaltyCount) {
+		if ((penaltyKind == PenaltyKind.MONEY) != (penaltyAmount != null)) {
+			throw new IllegalArgumentException("금액은 금액형 게임에만 있어야 합니다.");
+		}
+		return new GameSession(meeting, type, createdBy, penaltyKind, penaltyAmount, penaltyNote, penaltyCount);
 	}
 
 	/**
-	 * 공개된 회차를 다시 돌릴 새 회차(WAITING)를 만든다. 종류·벌칙 설정·벌칙자 수는 원 회차를 복제하고,
+	 * 공개된 회차를 다시 돌릴 새 회차(WAITING)를 만든다. 종류·벌칙 설정(금액 포함)·벌칙자 수는 원 회차를 복제하고,
 	 * 적용 순서 시각과 원 회차 id를 이어받아 벌칙 적용 순번이 원래 자리를 지키게 한다. 요청자가 진행자가 된다.
 	 */
 	public static GameSession rerunOf(GameSession original, Long requesterId) {
-		GameSession rerun = new GameSession(original.round, original.type, requesterId, original.penaltyKind,
-				original.penaltyNote, original.penaltyCount);
+		GameSession rerun = new GameSession(original.meeting, original.type, requesterId, original.penaltyKind,
+				original.penaltyAmount, original.penaltyNote, original.penaltyCount);
 		rerun.rerunOf = original;
 		rerun.applyOrderAt = original.applyOrderAt;
 		rerun.rootSessionId = original.rootSessionId;
@@ -199,6 +209,13 @@ public class GameSession extends BaseTimeEntity {
 	 */
 	public void recordDraw(long seed) {
 		this.seed = seed;
+	}
+
+	/**
+	 * 정산에 금액이 반영되는 게임인지 확인한다(금액형이고 금액이 있음).
+	 */
+	public boolean chargesMoney() {
+		return penaltyKind == PenaltyKind.MONEY && penaltyAmount != null;
 	}
 
 	/**

@@ -4,7 +4,7 @@
  */
 
 import {api} from '../api.js';
-import {memberName, runAction} from '../common.js';
+import {formatWon, memberName, runAction} from '../common.js';
 import {subscribe} from '../realtime.js';
 import {navigate} from '../router.js';
 import {getMe} from '../session.js';
@@ -50,7 +50,7 @@ async function loadAndRender(view) {
 	clearTimers(view);
 	view.body.innerHTML = html`<div class="play-area">
 		<h1>${GAME_TYPES[game.type]}</h1>
-		<p class="play-status">${GAME_STATUS[game.status] ?? game.status} · ${PENALTY_KINDS[game.penaltyKind]}
+		<p class="play-status">${GAME_STATUS[game.status] ?? game.status} · ${PENALTY_KINDS[game.penaltyKind]}${game.penaltyAmount ? ` ${formatWon(game.penaltyAmount)}` : ''}
 			${game.penaltyNote ? ` · ${game.penaltyNote}` : ''}</p>
 		<div class="play-stage"></div>
 		<div class="play-actions">${raw(actionButtons(game, view.ctx))}</div>

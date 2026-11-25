@@ -173,7 +173,7 @@ class GameSessionTest {
 	@Test
 	@DisplayName("다시 돌린 회차는 WAITING으로 생기고 설정을 복제하며 적용 순서와 원 회차 id를 이어받는다")
 	void rerunOfCopiesAndInherits() {
-		GameSession original = GameSession.create(null, GameType.DRAW, CREATOR_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 2);
+		GameSession original = GameSession.create(null, GameType.DRAW, CREATOR_ID, PenaltyKind.MONEY, 10_000L, "꼴찌가 2차 30%", 2);
 		ReflectionTestUtils.setField(original, "id", 10L);
 		original.markAsRoot();
 		original.start();
@@ -235,7 +235,7 @@ class GameSessionTest {
 	}
 
 	private GameSession sessionWith(GameStatus status) {
-		GameSession session = GameSession.create(null, GameType.LADDER, CREATOR_ID, PenaltyKind.MONEY, null, 1);
+		GameSession session = GameSession.create(null, GameType.LADDER, CREATOR_ID, PenaltyKind.MONEY, 10_000L, null, 1);
 		ReflectionTestUtils.setField(session, "status", status);
 		return session;
 	}

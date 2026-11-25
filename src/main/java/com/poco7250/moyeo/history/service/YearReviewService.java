@@ -77,7 +77,7 @@ public class YearReviewService {
 		List<Attendance> noShows = roundIds.isEmpty() ? List.of()
 				: attendanceRepository.findAllNoShowByRoundIdIn(roundIds);
 		List<Penalty> penalties = roundIds.isEmpty() ? List.of()
-				: penaltyRepository.findAllActiveByRoundIdIn(roundIds);
+				: penaltyRepository.findAllActiveByMeetingIdIn(meetingIds);
 		return new YearReviewSource(groupName, meetings, rounds, attendances, noShows, totalExpense(meetingIds),
 				confirmedMeetingCount(meetingIds), penalties, penaltyAmounts(meetingIds), shareAmounts(meetingIds),
 				groupMembers);

@@ -44,12 +44,21 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 	List<Attendance> findAllByRoundId(Long roundId);
 
 	/**
-	 * 주어진 회원 중 차수에 참석(ATTEND)으로 응답한 회원을 조회한다(게임 참가자 선택 검증).
+	 * 주어진 회원 중 차수에 참석(ATTEND)으로 응답한 회원을 조회한다(보드게임 참가자 선택 검증).
 	 */
 	@Query("select a.member from Attendance a where a.round.id = :roundId "
 			+ "and a.status = com.poco7250.moyeo.meeting.domain.AttendanceStatus.ATTEND "
 			+ "and a.member.id in :memberIds")
 	List<Member> findAttendingMembers(@Param("roundId") Long roundId,
+			@Param("memberIds") Collection<Long> memberIds);
+
+	/**
+	 * 주어진 회원 중 모임의 아무 차수에든 참석(ATTEND)으로 응답한 회원을 한 번씩 조회한다(게임 참가자 선택 검증).
+	 */
+	@Query("select distinct a.member from Attendance a where a.round.meeting.id = :meetingId "
+			+ "and a.status = com.poco7250.moyeo.meeting.domain.AttendanceStatus.ATTEND "
+			+ "and a.member.id in :memberIds")
+	List<Member> findMeetingAttendingMembers(@Param("meetingId") Long meetingId,
 			@Param("memberIds") Collection<Long> memberIds);
 
 	/**

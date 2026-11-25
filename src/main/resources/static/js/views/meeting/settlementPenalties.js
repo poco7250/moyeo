@@ -1,6 +1,6 @@
 /*
- * 벌칙 조건(R-9, E2). 금액 벌칙 게임마다 벌칙자·상태·조건을 보여 주고, 정산 권한자에게 조건 입력
- * (고정 금액·비율·전액, 대상 지출 1건), 조건 해제, "금액 벌칙 없음"·면제 취소를 준다.
+ * 금액 벌칙 반영 내역(S-4, 2026-11-24 개정). 금액 벌칙 게임마다 금액·벌칙자·나눠 받는 사람을 보여 주고,
+ * 정산 권한자에게 면제·면제 취소를 준다. 금액은 게임을 만들 때 정해지므로 여기서 입력하지 않는다.
  */
 
 import {api} from '../../api.js';
@@ -9,9 +9,9 @@ import {html, raw, toast} from '../../ui.js';
 import {GAME_TYPES, PENALTY_STATUS} from './gameCommon.js';
 
 /**
- * 벌칙 조건 영역을 그린다. 금액 벌칙이 없으면 비운다.
+ * 벌칙 영역을 그린다. 금액 벌칙이 없으면 비운다.
  * @param {HTMLElement} box 벌칙 영역
- * @param {{ctx: object, directory: Map, settlement: {penalties: Array}, expenses: Array, reload: Function}} state 정산 탭 상태
+ * @param {{ctx: object, directory: Map, settlement: {penalties: Array}, reload: Function}} state 정산 탭 상태
  */
 export function renderPenalties(box, state) {
 	const games = groupByGame(state.settlement.penalties.filter((p) => p.status !== 'VOIDED'));
@@ -21,13 +21,7 @@ export function renderPenalties(box, state) {
 	}
 	box.innerHTML = html`<div class="penalty-area"><h3 class="band">벌칙 금액</h3>
 		${raw(games.map((penalties) => penaltyCard(penalties, state)).join(''))}</div>`;
-	const area = box.querySelector('.penalty-area');
-	area.addEventListener('submit', (event) => runAction(event, async () => {
-		await api.put(`/api/games/${event.target.dataset.game}/penalty-rule`, ruleBody(event.target));
-		toast('벌칙 조건을 적용했어요');
-		await state.reload();
-	}));
-	area.addEventListener('click', (event) => onPenaltyClick(event, state));
+	box.querySelector('.penalty-area').addEventListener('click', (event) => onPenaltyClick(event, state));
 }
 
 /**
@@ -42,82 +36,71 @@ function groupByGame(penalties) {
 }
 
 /**
- * 게임 하나의 벌칙 카드.
- * @param {Array<{memberId: number, status: string, game: object, rule: object|null, chargeAmount: number|null}>} penalties 이 게임 벌칙
- * @param {{ctx: object, directory: Map, expenses: Array}} state 정산 탭 상태
+ * 게임 하나의 벌칙 카드: 금액·상태, 벌칙자(게스트는 "앱 밖에서"), 나눠 받는 사람, 면제 버튼.
+ * @param {Array<{memberId: number, status: string, guest: boolean, game: {gameId: number, type: string, penaltyAmount: number|null},
+ *   chargeAmount: number|null, creditedMemberIds: Array<number>}>} penalties 이 게임 벌칙
+ * @param {{ctx: object, directory: Map}} state 정산 탭 상태
  * @returns {string} HTML
  */
 function penaltyCard(penalties, state) {
 	const [first] = penalties;
-	const people = penalties.map((p) => html`<span class="chip danger">${raw(nameOf(state.directory, p.memberId))}${p.chargeAmount != null ? ` ${formatWon(p.chargeAmount)}` : ''}</span>`);
-	const editable = state.ctx.detail.settlementAuthority;
-	const tone = {APPLIED: 'success', ASSIGNED: 'warn'}[first.status] ?? '';
+	const amount = first.game.penaltyAmount;
+	const tone = {APPLIED: 'success', WAIVED: '', ASSIGNED: 'warn'}[first.status] ?? '';
 	return html`<article>
-		<div class="card-head"><h4>🎯 ${first.game.roundName} · ${GAME_TYPES[first.game.type]}</h4>
+		<div class="card-head"><h4>🎯 ${GAME_TYPES[first.game.type]}${amount != null ? ` · 당첨자 ${formatWon(amount)}` : ''}</h4>
 			<span class="chip ${tone}">${PENALTY_STATUS[first.status] ?? first.status}</span></div>
-		<div class="people-line"><small>벌칙자</small><div>${raw(people.join(' '))}</div></div>
-		${raw(first.rule ? html`<p class="muted"><small>${ruleText(first.rule)}</small></p>` : '')}
-		${raw(editable ? ruleForm(first, state.expenses, state.ctx.detail.rounds) : '')}
+		<div class="people-line"><small>벌칙자</small><div>${raw(penalties.map((p) => penalizedChip(p, state.directory)).join(' '))}</div></div>
+		${raw(creditedLine(first, state.directory))}
+		${raw(state.ctx.detail.settlementAuthority ? waiverButton(first) : '')}
 	</article>`;
 }
 
 /**
- * 지금 조건을 글로 바꾼다.
- * @param {{moneyType: string, amount: number|null, ratioPct: number|null, targetExpense: {roundName: string, memo: string|null, amount: number}}} rule 조건
- * @returns {string} 안내 글
+ * 벌칙자 칩. 게스트는 정산에 안 들어가 "앱 밖에서"로, 정산 반영분은 부담액을 붙인다.
+ * @param {{memberId: number, guest: boolean, chargeAmount: number|null}} penalty 벌칙
+ * @param {Map<number, object>} directory 이름표
+ * @returns {string} HTML
  */
-function ruleText(rule) {
-	const how = rule.moneyType === 'FIXED_AMOUNT' ? `고정 ${formatWon(rule.amount)}`
-		: (rule.ratioPct === 100 ? '전액' : `${rule.ratioPct}%`);
-	const target = rule.targetExpense;
-	return `대상: ${target.roundName} ${target.memo ?? '지출'}(${formatWon(target.amount)}) · ${how}`;
+function penalizedChip(penalty, directory) {
+	const suffix = penalty.guest ? ' · 앱 밖에서' : (penalty.chargeAmount != null ? ` +${formatWon(penalty.chargeAmount)}` : '');
+	return html`<span class="chip danger">${raw(nameOf(directory, penalty.memberId))}${suffix}</span>`;
 }
 
 /**
- * 조건 입력 폼과 상태별 버튼(해제·금액 벌칙 없음·면제 취소).
- * @param {{status: string, game: {gameId: number}, rule: object|null}} penalty 대표 벌칙
- * @param {Array<{id: number, roundId: number, memo: string|null, amount: number}>} expenses 지출
- * @param {Array<{id: number, name: string}>} rounds 차수
+ * 나눠 받는 사람 줄. 정산에 반영 중일 때만 보인다.
+ * @param {{status: string, creditedMemberIds: Array<number>}} penalty 대표 벌칙
+ * @param {Map<number, object>} directory 이름표
  * @returns {string} HTML
  */
-function ruleForm(penalty, expenses, rounds) {
-	const roundName = (id) => rounds.find((r) => r.id === id)?.name ?? '';
-	const targets = expenses.map((e) => html`<option value="${e.id}" ${raw(penalty.rule?.targetExpense?.expenseId === e.id ? 'selected' : '')}>
-		${roundName(e.roundId)} ${e.memo ?? '지출'} ${formatWon(e.amount)}</option>`);
+function creditedLine(penalty, directory) {
+	if (penalty.status !== 'APPLIED') {
+		return '';
+	}
+	if (!penalty.creditedMemberIds.length) {
+		return html`<p class="muted"><small>나눠 받을 참가자가 없어 정산에는 반영되지 않아요.</small></p>`;
+	}
+	const names = penalty.creditedMemberIds.map((id) => html`<span class="chip">${raw(nameOf(directory, id))}</span>`);
+	return html`<div class="people-line"><small>덜 내는 사람</small><div>${raw(names.join(' '))}</div></div>`;
+}
+
+/**
+ * 면제(정산 반영 중) 또는 면제 취소(면제됨) 버튼. 금액 없는 옛 게임은 버튼이 없다.
+ * @param {{status: string, game: {gameId: number}}} penalty 대표 벌칙
+ * @returns {string} HTML
+ */
+function waiverButton(penalty) {
 	const gameId = penalty.game.gameId;
+	if (penalty.status === 'APPLIED') {
+		return html`<button type="button" class="secondary block-button" data-act="waive" data-game="${gameId}">이번엔 면제</button>`;
+	}
 	if (penalty.status === 'WAIVED') {
 		return html`<button type="button" class="secondary block-button" data-act="unwaive" data-game="${gameId}">면제 취소</button>`;
 	}
-	return html`<form data-game="${gameId}" class="rule-form">
-		<select name="moneyType"><option value="RATIO">비율</option><option value="FULL">전액</option><option value="FIXED_AMOUNT">고정 금액</option></select>
-		<input name="value" type="number" min="1" placeholder="비율(%) 또는 금액(원)">
-		<select name="targetExpenseId" required>${raw(targets.join('') || html`<option value="">지출을 먼저 넣어 주세요</option>`)}</select>
-		<button type="submit" class="block-button">조건 적용</button>
-		<div class="button-row">
-			<button type="button" class="secondary" data-act="waive" data-game="${gameId}">금액 벌칙 없음</button>
-			${raw(penalty.status === 'APPLIED' ? html`<button type="button" class="secondary" data-act="clear" data-game="${gameId}">조건 해제</button>` : '')}
-		</div>
-	</form>`;
+	return '';
 }
 
 /**
- * 조건 폼을 PenaltyRuleRequest로 바꾼다. 전액은 비율 100%다.
- * @param {HTMLFormElement} form 조건 폼
- * @returns {{moneyType: string, targetExpenseId: number, amount: number|null, ratioPct: number|null}} 요청 본문
- */
-function ruleBody(form) {
-	const type = form.elements.moneyType.value;
-	const value = Number(form.elements.value.value) || null;
-	return {
-		moneyType: type === 'FULL' ? 'RATIO' : type,
-		targetExpenseId: Number(form.elements.targetExpenseId.value),
-		amount: type === 'FIXED_AMOUNT' ? value : null,
-		ratioPct: type === 'FULL' ? 100 : (type === 'RATIO' ? value : null),
-	};
-}
-
-/**
- * 해제·금액 벌칙 없음·면제 취소 버튼을 처리한다.
+ * 면제·면제 취소 버튼을 처리한다.
  * @param {MouseEvent} event 클릭 이벤트
  * @param {{reload: () => Promise<void>}} state 정산 탭 상태
  */
@@ -126,14 +109,11 @@ function onPenaltyClick(event, state) {
 	if (!button) {
 		return;
 	}
-	const base = `/api/games/${button.dataset.game}`;
-	const requests = {
-		clear: () => api.delete(`${base}/penalty-rule`),
-		waive: () => api.post(`${base}/penalty-waiver`),
-		unwaive: () => api.delete(`${base}/penalty-waiver`),
-	};
+	const url = `/api/games/${button.dataset.game}/penalty-waiver`;
+	const waive = button.dataset.act === 'waive';
 	runAction(event, async () => {
-		await requests[button.dataset.act]();
+		await (waive ? api.post(url) : api.delete(url));
+		toast(waive ? '벌칙 금액을 면제했어요' : '면제를 취소했어요');
 		await state.reload();
 	});
 }

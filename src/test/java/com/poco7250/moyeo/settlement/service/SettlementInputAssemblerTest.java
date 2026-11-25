@@ -14,11 +14,9 @@ import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
 import com.poco7250.moyeo.member.domain.Member;
 import com.poco7250.moyeo.penalty.domain.Penalty;
-import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
-import com.poco7250.moyeo.penalty.domain.PenaltyRule;
 import com.poco7250.moyeo.settlement.calc.ExpenseInput;
 import com.poco7250.moyeo.settlement.calc.PenalizedMember;
-import com.poco7250.moyeo.settlement.calc.PenaltyRuleInput;
+import com.poco7250.moyeo.settlement.calc.GamePenaltyInput;
 import com.poco7250.moyeo.settlement.calc.SettlementInput;
 import com.poco7250.moyeo.settlement.calc.ShareAdjustment;
 import com.poco7250.moyeo.settlement.domain.Expense;
@@ -119,31 +117,32 @@ class SettlementInputAssemblerTest {
 	}
 
 	@Test
-	@DisplayName("벌칙은 APPLIED만 규칙 입력이 되고 ASSIGNED·WAIVED 게임은 빠진다. 정렬 키는 게임 값을 그대로 쓴다")
-	void onlyAppliedPenalties() {
-		Expense bowling = expense(31L, secondRound, chulsoo, 87_650L);
-		given(expenseRepository.findAllWithSharesByMeetingId(MEETING_ID)).willReturn(List.of(bowling));
+	@DisplayName("금액 게임마다 그룹 멤버 APPLIED 벌칙자와 나눠 받는 사람(참가자 − 벌칙자 − 게스트)을 입력으로 만든다")
+	void gamePenaltyInputs() {
+		given(expenseRepository.findAllWithSharesByMeetingId(MEETING_ID)).willReturn(List.of());
 		given(attendanceRepository.findAllByMeetingId(MEETING_ID)).willReturn(List.of());
 		LocalDateTime revealedAt = LocalDateTime.of(2026, 12, 20, 21, 0);
-		GameSession appliedGame = PenaltyFixtures.revealedMoneyGame(70L, secondRound, revealedAt);
-		GameSession assignedGame = PenaltyFixtures.revealedMoneyGame(71L, secondRound, revealedAt.plusMinutes(5));
-		GameSession waivedGame = PenaltyFixtures.revealedMoneyGame(72L, secondRound, revealedAt.plusMinutes(10));
-		Penalty minsooPenalty = PenaltyFixtures.penalty(80L, appliedGame, 3L);
-		Penalty jisooPenalty = PenaltyFixtures.penalty(81L, appliedGame, 2L);
-		Penalty assigned = PenaltyFixtures.penalty(82L, assignedGame, 1L);
-		Penalty waived = PenaltyFixtures.penalty(83L, waivedGame, 1L);
-		minsooPenalty.apply();
-		jisooPenalty.apply();
+		GameSession ladder = PenaltyFixtures.revealedMoneyGame(70L, secondRound, revealedAt, 12_000L);
+		GameSession waivedGame = PenaltyFixtures.revealedMoneyGame(71L, secondRound, revealedAt.plusMinutes(5));
+		GameSession legacy = PenaltyFixtures.revealedMoneyGame(72L, secondRound, revealedAt.plusMinutes(10));
+		ReflectionTestUtils.setField(legacy, "penaltyAmount", null);
+		Member guest = Member.guest("게스트");
+		ReflectionTestUtils.setField(guest, "id", 9L);
+		Penalty minsooPenalty = PenaltyFixtures.penalty(80L, ladder, 3L);
+		Penalty guestPenalty = Penalty.assign(ladder, guest);
+		ReflectionTestUtils.setField(guestPenalty, "id", 81L);
+		Penalty waived = PenaltyFixtures.penalty(82L, waivedGame, 1L);
 		waived.waive(1L, revealedAt);
-		PenaltyRule rule = PenaltyFixtures.ratioRule(90L, appliedGame, 30, bowling, 1L, revealedAt);
-		MeetingPenalties penalties = new MeetingPenalties(List.of(minsooPenalty, jisooPenalty, assigned, waived),
-				Map.of(70L, rule));
+		Penalty legacyPenalty = PenaltyFixtures.penalty(83L, legacy, 1L);
+		MeetingPenalties penalties = new MeetingPenalties(List.of(minsooPenalty, guestPenalty, waived, legacyPenalty),
+				Map.of(70L, List.of(chulsoo, jisoo, minsoo, member(4L), guest),
+						71L, List.of(chulsoo, jisoo)));
 
 		SettlementInput input = assembler.assemble(MEETING_ID, penalties);
 
-		assertThat(input.penaltyRules()).containsExactly(new PenaltyRuleInput(31L, PenaltyMoneyType.RATIO, null, 30,
-				appliedGame.getApplyOrderAt(), 70L,
-				List.of(new PenalizedMember(80L, 3L), new PenalizedMember(81L, 2L))));
+		assertThat(input.gamePenalties()).containsExactly(
+				new GamePenaltyInput(70L, 12_000L, List.of(new PenalizedMember(80L, 3L)), Set.of(1L, 2L, 4L)),
+				new GamePenaltyInput(71L, 10_000L, List.of(), Set.of(2L)));
 	}
 
 	@Test
@@ -152,7 +151,7 @@ class SettlementInputAssemblerTest {
 		given(expenseRepository.findAllWithSharesByMeetingId(MEETING_ID)).willReturn(List.of());
 		given(attendanceRepository.findAllByMeetingId(MEETING_ID)).willReturn(List.of());
 
-		assertThat(assembler.assemble(MEETING_ID).penaltyRules()).isEmpty();
+		assertThat(assembler.assemble(MEETING_ID).gamePenalties()).isEmpty();
 		verify(meetingPenaltyLoader).load(MEETING_ID);
 	}
 

@@ -102,7 +102,7 @@ public class MeetingHistoryService {
 		List<Attendance> attendances = attendanceRepository.findAllAttendingByRoundIdIn(roundIds);
 		List<Attendance> noShows = attendanceRepository.findAllNoShowByRoundIdIn(roundIds);
 		List<GameSession> games = MeetingHistoryAssembler.latestRevealedPerRoot(
-				gameSessionRepository.findAllRevealedByRoundIdIn(roundIds));
+				gameSessionRepository.findAllRevealedByMeetingIdIn(meetingIds));
 		List<Penalty> penalties = games.isEmpty() ? List.of()
 				: penaltyRepository.findAllActiveByGameSessionIdIn(games.stream().map(GameSession::getId).toList());
 		List<GameResult> orderResults = orderResults(games);

@@ -10,8 +10,9 @@ import java.util.List;
  * @param attendeeCount 한 차수라도 참석한 인원(중복 없음)
  * @param totalExpenseAmount 현재 지출 합계(원), 지출이 없으면 0
  * @param settlementRevisionNo 마지막 확정 리비전 번호, 확정 전이면 null
+ * @param games 모임의 게임(결과 공개된 것, 다시 돌린 게임은 마지막 회차만), 원 회차 순
  */
 public record MeetingHistoryResponse(Long meetingId, String title, LocalDateTime startAt, int attendeeCount,
 		long totalExpenseAmount, SettlementStatus settlementStatus, Integer settlementRevisionNo,
-		List<RoundHistoryResponse> rounds) {
+		List<RoundHistoryResponse> rounds, List<GameHistoryResponse> games) {
 }

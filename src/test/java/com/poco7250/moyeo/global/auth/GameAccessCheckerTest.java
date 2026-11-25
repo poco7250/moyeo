@@ -11,7 +11,6 @@ import com.poco7250.moyeo.game.repository.GameSessionRepository;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.Meeting;
-import com.poco7250.moyeo.meeting.domain.Round;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -95,10 +94,8 @@ class GameAccessCheckerTest {
 	private GameSession givenGame() {
 		Meeting meeting = mock(Meeting.class);
 		given(meeting.getId()).willReturn(MEETING_ID);
-		Round round = mock(Round.class);
-		given(round.getMeeting()).willReturn(meeting);
 		GameSession game = mock(GameSession.class);
-		given(game.getRound()).willReturn(round);
+		given(game.getMeeting()).willReturn(meeting);
 		given(gameSessionRepository.findById(GAME_ID)).willReturn(Optional.of(game));
 		return game;
 	}

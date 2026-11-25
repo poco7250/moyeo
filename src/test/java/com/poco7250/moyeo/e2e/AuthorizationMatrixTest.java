@@ -227,17 +227,15 @@ class AuthorizationMatrixTest {
 					"{\"acknowledgeWarnings\":false}"),
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/change-logs", Access.MEMBER),
 			// 게임·벌칙
-			endpoint(HttpMethod.GET, "/api/rounds/{roundId}/games", Access.MEMBER),
+			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/games", Access.MEMBER),
 			endpoint(HttpMethod.GET, "/api/games/{gameId}/state", Access.MEMBER),
-			new Endpoint(HttpMethod.POST, "/api/rounds/{roundId}/games", Access.MEMBER,
-					"{\"type\":\"LADDER\",\"penaltyKind\":\"MONEY\",\"participantMemberIds\":[{hostId},{memberId}]}"),
+			new Endpoint(HttpMethod.POST, "/api/meetings/{meetingId}/games", Access.MEMBER,
+					"{\"type\":\"LADDER\",\"penaltyKind\":\"MONEY\",\"penaltyAmount\":10000,"
+							+ "\"participantMemberIds\":[{hostId},{memberId}]}"),
 			endpoint(HttpMethod.POST, "/api/games/{gameId}/start", Access.OPERATOR),
 			endpoint(HttpMethod.POST, "/api/games/{gameId}/close", Access.OPERATOR),
 			endpoint(HttpMethod.POST, "/api/games/{gameId}/cancel", Access.OPERATOR),
 			endpoint(HttpMethod.POST, "/api/games/{gameId}/rerun", Access.OPERATOR),
-			new Endpoint(HttpMethod.PUT, "/api/games/{gameId}/penalty-rule", Access.HOST,
-					"{\"moneyType\":\"FULL\",\"targetExpenseId\":{expenseId}}"),
-			endpoint(HttpMethod.DELETE, "/api/games/{gameId}/penalty-rule", Access.HOST),
 			endpoint(HttpMethod.POST, "/api/games/{gameId}/penalty-waiver", Access.HOST),
 			endpoint(HttpMethod.DELETE, "/api/games/{gameId}/penalty-waiver", Access.HOST),
 			// 보드게임 기록
@@ -496,9 +494,9 @@ class AuthorizationMatrixTest {
 				Place.of("볼링장", null, null), plainMember)).getId().toString());
 		fixture.put("expenseId", expenseRepository.save(Expense.create(round, hostMember, 50_000L, "볼링"))
 				.getId().toString());
-		fixture.put("gameId", gameLobbyService.create(round.getId(), hostMember.getId(), new GameCreateRequest(
-				GameType.LADDER, PenaltyKind.MONEY, null, List.of(hostMember.getId(), plainMember.getId()), null))
-				.gameId().toString());
+		fixture.put("gameId", gameLobbyService.create(meeting.getId(), hostMember.getId(), new GameCreateRequest(
+				GameType.LADDER, PenaltyKind.MONEY, 10_000L, null, List.of(hostMember.getId(), plainMember.getId()),
+				null)).gameId().toString());
 		// 호스트가 기록해 둬 일반 멤버는 기록한 사람도 호스트도 아니다
 		fixture.put("boardGameId", boardGameRecordService.create(round.getId(), hostMember.getId(),
 				new BoardGameRecordRequest("점검", List.of(new BoardGameRankRequest(hostMember.getId(), 1),

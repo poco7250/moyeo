@@ -26,7 +26,7 @@ public class GameAccessChecker {
 	 */
 	public GameSession requireMember(Long gameId, Long memberId) {
 		GameSession game = findGame(gameId);
-		meetingAccessChecker.requireMember(game.getRound().getMeeting().getId(), memberId);
+		meetingAccessChecker.requireMember(game.getMeeting().getId(), memberId);
 		return game;
 	}
 
@@ -38,7 +38,7 @@ public class GameAccessChecker {
 	 */
 	public GameSession requireOperator(Long gameId, Long memberId) {
 		GameSession game = findGame(gameId);
-		Meeting meeting = meetingAccessChecker.requireMember(game.getRound().getMeeting().getId(), memberId);
+		Meeting meeting = meetingAccessChecker.requireMember(game.getMeeting().getId(), memberId);
 		if (!game.isOperator(memberId, meetingAccessChecker.hasHostAuthority(meeting, memberId))) {
 			throw new BusinessException(ErrorCode.NOT_GAME_OPERATOR);
 		}
@@ -53,7 +53,7 @@ public class GameAccessChecker {
 	 */
 	public GameSession requireSettlementManager(Long gameId, Long memberId) {
 		GameSession game = findGame(gameId);
-		meetingAccessChecker.requireSettlementManager(game.getRound().getMeeting().getId(), memberId);
+		meetingAccessChecker.requireSettlementManager(game.getMeeting().getId(), memberId);
 		return game;
 	}
 

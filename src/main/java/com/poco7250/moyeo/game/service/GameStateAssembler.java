@@ -42,7 +42,7 @@ public class GameStateAssembler {
 				.map(GameParticipant::getMember)
 				.toList();
 		List<Long> memberIds = members.stream().filter(member -> !member.isGuest()).map(Member::getId).toList();
-		Long groupId = game.getRound().getMeeting().getGroup().getId();
+		Long groupId = game.getMeeting().getGroup().getId();
 		Stream<GameParticipantResponse> groupMembers = memberIds.isEmpty() ? Stream.empty()
 				: groupMemberRepository.findAllByGroupIdAndMemberIdIn(groupId, memberIds).stream()
 						.map(GameParticipantResponse::from);

@@ -124,6 +124,6 @@ class GameParticipantRepositoryTest {
 
 	private GameSession saveGame(Round round) {
 		return gameSessionRepository.saveAndFlush(
-				GameSession.create(round, GameType.DRAW, 1L, PenaltyKind.NONE, null, 1));
+				GameSession.create(round.getMeeting(), GameType.DRAW, 1L, PenaltyKind.NONE, null, null, 1));
 	}
 }

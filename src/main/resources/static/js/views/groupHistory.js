@@ -52,7 +52,7 @@ function appendCards(list, items, first) {
 /**
  * 지난 모임 카드 하나.
  * @param {{meetingId: number, title: string, startAt: string, attendeeCount: number, totalExpenseAmount: number,
- *   settlementStatus: string|null, settlementRevisionNo: number|null, rounds: Array<object>}} meeting 모임
+ *   settlementStatus: string|null, settlementRevisionNo: number|null, rounds: Array<object>, games: Array<object>}} meeting 모임
  * @returns {string} HTML
  */
 function meetingCard(meeting) {
@@ -65,26 +65,35 @@ function meetingCard(meeting) {
 			<header><a href="/meetings/${meeting.meetingId}" data-link><strong>${meeting.title}</strong></a>
 				<small class="muted">${formatDate(meeting.startAt)}</small></header>
 			<p>참석 ${meeting.attendeeCount}명 · 총 지출 ${formatWon(meeting.totalExpenseAmount)} · ${settlement}</p>
+			${raw(gameLine(meeting.games))}
 			${raw(meeting.rounds.map(roundLine).join(''))}
 		</article>
 	`;
 }
 
 /**
- * 차수 한 줄: 장소·참석자·벌칙자·보드게임 꼴등.
- * @param {{name: string, place: {label: string}|null, attendees: Array, noShows: Array, games: Array, boardGames: Array}} round 차수
+ * 모임 게임 벌칙자 한 줄. 벌칙자가 없으면 비운다.
+ * @param {Array<{penalized: Array}>} games 모임 게임
+ * @returns {string} HTML
+ */
+function gameLine(games) {
+	const penalized = games.flatMap((game) => game.penalized);
+	return penalized.length ? html`<p>벌칙: ${raw(penalized.map(memberName).join(', '))}</p>` : '';
+}
+
+/**
+ * 차수 한 줄: 장소·참석자·보드게임 꼴등.
+ * @param {{name: string, place: {label: string}|null, attendees: Array, noShows: Array, boardGames: Array}} round 차수
  * @returns {string} HTML
  */
 function roundLine(round) {
 	const names = (members) => members.map(memberName).join(', ');
-	const penalized = round.games.flatMap((game) => game.penalized);
 	const losers = round.boardGames.map((record) => record.loser).filter(Boolean);
 	return html`
 		<details>
 			<summary>${round.name} · ${round.place?.label ?? '장소 미정'}</summary>
 			<p>참석: ${raw(names(round.attendees) || '없음')}</p>
 			${raw(round.noShows.length ? html`<p>노쇼: ${raw(names(round.noShows))}</p>` : '')}
-			${raw(penalized.length ? html`<p>벌칙: ${raw(names(penalized))}</p>` : '')}
 			${raw(losers.length ? html`<p>보드게임 꼴등: ${raw(names(losers))}</p>` : '')}
 		</details>
 	`;

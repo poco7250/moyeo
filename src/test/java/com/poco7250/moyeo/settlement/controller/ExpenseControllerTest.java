@@ -156,13 +156,12 @@ class ExpenseControllerTest {
 	@Test
 	@DisplayName("지출을 삭제하면 200과 빈 공통 응답을 준다")
 	void deleteExpense() throws Exception {
-		given(expenseService.delete(30L, 8L)).willReturn(new ExpenseDeleteResponse(30L, List.of(70L)));
+		given(expenseService.delete(30L, 8L)).willReturn(new ExpenseDeleteResponse(30L));
 
 		mockMvc.perform(delete("/api/expenses/30").cookie(accessCookie()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.expenseId").value(30))
-				.andExpect(jsonPath("$.data.conditionResetGameIds[0]").value(70));
+				.andExpect(jsonPath("$.data.expenseId").value(30));
 		verify(expenseService).delete(30L, 8L);
 	}
 

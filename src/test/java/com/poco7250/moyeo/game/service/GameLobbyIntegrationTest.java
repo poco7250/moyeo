@@ -152,14 +152,15 @@ class GameLobbyIntegrationTest {
 	void tearDown() {
 		Long meetingId = meeting.getId();
 		jdbcTemplate.update("delete from change_log where meeting_id = ?", meetingId);
-		String gameIds = "select id from game_session where round_id = " + round.getId();
+		String gameIds = "select id from game_session where meeting_id = " + round.getMeeting().getId();
 		jdbcTemplate.update("delete from penalty where game_session_id in (" + gameIds + ")");
 		jdbcTemplate.update("delete from game_result where game_session_id in (" + gameIds + ")");
 		jdbcTemplate.update("delete from game_participant where game_session_id in (" + gameIds + ")");
 		// 다시 돌린 회차가 원 회차를 가리키므로 참조를 먼저 비운다
-		jdbcTemplate.update("update game_session set rerun_of_id = null, canceled_rerun_of_id = null where round_id = ?",
-				round.getId());
-		jdbcTemplate.update("delete from game_session where round_id = ?", round.getId());
+		jdbcTemplate.update(
+				"update game_session set rerun_of_id = null, canceled_rerun_of_id = null where meeting_id = ?",
+				round.getMeeting().getId());
+		jdbcTemplate.update("delete from game_session where meeting_id = ?", round.getMeeting().getId());
 		jdbcTemplate.update("delete from attendance where round_id = ?", round.getId());
 		settlementRepository.deleteById(settlement.getId());
 		roundRepository.deleteById(round.getId());
@@ -191,8 +192,8 @@ class GameLobbyIntegrationTest {
 	@DisplayName("순서 정하기는 공개 전엔 순서·seed가 없고, 시작하면 seed로 재현되는 전원의 순서가 나오며 벌칙은 없다")
 	void orderCreateAndStart() {
 		List<Long> memberIds = List.of(host.getId(), second.getId(), third.getId());
-		GameStateResponse created = gameLobbyService.create(round.getId(), host.getId(),
-				new GameCreateRequest(GameType.ORDER, PenaltyKind.NONE, "볼링 레인 순서", memberIds, null));
+		GameStateResponse created = gameLobbyService.create(round.getMeeting().getId(), host.getId(),
+				new GameCreateRequest(GameType.ORDER, PenaltyKind.NONE, null, "볼링 레인 순서", memberIds, null));
 		assertThat(created.penaltyCount()).isZero();
 		assertThat(gameQueryService.getState(created.gameId(), absent.getId()).result()).isNull();
 
@@ -210,8 +211,8 @@ class GameLobbyIntegrationTest {
 	@DisplayName("순서 정하기를 다시 돌리면 새 회차가 순서 정하기로 복제되고 원 회차 순서는 그대로다")
 	void orderRerun() {
 		List<Long> memberIds = List.of(host.getId(), second.getId(), third.getId());
-		GameStateResponse original = gameLobbyService.start(gameLobbyService.create(round.getId(), host.getId(),
-				new GameCreateRequest(GameType.ORDER, PenaltyKind.NONE, null, memberIds, null)).gameId(), host.getId());
+		GameStateResponse original = gameLobbyService.start(gameLobbyService.create(round.getMeeting().getId(), host.getId(),
+				new GameCreateRequest(GameType.ORDER, PenaltyKind.NONE, null, null, memberIds, null)).gameId(), host.getId());
 
 		GameStateResponse rerun = gameRerunService.request(original.gameId(), host.getId());
 		GameStateResponse rerunStarted = gameLobbyService.start(rerun.gameId(), host.getId());
@@ -226,8 +227,8 @@ class GameLobbyIntegrationTest {
 	@Test
 	@DisplayName("룰렛은 사다리처럼 시작하면 벌칙자가 정해지고 벌칙이 생긴다")
 	void rouletteStart() {
-		GameStateResponse created = gameLobbyService.create(round.getId(), host.getId(),
-				new GameCreateRequest(GameType.ROULETTE, PenaltyKind.ACTION, null, List.of(second.getId(), third.getId()), null));
+		GameStateResponse created = gameLobbyService.create(round.getMeeting().getId(), host.getId(),
+				new GameCreateRequest(GameType.ROULETTE, PenaltyKind.ACTION, null, null, List.of(second.getId(), third.getId()), null));
 
 		GameStateResponse started = gameLobbyService.start(created.gameId(), host.getId());
 
@@ -274,7 +275,7 @@ class GameLobbyIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("확정된 정산에서 금액형 게임이 공개되면 벌칙자가 ASSIGNED로 생기고 정산이 REOPENED가 되며 변경 로그가 1건 남는다")
+	@DisplayName("확정된 정산에서 금액형 게임이 공개되면 벌칙자가 정산 반영(APPLIED)으로 생기고 정산이 REOPENED가 되며 변경 로그가 1건 남는다")
 	void moneyRevealAssignsPenaltyAndReopens() {
 		confirmSettlement();
 		GameStateResponse created = createGame(PenaltyKind.MONEY, 2,
@@ -287,7 +288,7 @@ class GameLobbyIntegrationTest {
 				.hasSize(2)
 				.isSorted()
 				.containsExactlyElementsOf(started.result().penaltyMemberIds());
-		assertThat(penaltyStatuses(created.gameId())).containsOnly("ASSIGNED");
+		assertThat(penaltyStatuses(created.gameId())).containsOnly("APPLIED");
 		assertThat(currentSettlement().getStatus()).isEqualTo(SettlementStatus.REOPENED);
 		List<ChangeLog> logs = changeLogRepository.findAllByMeetingIdOrderByChangedAtAscIdAsc(meeting.getId());
 		assertThat(logs).hasSize(1);
@@ -334,7 +335,7 @@ class GameLobbyIntegrationTest {
 				startAsync(created.gameId(), ready));
 
 		assertThat(starts.stream().map(CompletableFuture::join).filter(Objects::nonNull)).hasSize(1);
-		assertThat(penaltyStatuses(created.gameId())).containsExactly("ASSIGNED");
+		assertThat(penaltyStatuses(created.gameId())).containsExactly("APPLIED");
 		assertThat(changeLogRepository.findAllByMeetingIdOrderByChangedAtAscIdAsc(meeting.getId())).hasSize(1);
 	}
 
@@ -369,15 +370,15 @@ class GameLobbyIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("차수 게임 목록은 최근 순이고 공개된 게임만 결과를 담으며 취소된 게임도 보인다")
-	void roundGamesList() {
+	@DisplayName("모임 게임 목록은 최근 순이고 공개된 게임만 결과를 담으며 취소된 게임도 보인다")
+	void meetingGamesList() {
 		GameStateResponse revealed = createGame(PenaltyKind.NONE, List.of(second.getId(), third.getId()));
 		gameLobbyService.start(revealed.gameId(), host.getId());
 		GameStateResponse canceled = createGame(PenaltyKind.NONE, List.of(host.getId(), second.getId()));
 		gameLobbyService.cancel(canceled.gameId(), host.getId());
 		GameStateResponse waiting = createGame(PenaltyKind.NONE, List.of(host.getId(), third.getId()));
 
-		List<GameStateResponse> games = gameQueryService.getRoundGames(round.getId(), third.getId());
+		List<GameStateResponse> games = gameQueryService.getMeetingGames(round.getMeeting().getId(), third.getId());
 
 		assertThat(games).extracting(GameStateResponse::gameId)
 				.containsExactly(waiting.gameId(), canceled.gameId(), revealed.gameId());
@@ -389,7 +390,7 @@ class GameLobbyIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("그룹 멤버가 아니면 게임 상태와 차수 게임 목록을 볼 수 없다")
+	@DisplayName("그룹 멤버가 아니면 게임 상태와 모임 게임 목록을 볼 수 없다")
 	void queryRejectsNonMember() {
 		GameStateResponse created = createGame(PenaltyKind.NONE, List.of(second.getId(), third.getId()));
 		Member outsider = memberRepository.save(Member.ofKakao(nextKakaoId++, "외부인", null, null));
@@ -397,7 +398,7 @@ class GameLobbyIntegrationTest {
 		assertThatThrownBy(() -> gameQueryService.getState(created.gameId(), outsider.getId()))
 				.isInstanceOf(BusinessException.class)
 				.extracting("errorCode").isEqualTo(ErrorCode.NOT_GROUP_MEMBER);
-		assertThatThrownBy(() -> gameQueryService.getRoundGames(round.getId(), outsider.getId()))
+		assertThatThrownBy(() -> gameQueryService.getMeetingGames(round.getMeeting().getId(), outsider.getId()))
 				.isInstanceOf(BusinessException.class)
 				.extracting("errorCode").isEqualTo(ErrorCode.NOT_GROUP_MEMBER);
 		memberRepository.deleteById(outsider.getId());
@@ -438,8 +439,8 @@ class GameLobbyIntegrationTest {
 	}
 
 	private GameStateResponse createGame(PenaltyKind penaltyKind, Integer penaltyCount, List<Long> memberIds) {
-		return gameLobbyService.create(round.getId(), host.getId(),
-				new GameCreateRequest(GameType.LADDER, penaltyKind, null, memberIds, penaltyCount));
+		return gameLobbyService.create(round.getMeeting().getId(), host.getId(),
+				new GameCreateRequest(GameType.LADDER, penaltyKind, penaltyKind == PenaltyKind.MONEY ? 10_000L : null, null, memberIds, penaltyCount));
 	}
 
 	private List<Long> penaltyMemberIdsInInsertOrder(Long gameId) {

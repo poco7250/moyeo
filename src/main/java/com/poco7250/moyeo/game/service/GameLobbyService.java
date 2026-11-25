@@ -15,7 +15,7 @@ import com.poco7250.moyeo.global.auth.GameAccessChecker;
 import com.poco7250.moyeo.global.auth.MeetingAccessChecker;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
-import com.poco7250.moyeo.meeting.domain.Round;
+import com.poco7250.moyeo.meeting.domain.Meeting;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
 import com.poco7250.moyeo.meeting.repository.MeetingGuestRepository;
 import com.poco7250.moyeo.member.domain.Member;
@@ -64,19 +64,19 @@ public class GameLobbyService {
 	private final Clock clock;
 
 	/**
-	 * 고른 차수 참석자와 모임 게스트(G-6)로 게임 방을 만든다. 만든 회원이 진행자가 된다.
+	 * 고른 모임 참석자(아무 차수에든 ATTEND)와 모임 게스트(G-6)로 게임 방을 만든다. 만든 회원이 진행자가 된다.
 	 *
-	 * @throws BusinessException 차수 참석자도 그 모임 게스트도 아닌 회원이 있으면 GAME_PARTICIPANT_NOT_ATTENDING
+	 * @throws BusinessException 모임 참석자도 그 모임 게스트도 아닌 회원이 있으면 GAME_PARTICIPANT_NOT_ATTENDING
 	 */
-	public GameStateResponse create(Long roundId, Long memberId, GameCreateRequest request) {
-		Round round = meetingAccessChecker.requireRoundMember(roundId, memberId);
-		List<Member> members = findParticipants(round, request.participantMemberIds());
-		GameSession game = gameSessionRepository.save(GameSession.create(round, request.type(), memberId,
-				request.penaltyKind(), request.penaltyNote(), request.resolvedPenaltyCount()));
+	public GameStateResponse create(Long meetingId, Long memberId, GameCreateRequest request) {
+		Meeting meeting = meetingAccessChecker.requireMember(meetingId, memberId);
+		List<Member> members = findParticipants(meeting, request.participantMemberIds());
+		GameSession game = gameSessionRepository.save(GameSession.create(meeting, request.type(), memberId,
+				request.penaltyKind(), request.penaltyAmount(), request.penaltyNote(), request.resolvedPenaltyCount()));
 		game.markAsRoot();
 		gameParticipantRepository.saveAll(members.stream().map(member -> GameParticipant.create(game, member)).toList());
 		GameStateResponse state = gameStateAssembler.assemble(game);
-		eventPublisher.publishEvent(GameStateChangedEvent.toMeeting(round.getMeeting().getId(), state));
+		eventPublisher.publishEvent(GameStateChangedEvent.toMeeting(meeting.getId(), state));
 		return state;
 	}
 
@@ -124,13 +124,13 @@ public class GameLobbyService {
 	}
 
 	/**
-	 * 참가자 후보가 전부 차수 참석(ATTEND) 멤버이거나 그 모임 게스트인지 확인하고 회원을 돌려준다(참석자 먼저, 게스트 다음).
-	 * 게스트는 참석 응답이 없어 두 집합이 겹치지 않는다.
+	 * 참가자 후보가 전부 모임 참석(아무 차수에든 ATTEND) 멤버이거나 그 모임 게스트인지 확인하고 회원을 돌려준다
+	 * (참석자 먼저, 게스트 다음). 게스트는 참석 응답이 없어 두 집합이 겹치지 않는다.
 	 */
-	private List<Member> findParticipants(Round round, List<Long> memberIds) {
-		List<Member> members = new ArrayList<>(attendanceRepository.findAttendingMembers(round.getId(), memberIds));
-		List<Long> guestIds = meetingGuestRepository.findMemberIdsByMeetingIdAndMemberIdIn(
-				round.getMeeting().getId(), memberIds);
+	private List<Member> findParticipants(Meeting meeting, List<Long> memberIds) {
+		List<Member> members = new ArrayList<>(attendanceRepository.findMeetingAttendingMembers(meeting.getId(),
+				memberIds));
+		List<Long> guestIds = meetingGuestRepository.findMemberIdsByMeetingIdAndMemberIdIn(meeting.getId(), memberIds);
 		if (members.size() + guestIds.size() != memberIds.size()) {
 			throw new BusinessException(ErrorCode.GAME_PARTICIPANT_NOT_ATTENDING);
 		}
@@ -179,7 +179,7 @@ public class GameLobbyService {
 	}
 
 	private void recordMoneyGameCancel(GameSession game, Long memberId, GameStatus before) {
-		Long meetingId = game.getRound().getMeeting().getId();
+		Long meetingId = game.getMeeting().getId();
 		settlementGuard.lockOnly(meetingId);
 		changeLogRecorder.record(meetingId, memberId, ChangeLogEntityType.GAME_SESSION, game.getId(), ChangeType.UPDATE,
 				GameChangeSnapshot.of(game, before), GameChangeSnapshot.of(game, game.getStatus()));
@@ -188,7 +188,7 @@ public class GameLobbyService {
 	private GameStateResponse publishStateChanged(GameSession game) {
 		GameStateResponse state = gameStateAssembler.assemble(game);
 		eventPublisher.publishEvent(GameStateChangedEvent.toGame(game.getId(), state));
-		eventPublisher.publishEvent(GameStateChangedEvent.toMeeting(game.getRound().getMeeting().getId(), state));
+		eventPublisher.publishEvent(GameStateChangedEvent.toMeeting(game.getMeeting().getId(), state));
 		return state;
 	}
 }

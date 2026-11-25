@@ -72,7 +72,7 @@ public class HallOfFameService {
 		}
 		List<Attendance> attendances = attendanceRepository.findAllAttendingByRoundIdIn(roundIds);
 		List<Attendance> noShows = attendanceRepository.findAllNoShowByRoundIdIn(roundIds);
-		List<Penalty> penalties = penaltyRepository.findAllActiveByRoundIdIn(roundIds);
+		List<Penalty> penalties = penaltyRepository.findAllActiveByMeetingIdIn(meetingIds);
 		List<BoardGameRecord> boardGames = boardGameRecordRepository.findAllByRoundIdInOrderByIdAsc(roundIds);
 		return new HallOfFameSource(meetings, rounds, attendances, noShows, penalties, penaltyAmounts(meetingIds),
 				boardGames, groupMembers);

@@ -27,17 +27,12 @@ import com.poco7250.moyeo.meeting.repository.MeetingRepository;
 import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.member.domain.Member;
 import com.poco7250.moyeo.member.repository.MemberRepository;
-import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
-import com.poco7250.moyeo.penalty.domain.PenaltyRule;
-import com.poco7250.moyeo.penalty.repository.PenaltyRuleRepository;
 import com.poco7250.moyeo.settlement.domain.ChangeLog;
 import com.poco7250.moyeo.settlement.domain.ChangeLogEntityType;
 import com.poco7250.moyeo.settlement.domain.ChangeType;
-import com.poco7250.moyeo.settlement.domain.Expense;
 import com.poco7250.moyeo.settlement.domain.Settlement;
 import com.poco7250.moyeo.settlement.domain.SettlementStatus;
 import com.poco7250.moyeo.settlement.repository.ChangeLogRepository;
-import com.poco7250.moyeo.settlement.repository.ExpenseRepository;
 import com.poco7250.moyeo.settlement.repository.SettlementRepository;
 import com.poco7250.moyeo.support.TestcontainersConfiguration;
 import java.time.LocalDateTime;
@@ -102,12 +97,6 @@ class GameRerunIntegrationTest {
 	ChangeLogRepository changeLogRepository;
 
 	@Autowired
-	ExpenseRepository expenseRepository;
-
-	@Autowired
-	PenaltyRuleRepository penaltyRuleRepository;
-
-	@Autowired
 	JdbcTemplate jdbcTemplate;
 
 	private Group group;
@@ -138,16 +127,16 @@ class GameRerunIntegrationTest {
 	void tearDown() {
 		Long meetingId = meeting.getId();
 		jdbcTemplate.update("delete from change_log where meeting_id = ?", meetingId);
-		String gameIds = "select id from game_session where round_id = " + round.getId();
-		jdbcTemplate.update("delete from penalty_rule where game_session_id in (" + gameIds + ")");
+		String gameIds = "select id from game_session where meeting_id = " + meetingId;
 		jdbcTemplate.update("delete from expense where round_id = ?", round.getId());
 		jdbcTemplate.update("delete from penalty where game_session_id in (" + gameIds + ")");
 		jdbcTemplate.update("delete from game_result where game_session_id in (" + gameIds + ")");
 		jdbcTemplate.update("delete from game_participant where game_session_id in (" + gameIds + ")");
 		// 회차끼리 자기 참조 FK가 있어 먼저 끊고 지운다
-		jdbcTemplate.update("update game_session set rerun_of_id = null, canceled_rerun_of_id = null where round_id = ?",
-				round.getId());
-		jdbcTemplate.update("delete from game_session where round_id = ?", round.getId());
+		jdbcTemplate.update(
+				"update game_session set rerun_of_id = null, canceled_rerun_of_id = null where meeting_id = ?",
+				meetingId);
+		jdbcTemplate.update("delete from game_session where meeting_id = ?", meetingId);
 		jdbcTemplate.update("delete from attendance where round_id = ?", round.getId());
 		settlementRepository.deleteById(settlement.getId());
 		roundRepository.deleteById(round.getId());
@@ -203,7 +192,7 @@ class GameRerunIntegrationTest {
 		gameRerunService.request(original.gameId(), host.getId());
 		assertRejected(() -> gameRerunService.request(original.gameId(), host.getId()), ErrorCode.GAME_NOT_RERUNNABLE);
 
-		assertThat(gameQueryService.getRoundGames(round.getId(), host.getId())).hasSize(3);
+		assertThat(gameQueryService.getMeetingGames(meeting.getId(), host.getId())).hasSize(3);
 	}
 
 	@RepeatedTest(5)
@@ -244,7 +233,7 @@ class GameRerunIntegrationTest {
 		assertThat(log.getActorId()).isEqualTo(creator.getId());
 		assertThat(log.getSettlementStatusAfter()).isEqualTo(SettlementStatus.REOPENED);
 		assertThat(log.getAfterJson()).contains("\"rerunOfId\":" + original.gameId());
-		assertThat(penaltyStatuses(original.gameId())).containsExactly("ASSIGNED");
+		assertThat(penaltyStatuses(original.gameId())).containsExactly("APPLIED");
 	}
 
 	@Test
@@ -258,12 +247,12 @@ class GameRerunIntegrationTest {
 		assertThat(canceled.status()).isEqualTo(GameStatus.CANCELED);
 		assertThat(canceled.rerunOfId()).isNull();
 		assertThat(canceled.canceledRerunOfId()).isEqualTo(original.gameId());
-		assertThat(penaltyStatuses(original.gameId())).containsExactly("ASSIGNED");
+		assertThat(penaltyStatuses(original.gameId())).containsExactly("APPLIED");
 
 		GameStateResponse second = gameRerunService.request(original.gameId(), host.getId());
 
 		assertThat(second.rerunOfId()).isEqualTo(original.gameId());
-		List<GameStateResponse> games = gameQueryService.getRoundGames(round.getId(), third.getId());
+		List<GameStateResponse> games = gameQueryService.getMeetingGames(meeting.getId(), third.getId());
 		assertThat(games).extracting(GameStateResponse::gameId)
 				.containsExactly(second.gameId(), rerun.gameId(), original.gameId());
 		assertThat(games).extracting(GameStateResponse::canceledRerunOfId)
@@ -272,15 +261,9 @@ class GameRerunIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("조건이 적용된 금액형 회차를 다시 돌려 공개하면 원 벌칙은 VOIDED로 남고 규칙이 새 회차로 옮겨지며 새 벌칙자는 APPLIED다")
-	void rerunRevealMovesRuleAndInheritsApplied() {
+	@DisplayName("금액형 회차를 다시 돌려 공개하면 원 벌칙은 VOIDED로 남고, 새 회차는 금액을 이어받아 새 벌칙자가 APPLIED다")
+	void rerunRevealCopiesAmountAndApplies() {
 		GameStateResponse original = revealedGame(PenaltyKind.MONEY);
-		LocalDateTime ruleSetAt = LocalDateTime.of(2026, 12, 20, 22, 0);
-		Expense bowling = expenseRepository.save(Expense.create(round, host, 87_650L, "볼링"));
-		PenaltyRule rule = penaltyRuleRepository.save(PenaltyRule.create(
-				gameSessionRepository.findById(original.gameId()).orElseThrow(), PenaltyMoneyType.RATIO, null, 30,
-				bowling, host.getId(), ruleSetAt));
-		jdbcTemplate.update("update penalty set status = 'APPLIED' where game_session_id = ?", original.gameId());
 		GameStateResponse rerun = gameRerunService.request(original.gameId(), host.getId());
 		jdbcTemplate.update("delete from change_log where meeting_id = ?", meeting.getId());
 		jdbcTemplate.update("update settlement set status = 'CONFIRMED' where id = ?", settlement.getId());
@@ -288,26 +271,15 @@ class GameRerunIntegrationTest {
 		GameStateResponse revealed = gameLobbyService.start(rerun.gameId(), host.getId());
 
 		assertThat(revealed.status()).isEqualTo(GameStatus.REVEALED);
+		assertThat(revealed.penaltyAmount()).isEqualTo(10_000L);
 		assertThat(penaltyStatuses(original.gameId())).containsExactly("VOIDED");
 		assertThat(penaltyStatuses(rerun.gameId())).containsExactly("APPLIED");
-		assertThat(jdbcTemplate.queryForObject("select count(*) from penalty_rule where game_session_id = ?",
-				Integer.class, original.gameId())).isZero();
-		Map<String, Object> moved = jdbcTemplate.queryForMap(
-				"select id, set_by, updated_at, target_expense_id from penalty_rule where game_session_id = ?",
-				rerun.gameId());
-		assertThat(moved.get("id")).isEqualTo(rule.getId());
-		assertThat(moved.get("set_by")).isEqualTo(host.getId());
-		assertThat(moved.get("updated_at")).isEqualTo(ruleSetAt);
-		assertThat(moved.get("target_expense_id")).isEqualTo(bowling.getId());
 		assertThat(settlementRepository.findById(settlement.getId()).orElseThrow().getStatus())
 				.isEqualTo(SettlementStatus.REOPENED);
 		List<ChangeLog> logs = changeLogRepository.findAllByMeetingIdOrderByChangedAtAscIdAsc(meeting.getId());
-		assertThat(logs).extracting(ChangeLog::getEntityType)
-				.containsExactly(ChangeLogEntityType.PENALTY_RULE, ChangeLogEntityType.GAME_SESSION);
+		assertThat(logs).extracting(ChangeLog::getEntityType).containsExactly(ChangeLogEntityType.GAME_SESSION);
 		assertThat(logs).extracting(ChangeLog::getSettlementStatusAfter).containsOnly(SettlementStatus.REOPENED);
-		assertThat(logs.get(0).getBeforeJson()).contains("\"gameSessionId\":" + original.gameId());
-		assertThat(logs.get(0).getAfterJson()).contains("\"gameSessionId\":" + rerun.gameId());
-		assertThat(logs.get(1).getAfterJson())
+		assertThat(logs.getFirst().getAfterJson())
 				.contains("\"rerunOfId\":" + original.gameId(), "\"inheritedStatus\":\"APPLIED\"");
 	}
 
@@ -372,8 +344,9 @@ class GameRerunIntegrationTest {
 	}
 
 	private GameStateResponse createGame(PenaltyKind penaltyKind) {
-		return gameLobbyService.create(round.getId(), creator.getId(), new GameCreateRequest(GameType.LADDER,
-				penaltyKind, "꼴찌가 2차 30%", List.of(creator.getId(), third.getId()), null));
+		return gameLobbyService.create(meeting.getId(), creator.getId(), new GameCreateRequest(GameType.LADDER,
+				penaltyKind, penaltyKind == PenaltyKind.MONEY ? 10_000L : null, "꽝이 만 원",
+				List.of(creator.getId(), third.getId()), null));
 	}
 
 	private List<String> penaltyStatuses(Long gameId) {

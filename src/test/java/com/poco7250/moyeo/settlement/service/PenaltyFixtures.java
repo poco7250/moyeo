@@ -6,8 +6,6 @@ import com.poco7250.moyeo.game.domain.PenaltyKind;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.member.domain.Member;
 import com.poco7250.moyeo.penalty.domain.Penalty;
-import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
-import com.poco7250.moyeo.penalty.domain.PenaltyRule;
 import com.poco7250.moyeo.settlement.domain.Expense;
 import java.time.LocalDateTime;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -33,7 +31,15 @@ final class PenaltyFixtures {
 	 * 결과가 공개된 금액형 사다리 원 회차.
 	 */
 	static GameSession revealedMoneyGame(Long id, Round round, LocalDateTime revealedAt) {
-		GameSession game = GameSession.create(round, GameType.LADDER, 1L, PenaltyKind.MONEY, null, 1);
+		return revealedMoneyGame(id, round, revealedAt, 10_000L);
+	}
+
+	/**
+	 * 결과가 공개된 금액형 사다리 원 회차(벌칙자 1인 금액 지정).
+	 */
+	static GameSession revealedMoneyGame(Long id, Round round, LocalDateTime revealedAt, long amount) {
+		GameSession game = GameSession.create(round.getMeeting(), GameType.LADDER, 1L, PenaltyKind.MONEY, amount,
+				null, 1);
 		ReflectionTestUtils.setField(game, "id", id);
 		game.markAsRoot();
 		game.start();
@@ -57,12 +63,5 @@ final class PenaltyFixtures {
 		Expense expense = Expense.create(round, member(payerId), amount, memo);
 		ReflectionTestUtils.setField(expense, "id", id);
 		return expense;
-	}
-
-	static PenaltyRule ratioRule(Long id, GameSession game, int ratioPct, Expense target, Long setBy,
-			LocalDateTime setAt) {
-		PenaltyRule rule = PenaltyRule.create(game, PenaltyMoneyType.RATIO, null, ratioPct, target, setBy, setAt);
-		ReflectionTestUtils.setField(rule, "id", id);
-		return rule;
 	}
 }

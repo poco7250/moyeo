@@ -11,14 +11,12 @@ import com.poco7250.moyeo.group.dto.GroupCreateResponse;
 import com.poco7250.moyeo.meeting.domain.AttendanceStatus;
 import com.poco7250.moyeo.meeting.domain.RoundTemplate;
 import com.poco7250.moyeo.meeting.dto.MeetingDetailResponse;
-import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
 import com.poco7250.moyeo.settlement.dto.ExpenseDeleteResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementResponse;
 import com.poco7250.moyeo.settlement.dto.SettlementRevisionResponse;
 import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpMethod;
@@ -102,13 +100,13 @@ public final class ScenarioApi {
 	}
 
 	/**
-	 * 금액형 게임 방을 만든다.
+	 * 모임에 금액형 게임 방을 만든다(벌칙자 1인 금액 포함).
 	 */
-	public GameStateResponse createMoneyGame(Long memberId, Long roundId, GameType type, List<Long> participantIds,
-			int penaltyCount) {
+	public GameStateResponse createMoneyGame(Long memberId, Long meetingId, GameType type, List<Long> participantIds,
+			int penaltyCount, long penaltyAmount) {
 		Map<String, Object> body = Map.of("type", type, "penaltyKind", PenaltyKind.MONEY,
-				"participantMemberIds", participantIds, "penaltyCount", penaltyCount);
-		return ok(HttpMethod.POST, "/api/rounds/" + roundId + "/games", memberId, body, GameStateResponse.class);
+				"penaltyAmount", penaltyAmount, "participantMemberIds", participantIds, "penaltyCount", penaltyCount);
+		return ok(HttpMethod.POST, "/api/meetings/" + meetingId + "/games", memberId, body, GameStateResponse.class);
 	}
 
 	/**
@@ -119,16 +117,10 @@ public final class ScenarioApi {
 	}
 
 	/**
-	 * 게임의 벌칙 금액 조건을 설정하거나 바꾼다. 종류에 안 맞는 값은 null로 보낸다.
+	 * 게임의 금액 벌칙을 면제한다.
 	 */
-	public void setRule(Long memberId, Long gameId, PenaltyMoneyType moneyType, Long targetExpenseId, Long amount,
-			Integer ratioPct) {
-		Map<String, Object> body = new HashMap<>();
-		body.put("moneyType", moneyType);
-		body.put("targetExpenseId", targetExpenseId);
-		body.put("amount", amount);
-		body.put("ratioPct", ratioPct);
-		okData(HttpMethod.PUT, "/api/games/" + gameId + "/penalty-rule", memberId, body);
+	public void waive(Long memberId, Long gameId) {
+		okData(HttpMethod.POST, "/api/games/" + gameId + "/penalty-waiver", memberId, null);
 	}
 
 	/**

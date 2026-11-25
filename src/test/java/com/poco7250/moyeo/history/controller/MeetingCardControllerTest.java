@@ -51,7 +51,7 @@ class MeetingCardControllerTest {
 		HistoryMemberResponse minsu = new HistoryMemberResponse(3L, "민수", "🎳", false);
 		given(meetingCardService.get(10L, 8L)).willReturn(new MeetingCardResponse("대학 동기",
 				new MeetingHistoryResponse(10L, "11월 모임", LocalDateTime.of(2026, 11, 1, 18, 0), 3, 87_650L,
-						SettlementStatus.CONFIRMED, 1, List.of()),
+						SettlementStatus.CONFIRMED, 1, List.of(), List.of()),
 				List.of(new CardShareResponse(minsu, 35_000L))));
 
 		mockMvc.perform(get(URL).cookie(accessCookie()))

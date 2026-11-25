@@ -33,10 +33,7 @@ import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.member.domain.Member;
 import com.poco7250.moyeo.member.repository.MemberRepository;
 import com.poco7250.moyeo.penalty.domain.Penalty;
-import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
-import com.poco7250.moyeo.penalty.domain.PenaltyRule;
 import com.poco7250.moyeo.penalty.repository.PenaltyRepository;
-import com.poco7250.moyeo.penalty.repository.PenaltyRuleRepository;
 import com.poco7250.moyeo.settlement.domain.Expense;
 import com.poco7250.moyeo.settlement.domain.PenaltyCharge;
 import com.poco7250.moyeo.settlement.domain.Settlement;
@@ -111,9 +108,6 @@ class HallOfFameIntegrationTest {
 
 	@Autowired
 	MeetingGuestRepository meetingGuestRepository;
-
-	@Autowired
-	PenaltyRuleRepository penaltyRuleRepository;
 
 	@Autowired
 	BoardGameRecordRepository boardGameRecordRepository;
@@ -227,23 +221,20 @@ class HallOfFameIntegrationTest {
 		respond(round, younghee, AttendanceStatus.ABSENT);
 		saveNoShow(round, jisu);
 		saveNoShow(roundRepository.save(Round.create(meeting, 2, "노래방")), jisu);
-		Expense meal = expenseRepository.save(Expense.create(round, host, 50_000L, "고기"));
-		GameSession ladder = saveRevealedGame(GameSession.create(round, GameType.LADDER, host.getId(),
-				PenaltyKind.MONEY, "꽝이 고기값", 1));
+		expenseRepository.save(Expense.create(round, host, 50_000L, "고기"));
+		GameSession ladder = saveRevealedGame(GameSession.create(round.getMeeting(), GameType.LADDER, host.getId(),
+				PenaltyKind.MONEY, 10_000L, "꽝이 고기값", 1));
 		Penalty minsuPenalty = penaltyRepository.save(Penalty.assign(ladder, minsu));
-		minsuPenalty.apply();
-		PenaltyRule rule = penaltyRuleRepository.save(PenaltyRule.create(ladder, PenaltyMoneyType.FIXED_AMOUNT,
-				10_000L, null, meal, host.getId(), AT));
 		Settlement settlement = settlementRepository.findByMeetingId(meeting.getId()).orElseThrow();
-		saveRevision(settlement, minsuPenalty, rule, 10_000L);
+		saveRevision(settlement, minsuPenalty, 10_000L);
 		settlement.reopen();
-		saveRevision(settlement, minsuPenalty, rule, 12_000L);
+		saveRevision(settlement, minsuPenalty, 12_000L);
 		saveActionRerun(round);
 		// 모임 게스트 벌칙은 앱 밖 사람이라 순위에 안 나온다(G-6)
 		guest = memberRepository.save(Member.guest("민수 친구"));
 		meetingGuestRepository.save(MeetingGuest.add(meeting, guest, host.getId()));
-		penaltyRepository.save(Penalty.assign(saveRevealedGame(GameSession.create(round, GameType.LADDER,
-				host.getId(), PenaltyKind.ACTION, null, 1)), guest));
+		penaltyRepository.save(Penalty.assign(saveRevealedGame(GameSession.create(round.getMeeting(), GameType.LADDER,
+				host.getId(), PenaltyKind.ACTION, null, null, 1)), guest));
 		saveBoardGame(round, minsu, minsu, younghee);
 		BoardGameRecord beforeLoser = BoardGameRecord.create(round, "옛 기록", host.getId(),
 				List.of(BoardGameRank.of(host.getId(), 1), BoardGameRank.of(younghee.getId(), 2)), younghee.getId());
@@ -262,8 +253,8 @@ class HallOfFameIntegrationTest {
 		respond(round, jisu, AttendanceStatus.ATTEND);
 		respond(round, host, AttendanceStatus.UNDECIDED);
 		saveNoShow(round, minsu);
-		GameSession draw = saveRevealedGame(GameSession.create(round, GameType.DRAW, host.getId(),
-				PenaltyKind.MONEY, null, 1));
+		GameSession draw = saveRevealedGame(GameSession.create(round.getMeeting(), GameType.DRAW, host.getId(),
+				PenaltyKind.MONEY, 10_000L, null, 1));
 		penaltyRepository.save(Penalty.assign(draw, younghee)).waive(host.getId(), AT);
 		saveBoardGame(round, younghee, younghee, host);
 		return meeting;
@@ -275,8 +266,8 @@ class HallOfFameIntegrationTest {
 				savePastMeeting("다가오는 모임", LocalDateTime.of(2099, 1, 1, 18, 0)), 1, "밥"));
 		respond(upcoming, jisu, AttendanceStatus.ATTEND);
 		saveNoShow(upcoming, younghee);
-		penaltyRepository.save(Penalty.assign(saveRevealedGame(GameSession.create(upcoming, GameType.LADDER,
-				host.getId(), PenaltyKind.ACTION, null, 1)), jisu));
+		penaltyRepository.save(Penalty.assign(saveRevealedGame(GameSession.create(upcoming.getMeeting(), GameType.LADDER,
+				host.getId(), PenaltyKind.ACTION, null, null, 1)), jisu));
 		Meeting voting = meetingRepository.save(Meeting.createWithDateVote(group, "날짜 투표", null, null, host.getId()));
 		settlementRepository.save(Settlement.createDraft(voting));
 		Group other = groupRepository.save(Group.create("다른 그룹"));
@@ -286,23 +277,23 @@ class HallOfFameIntegrationTest {
 		Round otherRound = roundRepository.save(Round.create(otherMeeting, 1, "밥"));
 		respond(otherRound, minsu, AttendanceStatus.ATTEND);
 		saveNoShow(otherRound, younghee);
-		penaltyRepository.save(Penalty.assign(saveRevealedGame(GameSession.create(otherRound, GameType.LADDER,
-				host.getId(), PenaltyKind.ACTION, null, 1)), minsu));
+		penaltyRepository.save(Penalty.assign(saveRevealedGame(GameSession.create(otherRound.getMeeting(), GameType.LADDER,
+				host.getId(), PenaltyKind.ACTION, null, null, 1)), minsu));
 	}
 
 	private void saveActionRerun(Round round) {
-		GameSession original = saveRevealedGame(GameSession.create(round, GameType.DRAW, host.getId(),
-				PenaltyKind.ACTION, "노래 한 곡", 1));
+		GameSession original = saveRevealedGame(GameSession.create(round.getMeeting(), GameType.DRAW, host.getId(),
+				PenaltyKind.ACTION, null, "노래 한 곡", 1));
 		penaltyRepository.save(Penalty.assign(original, host)).voidOut();
 		GameSession rerun = saveRevealedGame(GameSession.rerunOf(original, host.getId()));
 		penaltyRepository.save(Penalty.assign(rerun, younghee));
 	}
 
-	private void saveRevision(Settlement settlement, Penalty penalty, PenaltyRule rule, long amount) {
+	private void saveRevision(Settlement settlement, Penalty penalty, long amount) {
 		int revisionNo = settlement.confirm(AT);
 		SettlementRevision revision = settlementRevisionRepository.save(
 				SettlementRevision.create(settlement, revisionNo, host, AT, false));
-		penaltyChargeRepository.save(PenaltyCharge.create(revision, penalty, amount, rule));
+		penaltyChargeRepository.save(PenaltyCharge.create(revision, penalty, amount, 10_000L));
 	}
 
 	private void saveBoardGame(Round round, Member loser, Member... participants) {

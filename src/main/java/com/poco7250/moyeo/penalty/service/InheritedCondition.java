@@ -9,7 +9,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * 새 벌칙자가 이어받을 조건 상태. 최초 공개면 조건이 없는 ASSIGNED다.
+ * 새 벌칙자가 원 회차에서 이어받을 상태. 면제(WAIVED)만 실제로 이어받는다. 최초 공개면 ASSIGNED(이어받을 것 없음)다.
  *
  * @param waivedBy 면제 상태를 이어받을 때의 원래 면제자
  * @param waivedAt 면제 상태를 이어받을 때의 원래 면제 시각
@@ -20,7 +20,7 @@ record InheritedCondition(PenaltyStatus status, Long waivedBy, LocalDateTime wai
 
 	/**
 	 * 원 회차의 비무효 벌칙에서 조건 상태를 읽는다.
-	 * 조건 설정과 면제는 게임 단위로 전원에게 적용되므로 가장 먼저 생긴 벌칙 하나를 기준으로 삼는다.
+	 * 면제는 게임 단위로 전원에게 적용되므로 가장 먼저 생긴 벌칙 하나를 기준으로 삼는다.
 	 */
 	static InheritedCondition from(List<Penalty> activeOriginals) {
 		return activeOriginals.stream()
@@ -30,13 +30,12 @@ record InheritedCondition(PenaltyStatus status, Long waivedBy, LocalDateTime wai
 	}
 
 	/**
-	 * 이 조건 상태를 가진 새 벌칙을 만든다.
+	 * 새 벌칙을 만들고, 원 회차가 면제(WAIVED)였으면 면제 상태를 이어받게 한다.
+	 * 금액형이면 새 벌칙은 APPLIED로 생기므로 면제만 이어받으면 된다.
 	 */
 	Penalty newPenalty(GameSession game, Member member) {
 		Penalty penalty = Penalty.assign(game, member);
-		if (status == PenaltyStatus.APPLIED) {
-			penalty.apply();
-		} else if (status == PenaltyStatus.WAIVED) {
+		if (status == PenaltyStatus.WAIVED && penalty.getStatus() == PenaltyStatus.APPLIED) {
 			penalty.waive(waivedBy, waivedAt);
 		}
 		return penalty;

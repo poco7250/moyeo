@@ -163,10 +163,11 @@ class MeetingHistoryIntegrationTest {
 		assertThat(second.place()).isNull();
 		assertThat(second.attendees()).extracting(HistoryMemberResponse::nickname).containsExactly("영희");
 		assertThat(second.noShows()).isEmpty();
-		assertThat(second.games()).extracting(GameHistoryResponse::gameId).containsExactly(rerun.getId());
-		assertThat(second.games().get(0).penalized()).extracting(HistoryMemberResponse::nickname)
+		assertThat(item.games()).extracting(GameHistoryResponse::gameId).containsExactly(rerun.getId());
+		assertThat(item.games().get(0).penaltyAmount()).isEqualTo(10_000L);
+		assertThat(item.games().get(0).penalized()).extracting(HistoryMemberResponse::nickname)
 				.containsExactly("영희");
-		assertThat(second.games().get(0).ordered()).isEmpty();
+		assertThat(item.games().get(0).ordered()).isEmpty();
 	}
 
 	@Test
@@ -176,11 +177,11 @@ class MeetingHistoryIntegrationTest {
 		Round bowling = roundRepository.save(Round.create(meeting, 1, "볼링"));
 		Member guest = memberRepository.save(Member.guest("민수 친구"));
 		meetingGuestRepository.save(MeetingGuest.add(meeting, guest, host.getId()));
-		saveRevealedGame(GameSession.create(bowling, GameType.LADDER, host.getId(), PenaltyKind.ACTION, null, 1),
+		saveRevealedGame(GameSession.create(bowling.getMeeting(), GameType.LADDER, host.getId(), PenaltyKind.ACTION, null, null, 1),
 				guest);
 
 		GameHistoryResponse game = meetingHistoryService.list(group.getId(), minsu.getId(), 0, 20)
-				.items().get(0).rounds().get(0).games().get(0);
+				.items().get(0).games().get(0);
 
 		assertThat(game.penalized()).containsExactly(HistoryMemberResponse.guest(guest.getId(), "민수 친구"));
 	}
@@ -191,7 +192,7 @@ class MeetingHistoryIntegrationTest {
 		Meeting meeting = savePastMeeting("6월 모임", LocalDateTime.of(2020, 6, 1, 18, 0));
 		Round bowling = roundRepository.save(Round.create(meeting, 1, "볼링"));
 		GameSession order = gameSessionRepository.save(
-				GameSession.create(bowling, GameType.ORDER, host.getId(), PenaltyKind.NONE, "레인 순서", 0));
+				GameSession.create(bowling.getMeeting(), GameType.ORDER, host.getId(), PenaltyKind.NONE, null, "레인 순서", 0));
 		order.markAsRoot();
 		order.start();
 		order.reveal(RESPONDED_AT);
@@ -199,7 +200,7 @@ class MeetingHistoryIntegrationTest {
 				GameResult.ordered(order, younghee, 1), GameResult.ordered(order, host, 3)));
 
 		GameHistoryResponse game = meetingHistoryService.list(group.getId(), minsu.getId(), 0, 20)
-				.items().get(0).rounds().get(0).games().get(0);
+				.items().get(0).games().get(0);
 
 		assertThat(game.type()).isEqualTo(GameType.ORDER);
 		assertThat(game.penalized()).isEmpty();
@@ -227,7 +228,7 @@ class MeetingHistoryIntegrationTest {
 		assertThat(first.ranks()).extracting(BoardGameRankHistoryResponse::rank).containsExactly(1, 1, 2);
 		assertThat(first.ranks()).extracting(r -> r.member().nickname()).containsExactly("호스트", "민수", "영희");
 		assertThat(first.loser().nickname()).isEqualTo("영희");
-		assertThat(round.games()).isEmpty();
+		assertThat(meetingHistoryService.list(group.getId(), minsu.getId(), 0, 20).items().get(0).games()).isEmpty();
 	}
 
 	@Test
@@ -282,16 +283,16 @@ class MeetingHistoryIntegrationTest {
 	 * 원 회차(벌칙자 민수) → 다시 돌린 회차 공개(벌칙자 영희, 원 벌칙 무효) + 취소된 게임·대기 중 게임을 만든다.
 	 */
 	private GameSession saveRerunGame(Round round) {
-		GameSession original = saveRevealedGame(GameSession.create(round, GameType.LADDER, host.getId(),
-				PenaltyKind.MONEY, "꽝이 볼링비", 1), minsu);
+		GameSession original = saveRevealedGame(GameSession.create(round.getMeeting(), GameType.LADDER, host.getId(),
+				PenaltyKind.MONEY, 10_000L, "꽝이 볼링비", 1), minsu);
 		GameSession rerun = saveRevealedGame(GameSession.rerunOf(original, host.getId()), younghee);
 		penaltyRepository.findAllByGameSessionIdAndStatusNot(original.getId(), PenaltyStatus.VOIDED).forEach(Penalty::voidOut);
 		GameSession canceled = gameSessionRepository.save(
-				GameSession.create(round, GameType.DRAW, host.getId(), PenaltyKind.NONE, null, 1));
+				GameSession.create(round.getMeeting(), GameType.DRAW, host.getId(), PenaltyKind.NONE, null, null, 1));
 		canceled.markAsRoot();
 		canceled.cancel();
 		GameSession waiting = gameSessionRepository.save(
-				GameSession.create(round, GameType.DRAW, host.getId(), PenaltyKind.NONE, null, 1));
+				GameSession.create(round.getMeeting(), GameType.DRAW, host.getId(), PenaltyKind.NONE, null, null, 1));
 		waiting.markAsRoot();
 		return rerun;
 	}

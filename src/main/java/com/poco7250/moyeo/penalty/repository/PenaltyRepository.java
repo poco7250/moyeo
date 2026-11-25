@@ -26,21 +26,21 @@ public interface PenaltyRepository extends JpaRepository<Penalty, Long> {
 	List<Penalty> findAllActiveByGameSessionIdIn(@Param("gameSessionIds") Collection<Long> gameSessionIds);
 
 	/**
-	 * 모임의 금액형 게임 벌칙 중 무효가 아닌 것을 게임·차수와 함께 게임 순번 → 원 회차 id → 벌칙 id 순으로 조회한다.
-	 * 정산 계산과 벌칙 반영 내역(PRD S-4)·확정 게이트에 쓴다. 모임 게스트(G-6) 벌칙은 앱 밖에서 정산하므로 뺀다.
+	 * 모임의 금액형 게임 벌칙 중 무효가 아닌 것을 게임·회원과 함께 게임 순번 → 원 회차 id → 벌칙 id 순으로 조회한다.
+	 * 정산 계산과 벌칙 반영 내역(PRD S-4)에 쓴다. 모임 게스트(G-6) 벌칙도 "앱 밖에서 내기" 표시용으로 담고,
+	 * 계산 입력을 만들 때 뺀다.
 	 */
-	@Query("select p from Penalty p join fetch p.gameSession g join fetch g.round r "
-			+ "where r.meeting.id = :meetingId "
+	@Query("select p from Penalty p join fetch p.gameSession g join fetch p.member "
+			+ "where g.meeting.id = :meetingId "
 			+ "and p.status <> com.poco7250.moyeo.penalty.domain.PenaltyStatus.VOIDED "
 			+ "and g.penaltyKind = com.poco7250.moyeo.game.domain.PenaltyKind.MONEY "
-			+ "and p.member.guest = false "
 			+ "order by g.applyOrderAt, g.rootSessionId, p.id")
 	List<Penalty> findAllActiveMoneyByMeetingId(@Param("meetingId") Long meetingId);
 
 	/**
-	 * 여러 차수의 게임 벌칙 중 무효가 아닌 것을 id 순으로 조회한다(명예의 전당). 회원은 id만 쓰므로 fetch join하지 않는다.
+	 * 여러 모임의 게임 벌칙 중 무효가 아닌 것을 id 순으로 조회한다(명예의 전당·연말 결산). 회원은 id만 쓰므로 fetch join하지 않는다.
 	 */
-	@Query("select p from Penalty p where p.gameSession.round.id in :roundIds "
+	@Query("select p from Penalty p where p.gameSession.meeting.id in :meetingIds "
 			+ "and p.status <> com.poco7250.moyeo.penalty.domain.PenaltyStatus.VOIDED order by p.id")
-	List<Penalty> findAllActiveByRoundIdIn(@Param("roundIds") Collection<Long> roundIds);
+	List<Penalty> findAllActiveByMeetingIdIn(@Param("meetingIds") Collection<Long> meetingIds);
 }

@@ -46,15 +46,17 @@ import org.springframework.test.web.servlet.ResultActions;
 class GameControllerTest {
 
 	private static final Long MEMBER_ID = 8L;
-	private static final String CREATE_URL = "/api/rounds/100/games";
+	private static final String CREATE_URL = "/api/meetings/100/games";
 	private static final List<GameParticipantResponse> PARTICIPANTS = List.of(
 			new GameParticipantResponse(8L, "민수", "🍖", false), new GameParticipantResponse(9L, "영희", null, false));
 	private static final GameStateResponse WAITING = new GameStateResponse(300L, 100L, GameType.LADDER,
-			GameStatus.WAITING, MEMBER_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, 300L, null, null, PARTICIPANTS, null);
+			GameStatus.WAITING, MEMBER_ID, PenaltyKind.MONEY, 10_000L, "꽝이 만 원", 1, 300L, null, null, PARTICIPANTS,
+			null);
 	private static final GameStateResponse RERUN = new GameStateResponse(301L, 100L, GameType.LADDER,
-			GameStatus.WAITING, MEMBER_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, 300L, 300L, null, PARTICIPANTS, null);
+			GameStatus.WAITING, MEMBER_ID, PenaltyKind.MONEY, 10_000L, "꽝이 만 원", 1, 300L, 300L, null, PARTICIPANTS,
+			null);
 	private static final GameStateResponse REVEALED = new GameStateResponse(300L, 100L, GameType.LADDER,
-			GameStatus.REVEALED, MEMBER_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, 300L, null, null, PARTICIPANTS,
+			GameStatus.REVEALED, MEMBER_ID, PenaltyKind.MONEY, 10_000L, "꽝이 만 원", 1, 300L, null, null, PARTICIPANTS,
 			GameResultResponse.penalty(42L, List.of(9L)));
 
 	@Autowired
@@ -110,9 +112,9 @@ class GameControllerTest {
 	}
 
 	@Test
-	@DisplayName("차수 게임 목록은 공개된 게임만 결과를 담는다")
-	void roundGames() throws Exception {
-		given(gameQueryService.getRoundGames(100L, MEMBER_ID)).willReturn(List.of(WAITING, REVEALED));
+	@DisplayName("모임 게임 목록은 공개된 게임만 결과를 담는다")
+	void meetingGames() throws Exception {
+		given(gameQueryService.getMeetingGames(100L, MEMBER_ID)).willReturn(List.of(WAITING, REVEALED));
 
 		query(CREATE_URL)
 				.andExpect(status().isOk())
@@ -122,9 +124,9 @@ class GameControllerTest {
 	}
 
 	@Test
-	@DisplayName("그룹 멤버가 아니면 차수 게임 목록은 403 NOT_GROUP_MEMBER다")
-	void roundGamesForbidden() throws Exception {
-		given(gameQueryService.getRoundGames(100L, MEMBER_ID))
+	@DisplayName("그룹 멤버가 아니면 모임 게임 목록은 403 NOT_GROUP_MEMBER다")
+	void meetingGamesForbidden() throws Exception {
+		given(gameQueryService.getMeetingGames(100L, MEMBER_ID))
 				.willThrow(new BusinessException(ErrorCode.NOT_GROUP_MEMBER));
 
 		query(CREATE_URL)
@@ -141,15 +143,17 @@ class GameControllerTest {
 	}
 
 	@Test
-	@DisplayName("게임을 만들면 201과 안내 문구를 주고 공개 전 결과는 없다")
+	@DisplayName("게임을 만들면 201과 금액·안내 문구를 주고 공개 전 결과는 없다")
 	void createResponse() throws Exception {
 		given(gameLobbyService.create(eq(100L), eq(MEMBER_ID), any())).willReturn(WAITING);
 
-		create(body("\"꼴찌가 2차 30%\"", "[8, 9]", "1"))
+		create(body("\"꽝이 만 원\"", "[8, 9]", "1"))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.data.status").value("WAITING"))
-				.andExpect(jsonPath("$.data.penaltyNote").value("꼴찌가 2차 30%"))
+				.andExpect(jsonPath("$.data.meetingId").value(100))
+				.andExpect(jsonPath("$.data.penaltyAmount").value(10_000))
+				.andExpect(jsonPath("$.data.penaltyNote").value("꽝이 만 원"))
 				.andExpect(jsonPath("$.data.participants[0].nickname").value("민수"))
 				.andExpect(jsonPath("$.data.result").doesNotExist())
 				.andExpect(jsonPath("$.data.seed").doesNotExist())
@@ -187,6 +191,27 @@ class GameControllerTest {
 	}
 
 	@ParameterizedTest
+	@ValueSource(strings = {"null", "0", "100000001"})
+	@DisplayName("금액 벌칙인데 금액이 없거나 1원~1억 원을 벗어나면 400이다")
+	void moneyAmountInvalid(String amount) throws Exception {
+		String body = """
+				{"type": "LADDER", "penaltyKind": "MONEY", "penaltyAmount": %s, "participantMemberIds": [8, 9]}
+				""".formatted(amount);
+		mockMvc.perform(post(CREATE_URL).cookie(loginCookie()).contentType(MediaType.APPLICATION_JSON).content(body))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error.code").value("INVALID_INPUT"));
+		verifyNoInteractions(gameLobbyService);
+	}
+
+	@Test
+	@DisplayName("금액 벌칙이 아닌데 금액을 넣으면 400이다")
+	void amountOnNonMoney() throws Exception {
+		assertInvalid("""
+				{"type": "LADDER", "penaltyKind": "ACTION", "penaltyAmount": 1000, "participantMemberIds": [8, 9]}
+				""", "penaltyAmountMatchesKind");
+	}
+
+	@ParameterizedTest
 	@ValueSource(strings = {"MONEY", "ACTION"})
 	@DisplayName("순서 정하기를 벌칙 있는 게임으로 만들면 400이다")
 	void orderWithPenaltyKind(String penaltyKind) throws Exception {
@@ -211,7 +236,7 @@ class GameControllerTest {
 	@DisplayName("순서 정하기를 시작하면 1번부터 차례로 놓인 회원 id와 seed를 돌려준다")
 	void orderStartResponse() throws Exception {
 		GameStateResponse ordered = new GameStateResponse(300L, 100L, GameType.ORDER, GameStatus.REVEALED,
-				MEMBER_ID, PenaltyKind.NONE, null, 0, 300L, null, null, PARTICIPANTS,
+				MEMBER_ID, PenaltyKind.NONE, null, null, 0, 300L, null, null, PARTICIPANTS,
 				GameResultResponse.order(42L, List.of(9L, 8L)));
 		given(gameLobbyService.start(300L, MEMBER_ID)).willReturn(ordered);
 
@@ -332,7 +357,7 @@ class GameControllerTest {
 
 	private String body(String note, String memberIds, String penaltyCount) {
 		return """
-				{"type": "LADDER", "penaltyKind": "MONEY", "penaltyNote": %s,
+				{"type": "LADDER", "penaltyKind": "MONEY", "penaltyAmount": 10000, "penaltyNote": %s,
 				 "participantMemberIds": %s, "penaltyCount": %s}
 				""".formatted(note, memberIds, penaltyCount);
 	}

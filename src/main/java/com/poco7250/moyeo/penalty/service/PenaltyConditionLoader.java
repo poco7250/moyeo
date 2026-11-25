@@ -1,7 +1,6 @@
 package com.poco7250.moyeo.penalty.service;
 
 import com.poco7250.moyeo.game.domain.GameSession;
-import com.poco7250.moyeo.game.domain.PenaltyKind;
 import com.poco7250.moyeo.global.auth.GameAccessChecker;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
@@ -15,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * 벌칙 조건을 바꾸기 전 공통 검사를 하고 대상 벌칙을 읽는다. 조건 쓰기 Service가 진입 시 쓴다.
+ * 금액 벌칙 면제를 바꾸기 전 공통 검사를 하고 대상 벌칙을 읽는다. 면제 Service가 진입 시 쓴다.
  * 정산을 잠그므로 호출자 트랜잭션 안에서만 쓴다.
  */
 @Component
@@ -28,17 +27,17 @@ public class PenaltyConditionLoader {
 
 	/**
 	 * 정산 권한(호스트·방장·총무)과 게임 상태를 검사하고, 정산을 잠근 뒤 게임의 비무효 벌칙을 읽는다.
-	 * 잠근 뒤에 읽어야 동시에 들어온 조건 변경·결과 공개와 순서가 갈린다.
+	 * 잠근 뒤에 읽어야 동시에 들어온 면제 변경·결과 공개와 순서가 갈린다.
 	 *
 	 * @throws BusinessException 그룹 멤버가 아니면 NOT_GROUP_MEMBER, 정산 권한이 없으면 NOT_MEETING_HOST,
-	 *         금액형이 아니거나 공개 전·취소된 게임이거나 벌칙이 전부 무효면 PENALTY_NOT_CONFIGURABLE
+	 *         금액이 정해진 금액형이 아니거나 공개 전·취소된 게임이거나 벌칙이 전부 무효면 PENALTY_NOT_CONFIGURABLE
 	 */
 	PenaltyConditionTarget loadForSettlementManager(Long gameId, Long memberId) {
 		GameSession game = gameAccessChecker.requireSettlementManager(gameId, memberId);
-		if (game.getPenaltyKind() != PenaltyKind.MONEY || !game.isRevealed()) {
+		if (!game.chargesMoney() || !game.isRevealed()) {
 			throw new BusinessException(ErrorCode.PENALTY_NOT_CONFIGURABLE);
 		}
-		Long meetingId = game.getRound().getMeeting().getId();
+		Long meetingId = game.getMeeting().getId();
 		settlementGuard.lockForAmountChange(meetingId);
 		List<Penalty> penalties = penaltyRepository
 				.findAllByGameSessionIdAndStatusNot(gameId, PenaltyStatus.VOIDED).stream()

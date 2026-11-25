@@ -172,15 +172,12 @@ function onRowClick(event, state) {
 		return;
 	}
 	const id = event.target.closest('[data-expense]').dataset.expense;
-	const question = act === 'delete' ? '지출을 삭제할까요? 이 지출이 대상인 벌칙 조건은 풀려요.' : '영수증을 삭제할까요?';
+	const question = act === 'delete' ? '지출을 삭제할까요?' : '영수증을 삭제할까요?';
 	if (!window.confirm(question)) {
 		return;
 	}
 	runAction(event, async () => {
-		const result = await api.delete(act === 'delete' ? `/api/expenses/${id}` : `/api/expenses/${id}/receipt`);
-		if (result?.conditionResetGameIds?.length) {
-			toast(`벌칙 조건 ${result.conditionResetGameIds.length}건이 풀렸어요. 다시 정해 주세요.`);
-		}
+		await api.delete(act === 'delete' ? `/api/expenses/${id}` : `/api/expenses/${id}/receipt`);
 		await state.reload();
 	});
 }

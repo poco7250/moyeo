@@ -2,15 +2,13 @@ package com.poco7250.moyeo.penalty.service;
 
 import com.poco7250.moyeo.game.domain.GameSession;
 import com.poco7250.moyeo.penalty.domain.Penalty;
-import com.poco7250.moyeo.penalty.domain.PenaltyRule;
 import com.poco7250.moyeo.penalty.domain.PenaltyStatus;
 import com.poco7250.moyeo.penalty.dto.PenaltyConditionResponse;
-import com.poco7250.moyeo.penalty.dto.PenaltyRuleResponse;
 import com.poco7250.moyeo.penalty.dto.PenaltyWaiverSnapshot;
 import java.util.List;
 
 /**
- * 조건을 바꿀 게임과 그 게임의 비무효 벌칙. 조건 설정과 면제는 게임 단위로 전원에게 함께 적용된다.
+ * 면제를 바꿀 게임과 그 게임의 비무효 벌칙. 면제는 게임 단위로 전원에게 함께 적용된다.
  *
  * @param penalties 비무효 벌칙(id 오름차순, 1건 이상)
  */
@@ -44,11 +42,9 @@ record PenaltyConditionTarget(GameSession game, Long meetingId, List<Penalty> pe
 
 	/**
 	 * 현재 상태를 응답으로 바꾼다.
-	 *
-	 * @param rule 게임에 걸린 금액 조건. 없으면 null
 	 */
-	PenaltyConditionResponse toResponse(PenaltyRule rule) {
-		return new PenaltyConditionResponse(gameId(), status(), rule == null ? null : PenaltyRuleResponse.from(rule),
+	PenaltyConditionResponse toResponse() {
+		return new PenaltyConditionResponse(gameId(), status(), game.getPenaltyAmount(),
 				first().getWaivedBy(), first().getWaivedAt(), memberIds());
 	}
 
