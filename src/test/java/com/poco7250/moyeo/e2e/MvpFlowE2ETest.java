@@ -24,7 +24,6 @@ import com.poco7250.moyeo.meeting.dto.MeetingDateVotesResponse;
 import com.poco7250.moyeo.meeting.dto.MeetingDetailResponse;
 import com.poco7250.moyeo.meeting.dto.RoundResponse;
 import com.poco7250.moyeo.member.dto.MemberResponse;
-import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
 import com.poco7250.moyeo.place.dto.CandidateResponse;
 import com.poco7250.moyeo.place.dto.RoundPlaceResponse;
 import com.poco7250.moyeo.settlement.dto.ExpenseResponse;
@@ -105,7 +104,7 @@ class MvpFlowE2ETest {
 	}
 
 	@Test
-	@DisplayName("그룹 생성 → 초대 → 가입 → 모임·차수 → 날짜 투표·확정 → 참석 → 장소 → 게임 → 지출 → 조건 → 확정 → 수정 → 재확정")
+	@DisplayName("그룹 생성 → 초대 → 가입 → 모임·차수 → 날짜 투표·확정 → 참석 → 장소 → 금액 게임 → 지출 → 확정 → 수정 → 재확정")
 	void coreFlow() {
 		String inviteToken = hostCreatesGroup();
 		guestsJoinByInvite(inviteToken);
@@ -115,10 +114,9 @@ class MvpFlowE2ETest {
 		Long bowling = roundOf(meeting, 2);
 		decidePlaces(meeting.id(), meal, bowling);
 		List.of("철수", "민수", "영희", "지수").forEach(name -> attendBoth(name, meeting.id(), meal, bowling));
-		Long gameId = minsuLosesLadder(bowling);
+		minsuLosesLadder(meeting.id());
 		Long mealExpense = addExpense(meal, 80_000L, "밥");
-		Long bowlingExpense = addExpense(bowling, 100_000L, "볼링");
-		setRatioRule(gameId, bowlingExpense, 30);
+		addExpense(bowling, 100_000L, "볼링");
 
 		SettlementResponse revision1 = confirm(meeting.id());
 		assertRevision1(revision1);
@@ -237,14 +235,14 @@ class MvpFlowE2ETest {
 	}
 
 	/**
-	 * 2차에서 네 명이 금액형 사다리를 하고 민수가 벌칙자로 공개된다.
+	 * 네 명이 15,000원 금액형 사다리를 하고 민수가 벌칙자로 공개된다.
 	 */
-	private Long minsuLosesLadder(Long bowling) {
+	private Long minsuLosesLadder(Long meetingId) {
 		List<Long> participants = List.of(ids.get("철수"), ids.get("민수"), ids.get("영희"), ids.get("지수"));
 		given(gameSeedGenerator.next()).willReturn(seedFor(participants, Set.of(ids.get("민수"))));
 		Map<String, Object> body = Map.of("type", GameType.LADDER, "penaltyKind", PenaltyKind.MONEY,
-				"participantMemberIds", participants, "penaltyCount", 1);
-		Long gameId = client.ok(HttpMethod.POST, "/api/rounds/" + bowling + "/games", sessions.get("민수"), body,
+				"penaltyAmount", 15_000L, "participantMemberIds", participants, "penaltyCount", 1);
+		Long gameId = client.ok(HttpMethod.POST, "/api/meetings/" + meetingId + "/games", sessions.get("민수"), body,
 				GameStateResponse.class).gameId();
 		GameStateResponse revealed = client.ok(HttpMethod.POST, "/api/games/" + gameId + "/start",
 				sessions.get("민수"), null, GameStateResponse.class);
@@ -257,12 +255,6 @@ class MvpFlowE2ETest {
 		Map<String, Object> body = Map.of("amount", amount, "payerId", ids.get("철수"), "memo", memo);
 		return client.ok(HttpMethod.POST, "/api/rounds/" + roundId + "/expenses", sessions.get("철수"), body,
 				ExpenseResponse.class).id();
-	}
-
-	private void setRatioRule(Long gameId, Long expenseId, int ratioPct) {
-		Map<String, Object> body = Map.of("moneyType", PenaltyMoneyType.RATIO, "targetExpenseId", expenseId,
-				"ratioPct", ratioPct);
-		client.okData(HttpMethod.PUT, "/api/games/" + gameId + "/penalty-rule", sessions.get("철수"), body);
 	}
 
 	private SettlementResponse confirm(Long meetingId) {
@@ -278,15 +270,15 @@ class MvpFlowE2ETest {
 	// ---- 검증 ----
 
 	/**
-	 * 리비전 1: 밥 80,000은 4명 균등 20,000, 볼링 100,000은 민수 30% = 30,000, 나머지 70,000을 셋이 나눈다.
+	 * 리비전 1: 밥 80,000·볼링 100,000을 4명이 나눠 1인 45,000. 사다리 15,000원은 민수가 더 내고 나머지 셋이 5,000씩 덜 낸다.
 	 */
 	private void assertRevision1(SettlementResponse response) {
 		assertThat(response.status()).isEqualTo(SettlementStatus.CONFIRMED);
 		assertThat(response.basisRevisionNo()).isEqualTo(1);
 		assertThat(response.members()).containsExactlyInAnyOrderElementsOf(members(
-				43_200L, 136_800L, 50_000L, -50_000L, 43_400L, -43_400L, 43_400L, -43_400L));
-		assertThat(response.transfers()).containsExactlyInAnyOrderElementsOf(transfersToHost(50_000L, 43_400L,
-				43_400L));
+				40_000L, 140_000L, 60_000L, -60_000L, 40_000L, -40_000L, 40_000L, -40_000L));
+		assertThat(response.transfers()).containsExactlyInAnyOrderElementsOf(transfersToHost(60_000L, 40_000L,
+				40_000L));
 		assertThat(response.revisionChange()).isNull();
 	}
 
@@ -304,14 +296,15 @@ class MvpFlowE2ETest {
 
 	/**
 	 * 리비전 2: 밥이 120,000이 되어 1인 30,000. 철수는 결제 +40,000·부담 +10,000이라 +30,000, 나머지는 −10,000.
+	 * 게임 벌칙은 지출과 무관해 그대로다.
 	 */
 	private void assertRevision2(SettlementResponse response) {
 		assertThat(response.status()).isEqualTo(SettlementStatus.CONFIRMED);
 		assertThat(response.basisRevisionNo()).isEqualTo(2);
 		assertThat(response.members()).containsExactlyInAnyOrderElementsOf(members(
-				53_200L, 166_800L, 60_000L, -60_000L, 53_400L, -53_400L, 53_400L, -53_400L));
-		assertThat(response.transfers()).containsExactlyInAnyOrderElementsOf(transfersToHost(60_000L, 53_400L,
-				53_400L));
+				50_000L, 170_000L, 70_000L, -70_000L, 50_000L, -50_000L, 50_000L, -50_000L));
+		assertThat(response.transfers()).containsExactlyInAnyOrderElementsOf(transfersToHost(70_000L, 50_000L,
+				50_000L));
 		assertThat(response.revisionChange().previousRevisionNo()).isEqualTo(1);
 		assertThat(response.revisionChange().changes())
 				.extracting(NetBalanceChangeResponse::memberId, NetBalanceChangeResponse::delta)

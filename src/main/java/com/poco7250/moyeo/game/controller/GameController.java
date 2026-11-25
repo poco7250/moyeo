@@ -32,11 +32,12 @@ public class GameController {
 	private final GameRerunService gameRerunService;
 
 	/**
-	 * 차수의 게임 목록을 최근에 만든 순으로 조회한다. 실시간 알림을 놓친 멤버가 결과를 찾는 경로다.
+	 * 모임의 게임 목록을 최근에 만든 순으로 조회한다. 실시간 알림을 놓친 멤버가 결과를 찾는 경로다.
 	 */
-	@GetMapping("/rounds/{roundId}/games")
-	public ApiResponse<List<GameStateResponse>> getRoundGames(@LoginMember Long memberId, @PathVariable Long roundId) {
-		return ApiResponse.ok(gameQueryService.getRoundGames(roundId, memberId));
+	@GetMapping("/meetings/{meetingId}/games")
+	public ApiResponse<List<GameStateResponse>> getMeetingGames(@LoginMember Long memberId,
+			@PathVariable Long meetingId) {
+		return ApiResponse.ok(gameQueryService.getMeetingGames(meetingId, memberId));
 	}
 
 	/**
@@ -48,13 +49,13 @@ public class GameController {
 	}
 
 	/**
-	 * 차수 참석자 중 고른 회원으로 게임 방을 만든다.
+	 * 모임 참석자·게스트 중 고른 회원으로 게임 방을 만든다.
 	 */
-	@PostMapping("/rounds/{roundId}/games")
+	@PostMapping("/meetings/{meetingId}/games")
 	@ResponseStatus(HttpStatus.CREATED)
-	public ApiResponse<GameStateResponse> create(@LoginMember Long memberId, @PathVariable Long roundId,
+	public ApiResponse<GameStateResponse> create(@LoginMember Long memberId, @PathVariable Long meetingId,
 			@Valid @RequestBody GameCreateRequest request) {
-		return ApiResponse.ok(gameLobbyService.create(roundId, memberId, request));
+		return ApiResponse.ok(gameLobbyService.create(meetingId, memberId, request));
 	}
 
 	/**

@@ -33,7 +33,7 @@ class MeetingHistoryAssemblerTest {
 	}
 
 	private static GameSession root(Long id) {
-		GameSession game = GameSession.create(null, GameType.LADDER, 1L, PenaltyKind.MONEY, null, 1);
+		GameSession game = GameSession.create(null, GameType.LADDER, 1L, PenaltyKind.MONEY, 10_000L, null, 1);
 		ReflectionTestUtils.setField(game, "id", id);
 		game.markAsRoot();
 		return game;

@@ -154,7 +154,7 @@ class MeetingGuestIntegrationTest {
 	private void deleteMeetingData(Meeting target) {
 		Long id = target.getId();
 		String rounds = "(select id from meeting_round where meeting_id = " + id + ")";
-		String games = "(select id from game_session where round_id in " + rounds + ")";
+		String games = "(select id from game_session where meeting_id = " + id + ")";
 		String revisions = "(select id from settlement_revision where settlement_id in "
 				+ "(select id from settlement where meeting_id = " + id + "))";
 		List<Long> guestIds = jdbcTemplate.queryForList(
@@ -165,14 +165,13 @@ class MeetingGuestIntegrationTest {
 		jdbcTemplate.update("delete from revision_member_share where revision_id in " + revisions);
 		jdbcTemplate.update("delete from settlement_revision where settlement_id in "
 				+ "(select id from settlement where meeting_id = ?)", id);
-		jdbcTemplate.update("delete from penalty_rule where game_session_id in " + games);
 		jdbcTemplate.update("delete from penalty where game_session_id in " + games);
 		jdbcTemplate.update("delete from game_result where game_session_id in " + games);
 		jdbcTemplate.update("delete from game_participant where game_session_id in " + games);
 		// 다시 돌린 회차가 원 회차를 가리키므로 참조를 먼저 비운다
-		jdbcTemplate.update("update game_session set rerun_of_id = null, canceled_rerun_of_id = null where round_id in "
-				+ rounds);
-		jdbcTemplate.update("delete from game_session where round_id in " + rounds);
+		jdbcTemplate.update(
+				"update game_session set rerun_of_id = null, canceled_rerun_of_id = null where meeting_id = ?", id);
+		jdbcTemplate.update("delete from game_session where meeting_id = ?", id);
 		jdbcTemplate.update("delete from settlement where meeting_id = ?", id);
 		jdbcTemplate.update("delete from attendance where round_id in " + rounds);
 		jdbcTemplate.update("delete from meeting_round where meeting_id = ?", id);
@@ -247,7 +246,7 @@ class MeetingGuestIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("금액형에서 게스트만 당첨되면 확정된 정산은 그대로고 정산 탭·확정 게이트에서 빠진다")
+	@DisplayName("금액형에서 게스트만 당첨되면 확정된 정산은 그대로고, 정산 탭에는 '앱 밖에서 내기'(게스트·부담액 없음)로만 보인다")
 	void guestOnlyMoneyPenaltyIsOutsideSettlement() {
 		List<Long> guests = List.of(
 				meetingGuestService.add(meeting.getId(), host.getId(), "게스트A").guestId(),
@@ -262,11 +261,15 @@ class MeetingGuestIntegrationTest {
 		assertThat(settlementOf(meeting).getStatus()).isEqualTo(SettlementStatus.CONFIRMED);
 		assertThat(changeLogRepository.findAllByMeetingIdOrderByChangedAtAscIdAsc(meeting.getId())).isEmpty();
 		assertThat(settlementOf(meeting).getCurrentRevisionNo()).isEqualTo(1);
-		assertThat(settlementQueryService.get(meeting.getId(), minsu.getId()).penalties()).isEmpty();
+		assertThat(settlementQueryService.get(meeting.getId(), minsu.getId()).penalties()).hasSize(2)
+				.allSatisfy(item -> {
+					assertThat(item.guest()).isTrue();
+					assertThat(item.chargeAmount()).isNull();
+				});
 	}
 
 	@Test
-	@DisplayName("금액형에서 멤버와 게스트가 같이 당첨되면 멤버 벌칙만 정산 탭·확정 게이트에 들어간다")
+	@DisplayName("금액형에서 멤버와 게스트가 같이 당첨되면 멤버 벌칙만 정산에 반영되고, 게스트는 나눠 받는 사람에서도 빠진다")
 	void memberPenaltyStaysInSettlement() {
 		Long guestId = meetingGuestService.add(meeting.getId(), host.getId(), "게스트A").guestId();
 
@@ -277,15 +280,19 @@ class MeetingGuestIntegrationTest {
 		List<Long> penalizedMembers = started.result().penaltyMemberIds().stream()
 				.filter(id -> !id.equals(guestId)).toList();
 		assertThat(penalizedMembers).isNotEmpty();
-		assertThat(settlementQueryService.get(meeting.getId(), minsu.getId()).penalties())
+		List<SettlementPenaltyResponse> items = settlementQueryService.get(meeting.getId(), minsu.getId()).penalties();
+		assertThat(items).filteredOn(item -> !item.guest())
 				.extracting(SettlementPenaltyResponse::memberId).containsExactlyInAnyOrderElementsOf(penalizedMembers);
-		assertError(() -> settlementConfirmService.confirm(meeting.getId(), host.getId(), false),
-				ErrorCode.PENALTY_CONDITION_UNSET);
+		assertThat(items).filteredOn(item -> !item.guest())
+				.allSatisfy(item -> assertThat(item.chargeAmount()).isNotNull());
+		assertThat(items).allSatisfy(item -> assertThat(item.creditedMemberIds()).doesNotContain(guestId));
+		assertThat(settlementConfirmService.confirm(meeting.getId(), host.getId(), false).status())
+				.isEqualTo(SettlementStatus.CONFIRMED);
 	}
 
 	private GameStateResponse createGame(PenaltyKind penaltyKind, int penaltyCount, List<Long> participantIds) {
-		return gameLobbyService.create(round.getId(), host.getId(),
-				new GameCreateRequest(GameType.LADDER, penaltyKind, null, participantIds, penaltyCount));
+		return gameLobbyService.create(round.getMeeting().getId(), host.getId(),
+				new GameCreateRequest(GameType.LADDER, penaltyKind, penaltyKind == PenaltyKind.MONEY ? 10_000L : null, null, participantIds, penaltyCount));
 	}
 
 	private void assertError(Runnable action, ErrorCode errorCode) {

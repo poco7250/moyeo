@@ -28,7 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class GameQueryServiceTest {
 
-	private static final Long ROUND_ID = 100L;
+	private static final Long MEETING_ID = 100L;
 	private static final Long MEMBER_ID = 8L;
 
 	@Mock
@@ -70,33 +70,33 @@ class GameQueryServiceTest {
 	}
 
 	@Test
-	@DisplayName("차수 게임 목록은 저장소가 준 순서대로 상태를 조립한다")
-	void getRoundGames() {
+	@DisplayName("모임 게임 목록은 저장소가 준 순서대로 상태를 조립한다")
+	void getMeetingGames() {
 		GameSession latest = mock(GameSession.class);
 		GameSession oldest = mock(GameSession.class);
 		GameStateResponse latestState = state(301L, GameStatus.WAITING, null);
 		GameStateResponse oldestState = state(300L, GameStatus.CLOSED, GameResultResponse.penalty(42L, List.of(9L)));
-		given(gameSessionRepository.findAllByRoundIdOrderByIdDesc(ROUND_ID)).willReturn(List.of(latest, oldest));
+		given(gameSessionRepository.findAllByMeetingIdOrderByIdDesc(MEETING_ID)).willReturn(List.of(latest, oldest));
 		given(gameStateAssembler.assemble(latest)).willReturn(latestState);
 		given(gameStateAssembler.assemble(oldest)).willReturn(oldestState);
 
-		assertThat(service.getRoundGames(ROUND_ID, MEMBER_ID)).containsExactly(latestState, oldestState);
+		assertThat(service.getMeetingGames(MEETING_ID, MEMBER_ID)).containsExactly(latestState, oldestState);
 	}
 
 	@Test
-	@DisplayName("그룹 멤버가 아니면 차수 게임을 읽지 않고 NOT_GROUP_MEMBER다")
-	void getRoundGamesRejectsNonMember() {
-		given(meetingAccessChecker.requireRoundMember(ROUND_ID, MEMBER_ID))
+	@DisplayName("그룹 멤버가 아니면 모임 게임을 읽지 않고 NOT_GROUP_MEMBER다")
+	void getMeetingGamesRejectsNonMember() {
+		given(meetingAccessChecker.requireMember(MEETING_ID, MEMBER_ID))
 				.willThrow(new BusinessException(ErrorCode.NOT_GROUP_MEMBER));
 
-		assertThatThrownBy(() -> service.getRoundGames(ROUND_ID, MEMBER_ID))
+		assertThatThrownBy(() -> service.getMeetingGames(MEETING_ID, MEMBER_ID))
 				.isInstanceOf(BusinessException.class)
 				.extracting("errorCode").isEqualTo(ErrorCode.NOT_GROUP_MEMBER);
 		verifyNoInteractions(gameSessionRepository, gameStateAssembler);
 	}
 
 	private GameStateResponse state(Long gameId, GameStatus status, GameResultResponse result) {
-		return new GameStateResponse(gameId, ROUND_ID, GameType.LADDER, status, MEMBER_ID, PenaltyKind.NONE, null, 1,
+		return new GameStateResponse(gameId, MEETING_ID, GameType.LADDER, status, MEMBER_ID, PenaltyKind.NONE, null, null, 1,
 				gameId, null, null, List.of(), result);
 	}
 }

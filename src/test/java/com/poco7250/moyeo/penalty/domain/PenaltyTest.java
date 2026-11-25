@@ -3,6 +3,9 @@ package com.poco7250.moyeo.penalty.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.poco7250.moyeo.game.domain.GameSession;
+import com.poco7250.moyeo.game.domain.GameType;
+import com.poco7250.moyeo.game.domain.PenaltyKind;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import java.time.LocalDateTime;
@@ -19,53 +22,35 @@ class PenaltyTest {
 	private static final LocalDateTime NOW = LocalDateTime.of(2026, 12, 20, 22, 0);
 
 	@Test
-	@DisplayName("새 벌칙은 ASSIGNED이고 면제 정보가 없다")
-	void assign() {
-		Penalty penalty = Penalty.assign(null, null);
+	@DisplayName("금액이 정해진 금액형 게임 벌칙은 바로 APPLIED이고 면제 정보가 없다")
+	void assignMoney() {
+		Penalty penalty = Penalty.assign(game(PenaltyKind.MONEY, 10_000L), null);
 
-		assertThat(penalty.getStatus()).isEqualTo(PenaltyStatus.ASSIGNED);
+		assertThat(penalty.getStatus()).isEqualTo(PenaltyStatus.APPLIED);
 		assertThat(penalty.getWaivedBy()).isNull();
-		assertThat(penalty.getWaivedAt()).isNull();
 		assertThat(penalty.isVoided()).isFalse();
 	}
 
-	@Test
-	@DisplayName("ASSIGNED 벌칙에 조건을 적용하면 APPLIED가 된다")
-	void applyFromAssigned() {
-		Penalty penalty = penaltyWith(PenaltyStatus.ASSIGNED);
-
-		penalty.apply();
-
-		assertThat(penalty.getStatus()).isEqualTo(PenaltyStatus.APPLIED);
+	@ParameterizedTest
+	@EnumSource(value = PenaltyKind.class, names = {"ACTION", "NONE"})
+	@DisplayName("행동형·벌칙 없음 게임 벌칙은 정산 금액이 없는 ASSIGNED다")
+	void assignWithoutMoney(PenaltyKind kind) {
+		assertThat(Penalty.assign(game(kind, null), null).getStatus()).isEqualTo(PenaltyStatus.ASSIGNED);
 	}
 
 	@Test
-	@DisplayName("WAIVED 벌칙에 조건을 적용하면 APPLIED가 되고 면제 정보가 비워진다")
-	void applyFromWaived() {
-		Penalty penalty = waivedPenalty();
+	@DisplayName("금액 없는 옛 금액형 게임 벌칙도 ASSIGNED다")
+	void assignLegacyMoneyWithoutAmount() {
+		GameSession legacy = game(PenaltyKind.MONEY, 10_000L);
+		ReflectionTestUtils.setField(legacy, "penaltyAmount", null);
 
-		penalty.apply();
-
-		assertThat(penalty.getStatus()).isEqualTo(PenaltyStatus.APPLIED);
-		assertThat(penalty.getWaivedBy()).isNull();
-		assertThat(penalty.getWaivedAt()).isNull();
+		assertThat(Penalty.assign(legacy, null).getStatus()).isEqualTo(PenaltyStatus.ASSIGNED);
 	}
 
-	@ParameterizedTest
-	@EnumSource(value = PenaltyStatus.class, names = {"APPLIED", "VOIDED"})
-	@DisplayName("APPLIED·VOIDED 벌칙에는 조건을 적용할 수 없고 상태는 그대로다")
-	void applyRejected(PenaltyStatus status) {
-		Penalty penalty = penaltyWith(status);
-
-		assertRejected(penalty::apply);
-		assertThat(penalty.getStatus()).isEqualTo(status);
-	}
-
-	@ParameterizedTest
-	@EnumSource(value = PenaltyStatus.class, names = {"ASSIGNED", "APPLIED"})
-	@DisplayName("ASSIGNED·APPLIED 벌칙을 면제하면 WAIVED가 되고 면제자와 시각이 기록된다")
-	void waive(PenaltyStatus status) {
-		Penalty penalty = penaltyWith(status);
+	@Test
+	@DisplayName("APPLIED 벌칙을 면제하면 WAIVED가 되고 면제자와 시각이 기록된다")
+	void waive() {
+		Penalty penalty = moneyPenalty();
 
 		penalty.waive(HOST_ID, NOW);
 
@@ -74,25 +59,34 @@ class PenaltyTest {
 		assertThat(penalty.getWaivedAt()).isEqualTo(NOW);
 	}
 
+	@ParameterizedTest
+	@EnumSource(value = PenaltyStatus.class, names = "APPLIED", mode = EnumSource.Mode.EXCLUDE)
+	@DisplayName("APPLIED가 아니면 면제할 수 없고 상태는 그대로다")
+	void waiveRejected(PenaltyStatus status) {
+		Penalty penalty = penaltyWith(status);
+
+		assertRejected(() -> penalty.waive(99L, NOW));
+		assertThat(penalty.getStatus()).isEqualTo(status);
+	}
+
 	@Test
 	@DisplayName("이미 WAIVED인 벌칙은 다시 면제할 수 없고 처음 면제 정보가 남는다")
 	void waiveRejectedWhenWaived() {
 		Penalty penalty = waivedPenalty();
 
 		assertRejected(() -> penalty.waive(99L, NOW.plusHours(1)));
-		assertThat(penalty.getStatus()).isEqualTo(PenaltyStatus.WAIVED);
 		assertThat(penalty.getWaivedBy()).isEqualTo(HOST_ID);
 		assertThat(penalty.getWaivedAt()).isEqualTo(NOW);
 	}
 
 	@Test
-	@DisplayName("WAIVED 벌칙의 면제를 취소하면 ASSIGNED가 되고 면제 정보가 비워진다")
+	@DisplayName("WAIVED 벌칙의 면제를 취소하면 다시 APPLIED가 되고 면제 정보가 비워진다")
 	void unwaive() {
 		Penalty penalty = waivedPenalty();
 
 		penalty.unwaive();
 
-		assertThat(penalty.getStatus()).isEqualTo(PenaltyStatus.ASSIGNED);
+		assertThat(penalty.getStatus()).isEqualTo(PenaltyStatus.APPLIED);
 		assertThat(penalty.getWaivedBy()).isNull();
 		assertThat(penalty.getWaivedAt()).isNull();
 	}
@@ -104,26 +98,6 @@ class PenaltyTest {
 		Penalty penalty = penaltyWith(status);
 
 		assertRejected(penalty::unwaive);
-		assertThat(penalty.getStatus()).isEqualTo(status);
-	}
-
-	@Test
-	@DisplayName("APPLIED 벌칙의 조건 적용을 되돌리면 ASSIGNED가 된다")
-	void unapply() {
-		Penalty penalty = penaltyWith(PenaltyStatus.APPLIED);
-
-		penalty.unapply();
-
-		assertThat(penalty.getStatus()).isEqualTo(PenaltyStatus.ASSIGNED);
-	}
-
-	@ParameterizedTest
-	@EnumSource(value = PenaltyStatus.class, names = "APPLIED", mode = EnumSource.Mode.EXCLUDE)
-	@DisplayName("APPLIED가 아니면 조건 적용을 되돌릴 수 없고 상태는 그대로다")
-	void unapplyRejected(PenaltyStatus status) {
-		Penalty penalty = penaltyWith(status);
-
-		assertRejected(penalty::unapply);
 		assertThat(penalty.getStatus()).isEqualTo(status);
 	}
 
@@ -148,7 +122,6 @@ class PenaltyTest {
 
 		assertThat(penalty.getStatus()).isEqualTo(PenaltyStatus.VOIDED);
 		assertThat(penalty.getWaivedBy()).isEqualTo(HOST_ID);
-		assertThat(penalty.getWaivedAt()).isEqualTo(NOW);
 	}
 
 	@Test
@@ -156,13 +129,10 @@ class PenaltyTest {
 	void voidedIsTerminal() {
 		Penalty penalty = penaltyWith(PenaltyStatus.VOIDED);
 
-		assertRejected(penalty::apply);
 		assertRejected(() -> penalty.waive(HOST_ID, NOW));
 		assertRejected(penalty::unwaive);
-		assertRejected(penalty::unapply);
 		assertRejected(penalty::voidOut);
 		assertThat(penalty.getStatus()).isEqualTo(PenaltyStatus.VOIDED);
-		assertThat(penalty.getWaivedBy()).isNull();
 	}
 
 	private void assertRejected(ThrowingCallable transition) {
@@ -171,14 +141,22 @@ class PenaltyTest {
 				.extracting("errorCode").isEqualTo(ErrorCode.PENALTY_NOT_CONFIGURABLE);
 	}
 
+	private static GameSession game(PenaltyKind kind, Long amount) {
+		return GameSession.create(null, GameType.LADDER, 1L, kind, amount, null, 1);
+	}
+
+	private Penalty moneyPenalty() {
+		return Penalty.assign(game(PenaltyKind.MONEY, 10_000L), null);
+	}
+
 	private Penalty waivedPenalty() {
-		Penalty penalty = Penalty.assign(null, null);
+		Penalty penalty = moneyPenalty();
 		penalty.waive(HOST_ID, NOW);
 		return penalty;
 	}
 
 	private Penalty penaltyWith(PenaltyStatus status) {
-		Penalty penalty = Penalty.assign(null, null);
+		Penalty penalty = moneyPenalty();
 		ReflectionTestUtils.setField(penalty, "status", status);
 		return penalty;
 	}

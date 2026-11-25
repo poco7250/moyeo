@@ -12,7 +12,6 @@ import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.penalty.domain.Penalty;
 import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
-import com.poco7250.moyeo.settlement.domain.Expense;
 import com.poco7250.moyeo.settlement.domain.PenaltyCharge;
 import com.poco7250.moyeo.settlement.domain.RevisionMemberShare;
 import com.poco7250.moyeo.settlement.domain.Settlement;
@@ -117,16 +116,14 @@ class SettlementHistoryServiceTest {
 	}
 
 	@Test
-	@DisplayName("리비전에 고정된 벌칙 부담액과 조건 스냅샷을 벌칙자 id와 함께 준다")
+	@DisplayName("리비전에 고정된 벌칙 부담액과 게임 금액 스냅샷을 벌칙자 id와 함께 준다")
 	void penaltyChargeSnapshot() {
 		SettlementRevision first = revision(500L, 1, false);
 		givenRevisions(List.of(first));
 		Round round = PenaltyFixtures.round(5L, 2, "볼링장");
-		Expense bowling = PenaltyFixtures.expense(31L, round, 1L, 100_000L, "볼링");
-		GameSession game = PenaltyFixtures.revealedMoneyGame(70L, round, AT);
+		GameSession game = PenaltyFixtures.revealedMoneyGame(70L, round, AT, 12_000L);
 		Penalty penalty = PenaltyFixtures.penalty(100L, game, 2L);
-		PenaltyCharge charge = PenaltyCharge.create(first, penalty, 30_000L,
-				PenaltyFixtures.ratioRule(90L, game, 30, bowling, MEMBER_ID, AT));
+		PenaltyCharge charge = PenaltyCharge.create(first, penalty, 12_000L, 12_000L);
 		given(memberShareRepository.findAllByRevisionIdInOrderByMemberIdAsc(List.of(500L))).willReturn(List.of());
 		given(transferRepository.findAllByRevisionIdInOrderByIdAsc(List.of(500L))).willReturn(List.of());
 		given(penaltyChargeRepository.findAllWithPenaltyByRevisionIdIn(List.of(500L))).willReturn(List.of(charge));
@@ -134,7 +131,7 @@ class SettlementHistoryServiceTest {
 		List<SettlementRevisionResponse> responses = service.revisions(MEETING_ID, MEMBER_ID);
 
 		assertThat(responses.getFirst().penaltyCharges()).containsExactly(new RevisionPenaltyChargeResponse(100L, 2L,
-				30_000L, PenaltyMoneyType.RATIO, null, 30, 31L, 100_000L, "볼링"));
+				12_000L, PenaltyMoneyType.FIXED_AMOUNT, 12_000L, null, null, null, null));
 	}
 
 	@Test

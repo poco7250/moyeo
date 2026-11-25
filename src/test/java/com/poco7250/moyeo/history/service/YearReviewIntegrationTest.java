@@ -214,11 +214,11 @@ class YearReviewIntegrationTest {
 		saveRevision(settlement, 30_000L, 30_000L, 20_000L);
 		settlement.reopen();
 		saveRevision(settlement, 25_000L, 35_000L, 20_000L);
-		GameSession ladder = saveRevealedGame(GameSession.create(meal, GameType.LADDER, host.getId(),
-				PenaltyKind.MONEY, null, 1));
-		penaltyRepository.save(Penalty.assign(ladder, minsu)).apply();
-		GameSession canceledByRerun = saveRevealedGame(GameSession.create(second, GameType.DRAW, host.getId(),
-				PenaltyKind.ACTION, null, 1));
+		GameSession ladder = saveRevealedGame(GameSession.create(meal.getMeeting(), GameType.LADDER, host.getId(),
+				PenaltyKind.MONEY, 10_000L, null, 1));
+		penaltyRepository.save(Penalty.assign(ladder, minsu));
+		GameSession canceledByRerun = saveRevealedGame(GameSession.create(second.getMeeting(), GameType.DRAW, host.getId(),
+				PenaltyKind.ACTION, null, null, 1));
 		penaltyRepository.save(Penalty.assign(canceledByRerun, host)).voidOut();
 	}
 
@@ -231,8 +231,8 @@ class YearReviewIntegrationTest {
 		respond(round, younghee, AttendanceStatus.ATTEND);
 		respond(round, jisu, AttendanceStatus.ATTEND);
 		expenseRepository.save(Expense.create(round, younghee, 20_000L, "안주"));
-		GameSession draw = saveRevealedGame(GameSession.create(round, GameType.DRAW, host.getId(),
-				PenaltyKind.ACTION, "다음 장소 예약", 1));
+		GameSession draw = saveRevealedGame(GameSession.create(round.getMeeting(), GameType.DRAW, host.getId(),
+				PenaltyKind.ACTION, null, "다음 장소 예약", 1));
 		penaltyRepository.save(Penalty.assign(draw, younghee));
 	}
 
@@ -251,8 +251,8 @@ class YearReviewIntegrationTest {
 		Round round = saveRoundWithPlace(savePastMeeting(target, title, startAt), 1, "홍대 포차");
 		respond(round, jisu, AttendanceStatus.ATTEND);
 		expenseRepository.save(Expense.create(round, jisu, 99_999L, "제외"));
-		penaltyRepository.save(Penalty.assign(saveRevealedGame(GameSession.create(round, GameType.LADDER,
-				host.getId(), PenaltyKind.ACTION, null, 1)), jisu));
+		penaltyRepository.save(Penalty.assign(saveRevealedGame(GameSession.create(round.getMeeting(), GameType.LADDER,
+				host.getId(), PenaltyKind.ACTION, null, null, 1)), jisu));
 	}
 
 	private void saveRevision(Settlement settlement, long hostShare, long minsuShare, long youngheeShare) {

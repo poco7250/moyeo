@@ -20,6 +20,7 @@ import com.poco7250.moyeo.group.repository.GroupMemberRepository;
 import com.poco7250.moyeo.group.repository.GroupRepository;
 import com.poco7250.moyeo.history.dto.HistoryMemberResponse;
 import com.poco7250.moyeo.history.dto.MeetingCardResponse;
+import com.poco7250.moyeo.history.dto.MeetingHistoryResponse;
 import com.poco7250.moyeo.history.dto.RoundHistoryResponse;
 import com.poco7250.moyeo.meeting.domain.Attendance;
 import com.poco7250.moyeo.meeting.domain.AttendanceStatus;
@@ -153,15 +154,15 @@ class MeetingCardIntegrationTest {
 	void gamesAndPlaces() {
 		Meeting meeting = saveConfirmedMeeting();
 
-		RoundHistoryResponse meal = meetingCardService.get(meeting.getId(), host.getId()).meeting().rounds()
-				.getFirst();
+		MeetingHistoryResponse card = meetingCardService.get(meeting.getId(), host.getId()).meeting();
+		RoundHistoryResponse meal = card.rounds().getFirst();
 
 		assertThat(meal.place().label()).isEqualTo("강남 고깃집");
 		assertThat(meal.attendees()).extracting(HistoryMemberResponse::nickname)
 				.containsExactly("호스트", "민수", "영희");
 		assertThat(meal.noShows()).extracting(HistoryMemberResponse::nickname).containsExactly("지수");
-		assertThat(meal.games()).hasSize(1);
-		assertThat(meal.games().getFirst().penalized()).extracting(HistoryMemberResponse::nickname)
+		assertThat(card.games()).hasSize(1);
+		assertThat(card.games().getFirst().penalized()).extracting(HistoryMemberResponse::nickname)
 				.containsExactly("영희");
 		assertThat(meal.boardGames().getFirst().loser().nickname()).isEqualTo("민수");
 	}
@@ -238,8 +239,8 @@ class MeetingCardIntegrationTest {
 	}
 
 	private void saveRerunLadder(Round round) {
-		GameSession original = saveRevealedGame(GameSession.create(round, GameType.LADDER, host.getId(),
-				PenaltyKind.MONEY, null, 1));
+		GameSession original = saveRevealedGame(GameSession.create(round.getMeeting(), GameType.LADDER, host.getId(),
+				PenaltyKind.MONEY, 10_000L, null, 1));
 		penaltyRepository.save(Penalty.assign(original, minsu)).voidOut();
 		GameSession rerun = saveRevealedGame(GameSession.rerunOf(original, host.getId()));
 		penaltyRepository.save(Penalty.assign(rerun, younghee));

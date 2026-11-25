@@ -57,7 +57,7 @@ public class SettlementConfirmService {
 	 * 검사에 실패하면 정산 상태를 바꾸지 않는다.
 	 *
 	 * @throws BusinessException 정산 권한이 없으면 NOT_MEETING_HOST, CONFIRMED면 SETTLEMENT_ALREADY_CONFIRMED,
-	 *         조건 미설정 금액형 벌칙이 있으면 PENALTY_CONDITION_UNSET, 대기·진행 중 금액형 게임이 있으면
+	 *         대기·진행 중 금액형 게임이 있으면
 	 *         MONEY_GAME_IN_PROGRESS, 경고를 확인하지 않았으면 WARNING_UNCONFIRMED(모두 막힌 대상 목록을 상세에 싣는다)
 	 */
 	@Transactional
@@ -67,7 +67,7 @@ public class SettlementConfirmService {
 		settlement.requireConfirmable();
 		MeetingPenalties penalties = meetingPenaltyLoader.load(meetingId);
 		SettlementResult result = SettlementCalculator.calculate(inputAssembler.assemble(meetingId, penalties));
-		confirmGate.check(meetingId, penalties, result, acknowledgeWarnings);
+		confirmGate.check(meetingId, result, acknowledgeWarnings);
 
 		LocalDateTime now = LocalDateTime.now(clock);
 		int revisionNo = settlement.confirm(now);

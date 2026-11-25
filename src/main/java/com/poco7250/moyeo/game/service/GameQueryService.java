@@ -34,14 +34,14 @@ public class GameQueryService {
 	}
 
 	/**
-	 * 차수의 게임 상태 목록을 최근에 만든 순으로 조회한다(취소·종료된 게임 포함).
+	 * 모임의 게임 상태 목록을 최근에 만든 순으로 조회한다(취소·종료된 게임 포함).
 	 *
-	 * @throws BusinessException 없는 차수이거나 그룹 멤버가 아니면 NOT_GROUP_MEMBER
+	 * @throws BusinessException 없는 모임이거나 그룹 멤버가 아니면 NOT_GROUP_MEMBER
 	 */
-	public List<GameStateResponse> getRoundGames(Long roundId, Long memberId) {
-		meetingAccessChecker.requireRoundMember(roundId, memberId);
-		// 한 차수의 게임은 몇 건뿐이라 게임마다 참가자·결과를 따로 읽는다
-		return gameSessionRepository.findAllByRoundIdOrderByIdDesc(roundId).stream()
+	public List<GameStateResponse> getMeetingGames(Long meetingId, Long memberId) {
+		meetingAccessChecker.requireMember(meetingId, memberId);
+		// 한 모임의 게임은 몇 건뿐이라 게임마다 참가자·결과를 따로 읽는다
+		return gameSessionRepository.findAllByMeetingIdOrderByIdDesc(meetingId).stream()
 				.map(gameStateAssembler::assemble)
 				.toList();
 	}

@@ -35,8 +35,6 @@ import com.poco7250.moyeo.meeting.repository.RoundRepository;
 import com.poco7250.moyeo.meeting.service.AttendanceService;
 import com.poco7250.moyeo.member.domain.Member;
 import com.poco7250.moyeo.member.repository.MemberRepository;
-import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
-import com.poco7250.moyeo.penalty.dto.PenaltyRuleRequest;
 import com.poco7250.moyeo.penalty.service.PenaltyConditionService;
 import com.poco7250.moyeo.settlement.domain.Expense;
 import com.poco7250.moyeo.settlement.domain.Settlement;
@@ -187,17 +185,16 @@ class ConcurrencyIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("확정 계산 뒤에 조건 변경이 먼저 커밋되면 확정은 충돌로 실패하고 리비전 없이 새 조건값이 남는다")
-	void ruleChangeBeatsConfirm() {
+	@DisplayName("확정 계산 뒤에 벌칙 면제가 먼저 커밋되면 확정은 충돌로 실패하고 리비전 없이 면제만 남는다")
+	void waiverBeatsConfirm() {
 		Long gameId = revealedMoneyGame();
-		penaltyConditionService.setRule(gameId, host.getId(), fixedRule(10_000L));
 		AtomicBoolean competitorRan = new AtomicBoolean();
 		doAnswer(invocation -> {
 			Object input = invocation.callRealMethod();
 			if (competitorRan.compareAndSet(false, true)) {
-				// 확정이 정산 version을 읽고 계산까지 마친 사이에 조건 변경이 먼저 커밋된다
-				CompletableFuture.runAsync(() -> penaltyConditionService.setRule(gameId, host.getId(),
-						fixedRule(20_000L))).orTimeout(30, TimeUnit.SECONDS).join();
+				// 확정이 정산 version을 읽고 계산까지 마친 사이에 면제가 먼저 커밋된다
+				CompletableFuture.runAsync(() -> penaltyConditionService.waive(gameId, host.getId()))
+						.orTimeout(30, TimeUnit.SECONDS).join();
 			}
 			return input;
 		}).when(inputAssembler).assemble(eq(meeting.getId()), any(MeetingPenalties.class));
@@ -207,8 +204,8 @@ class ConcurrencyIntegrationTest {
 
 		assertThat(revisionCount()).isZero();
 		assertThat(settlementStatus()).isEqualTo(SettlementStatus.DRAFT);
-		assertThat(jdbcTemplate.queryForObject("select amount from penalty_rule where game_session_id = ?",
-				Long.class, gameId)).isEqualTo(20_000L);
+		assertThat(jdbcTemplate.queryForList("select status from penalty where game_session_id = ?",
+				String.class, gameId)).containsOnly("WAIVED");
 	}
 
 	@RepeatedTest(5)
@@ -240,18 +237,14 @@ class ConcurrencyIntegrationTest {
 	}
 
 	private Long waitingMoneyGame() {
-		return gameLobbyService.create(round.getId(), host.getId(), new GameCreateRequest(GameType.LADDER,
-				PenaltyKind.MONEY, null, List.of(host.getId(), other.getId()), null)).gameId();
+		return gameLobbyService.create(meeting.getId(), host.getId(), new GameCreateRequest(GameType.LADDER,
+				PenaltyKind.MONEY, 10_000L, null, List.of(host.getId(), other.getId()), null)).gameId();
 	}
 
 	private Long revealedMoneyGame() {
 		Long gameId = waitingMoneyGame();
 		gameLobbyService.start(gameId, host.getId());
 		return gameId;
-	}
-
-	private PenaltyRuleRequest fixedRule(long amount) {
-		return new PenaltyRuleRequest(PenaltyMoneyType.FIXED_AMOUNT, expense.getId(), amount, null);
 	}
 
 	private MemberAttendanceResponse respond(Member member, AttendanceStatus status) {

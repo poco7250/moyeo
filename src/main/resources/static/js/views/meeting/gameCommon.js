@@ -5,7 +5,7 @@ import {api} from '../../api.js';
 export const GAME_TYPES = {LADDER: '사다리', DRAW: '꽝뽑기', ROULETTE: '룰렛', ORDER: '순서 정하기'};
 export const GAME_STATUS = {WAITING: '시작 전', PLAYING: '진행 중', REVEALED: '결과 공개', CLOSED: '종료', CANCELED: '취소'};
 export const PENALTY_KINDS = {MONEY: '돈 벌칙', ACTION: '행동 벌칙', NONE: '벌칙 없음'};
-export const PENALTY_STATUS = {ASSIGNED: '금액 조건 미설정', APPLIED: '금액 조건 적용', WAIVED: '금액 벌칙 없음', VOIDED: '무효(다시 돌림)'};
+export const PENALTY_STATUS = {ASSIGNED: '금액 없음', APPLIED: '정산 반영', WAIVED: '면제', VOIDED: '무효(다시 돌림)'};
 
 /**
  * 게임을 운영(시작·취소·종료·다시 돌리기)할 수 있는지: 진행자 또는 모임 호스트 권한(최종 판단은 서버 403).

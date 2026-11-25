@@ -64,7 +64,7 @@ class GameRerunServiceTest {
 	private static final Long HOST_ID = 2L;
 	private static final LocalDateTime REVEALED_AT = LocalDateTime.of(2026, 12, 20, 21, 0);
 	private static final GameStateResponse STATE = new GameStateResponse(RERUN_ID, ROUND_ID, GameType.LADDER,
-			GameStatus.WAITING, HOST_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, ORIGINAL_ID, ORIGINAL_ID, null,
+			GameStatus.WAITING, HOST_ID, PenaltyKind.MONEY, 10_000L, "꼴찌가 2차 30%", 1, ORIGINAL_ID, ORIGINAL_ID, null,
 			List.of(), null);
 
 	@Mock
@@ -238,7 +238,7 @@ class GameRerunServiceTest {
 	}
 
 	private GameSession original(GameStatus status, PenaltyKind penaltyKind) {
-		GameSession game = GameSession.create(round, GameType.LADDER, CREATOR_ID, penaltyKind, "꼴찌가 2차 30%", 1);
+		GameSession game = GameSession.create(round.getMeeting(), GameType.LADDER, CREATOR_ID, penaltyKind, penaltyKind == PenaltyKind.MONEY ? 10_000L : null, "꼴찌가 2차 30%", 1);
 		ReflectionTestUtils.setField(game, "id", ORIGINAL_ID);
 		game.markAsRoot();
 		ReflectionTestUtils.setField(game, "status", status);

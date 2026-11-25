@@ -18,10 +18,7 @@ import com.poco7250.moyeo.member.domain.Member;
 import com.poco7250.moyeo.member.repository.MemberRepository;
 import com.poco7250.moyeo.penalty.domain.Penalty;
 import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
-import com.poco7250.moyeo.penalty.domain.PenaltyRule;
 import com.poco7250.moyeo.penalty.repository.PenaltyRepository;
-import com.poco7250.moyeo.penalty.repository.PenaltyRuleRepository;
-import com.poco7250.moyeo.settlement.domain.Expense;
 import com.poco7250.moyeo.settlement.domain.PenaltyCharge;
 import com.poco7250.moyeo.settlement.domain.Settlement;
 import com.poco7250.moyeo.settlement.domain.SettlementRevision;
@@ -63,9 +60,6 @@ class PenaltyChargeRepositoryTest {
 	PenaltyRepository penaltyRepository;
 
 	@Autowired
-	PenaltyRuleRepository penaltyRuleRepository;
-
-	@Autowired
 	GameSessionRepository gameSessionRepository;
 
 	@Autowired
@@ -85,8 +79,6 @@ class PenaltyChargeRepositoryTest {
 
 	private SettlementRevision revision;
 	private Penalty penalty;
-	private PenaltyRule rule;
-	private Expense bowling;
 
 	@BeforeEach
 	void setUp() {
@@ -97,64 +89,40 @@ class PenaltyChargeRepositoryTest {
 		Member payer = memberRepository.saveAndFlush(Member.ofKakao(1001L, "철수", null, null));
 		Member minsu = memberRepository.saveAndFlush(Member.ofKakao(1002L, "민수", null, null));
 		GameSession game = gameSessionRepository.saveAndFlush(
-				GameSession.create(round, GameType.LADDER, 1L, PenaltyKind.MONEY, null, 1));
-		bowling = expenseRepository.saveAndFlush(Expense.create(round, payer, 100_000L, "볼링"));
-		penalty = Penalty.assign(game, minsu);
-		penalty.apply();
-		penalty = penaltyRepository.saveAndFlush(penalty);
-		rule = penaltyRuleRepository.saveAndFlush(
-				PenaltyRule.create(game, PenaltyMoneyType.RATIO, null, 30, bowling, 1L, AT));
+				GameSession.create(round.getMeeting(), GameType.LADDER, 1L, PenaltyKind.MONEY, 10_000L, null, 1));
+		penalty = penaltyRepository.saveAndFlush(Penalty.assign(game, minsu));
 		Settlement settlement = settlementRepository.saveAndFlush(Settlement.createDraft(meeting));
 		revision = revisionRepository.saveAndFlush(SettlementRevision.create(settlement, 1, payer, AT, false));
 	}
 
 	@Test
-	@DisplayName("부담액과 확정 시점의 조건·대상 지출 값을 저장한다")
+	@DisplayName("부담액과 확정 시점의 게임 금액을 고정 금액으로 저장하고, 대상 지출 값은 비운다")
 	void savesSnapshotColumns() {
-		penaltyChargeRepository.saveAndFlush(PenaltyCharge.create(revision, penalty, 30_000L, rule));
+		penaltyChargeRepository.saveAndFlush(PenaltyCharge.create(revision, penalty, 10_000L, 10_000L));
 		entityManager.clear();
 
 		assertThat(penaltyChargeRepository.findAllByRevisionIdOrderByIdAsc(revision.getId()))
 				.singleElement()
 				.satisfies(charge -> {
 					assertThat(charge.getPenalty().getId()).isEqualTo(penalty.getId());
-					assertThat(charge.getAmount()).isEqualTo(30_000L);
-					assertThat(charge.getMoneyType()).isEqualTo(PenaltyMoneyType.RATIO);
-					assertThat(charge.getRatioPct()).isEqualTo(30);
-					assertThat(charge.getFixedAmount()).isNull();
-					assertThat(charge.getTargetExpenseId()).isEqualTo(bowling.getId());
-					assertThat(charge.getTargetExpenseAmount()).isEqualTo(100_000L);
-					assertThat(charge.getTargetExpenseMemo()).isEqualTo("볼링");
+					assertThat(charge.getAmount()).isEqualTo(10_000L);
+					assertThat(charge.getMoneyType()).isEqualTo(PenaltyMoneyType.FIXED_AMOUNT);
+					assertThat(charge.getFixedAmount()).isEqualTo(10_000L);
+					assertThat(charge.getRatioPct()).isNull();
+					assertThat(charge.getTargetExpenseId()).isNull();
+					assertThat(charge.getTargetExpenseAmount()).isNull();
+					assertThat(charge.getTargetExpenseMemo()).isNull();
 				});
 	}
 
 	@Test
 	@DisplayName("같은 리비전에 같은 벌칙 스냅샷을 두 번 저장하면 유니크 제약 위반이다")
 	void duplicateRevisionPenalty() {
-		penaltyChargeRepository.saveAndFlush(PenaltyCharge.create(revision, penalty, 30_000L, rule));
+		penaltyChargeRepository.saveAndFlush(PenaltyCharge.create(revision, penalty, 30_000L, 10_000L));
 
 		assertThatThrownBy(() -> penaltyChargeRepository.saveAndFlush(
-				PenaltyCharge.create(revision, penalty, 1_000L, rule)))
+				PenaltyCharge.create(revision, penalty, 1_000L, 10_000L)))
 				.isInstanceOf(DataIntegrityViolationException.class);
-	}
-
-	@Test
-	@DisplayName("대상 지출과 조건이 삭제돼도 스냅샷은 그대로 남는다(대상 지출은 FK가 아니다)")
-	void survivesTargetExpenseDelete() {
-		penaltyChargeRepository.saveAndFlush(PenaltyCharge.create(revision, penalty, 30_000L, rule));
-		penaltyRuleRepository.delete(rule);
-		penaltyRuleRepository.flush();
-		expenseRepository.delete(bowling);
-		expenseRepository.flush();
-		entityManager.clear();
-
-		assertThat(expenseRepository.findById(bowling.getId())).isEmpty();
-		assertThat(penaltyChargeRepository.findAllByRevisionIdOrderByIdAsc(revision.getId()))
-				.singleElement()
-				.satisfies(charge -> {
-					assertThat(charge.getTargetExpenseId()).isEqualTo(bowling.getId());
-					assertThat(charge.getTargetExpenseMemo()).isEqualTo("볼링");
-				});
 	}
 
 	@Test
@@ -164,9 +132,9 @@ class PenaltyChargeRepositoryTest {
 				SettlementRevision.create(revision.getSettlement(), 2, revision.getConfirmedBy(), AT, false));
 		SettlementRevision excluded = revisionRepository.saveAndFlush(
 				SettlementRevision.create(revision.getSettlement(), 3, revision.getConfirmedBy(), AT, false));
-		penaltyChargeRepository.saveAndFlush(PenaltyCharge.create(revision, penalty, 30_000L, rule));
-		penaltyChargeRepository.saveAndFlush(PenaltyCharge.create(second, penalty, 50_000L, rule));
-		penaltyChargeRepository.saveAndFlush(PenaltyCharge.create(excluded, penalty, 1L, rule));
+		penaltyChargeRepository.saveAndFlush(PenaltyCharge.create(revision, penalty, 30_000L, 10_000L));
+		penaltyChargeRepository.saveAndFlush(PenaltyCharge.create(second, penalty, 50_000L, 10_000L));
+		penaltyChargeRepository.saveAndFlush(PenaltyCharge.create(excluded, penalty, 1L, 10_000L));
 		entityManager.clear();
 
 		List<PenaltyCharge> charges = penaltyChargeRepository.findAllWithPenaltyByRevisionIdIn(

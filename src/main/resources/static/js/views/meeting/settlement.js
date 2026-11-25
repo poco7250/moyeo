@@ -1,6 +1,6 @@
 /*
- * 정산 탭(S-1~S-5, S-7, S-8, S-10, S-11, R-9, H-3). 지출 변경은 실시간 이벤트가 없어(2026-11-23 결정)
- * "새로고침" 버튼과 기존 이벤트(재확정 필요·재확정·영수증·벌칙 조건 초기화·게임 상태)로 다시 받는다.
+ * 정산 탭(S-1~S-5, S-7, S-8, S-10, S-11, H-3). 지출 변경은 실시간 이벤트가 없어(2026-11-23 결정)
+ * "새로고침" 버튼과 기존 이벤트(재확정 필요·재확정·영수증·게임 상태)로 다시 받는다.
  */
 
 import {ApiError, api} from '../../api.js';
@@ -12,7 +12,7 @@ import {renderPenalties} from './settlementPenalties.js';
 import {renderSummary, warningText} from './settlementSummary.js';
 
 const EVENTS = new Set(['SETTLEMENT_REOPENED', 'SETTLEMENT_RECONFIRMED', 'EXPENSE_RECEIPT_CHANGED',
-	'PENALTY_CONDITION_RESET', 'GAME_STATE_CHANGED']);
+	'GAME_STATE_CHANGED']);
 const STATUS_LABELS = {DRAFT: '정산 전', CONFIRMED: '정산 확정', REOPENED: '재확정 필요'};
 const STATUS_TONES = {DRAFT: '', CONFIRMED: 'success', REOPENED: 'warn'};
 
@@ -112,8 +112,8 @@ async function confirmSettlement(meetingId, acknowledgeWarnings) {
 			await confirmSettlement(meetingId, true);
 			return;
 		}
-		if (['PENALTY_CONDITION_UNSET', 'MONEY_GAME_IN_PROGRESS'].includes(error.code)) {
-			throw new Error(`${error.message} (${(error.details ?? []).map((g) => g.roundName).join(', ')} 게임)`);
+		if (error.code === 'MONEY_GAME_IN_PROGRESS') {
+			throw new Error(`${error.message} (진행 중인 금액 게임 ${(error.details ?? []).length}개)`);
 		}
 		if (error.code !== 'WARNING_UNCONFIRMED') {
 			throw error;

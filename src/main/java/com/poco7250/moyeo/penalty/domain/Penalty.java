@@ -24,7 +24,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 게임 결과로 정해진 벌칙자 한 명의 벌칙. 부담 금액은 저장하지 않고 정산을 계산할 때마다 새로 구한다.
+ * 게임 결과로 정해진 벌칙자 한 명의 벌칙. 금액은 게임(GameSession.penaltyAmount)에 있고, 정산을 계산할 때마다 반영한다.
  */
 @Getter
 @Entity
@@ -63,58 +63,38 @@ public class Penalty extends BaseTimeEntity {
 	private Penalty(GameSession gameSession, Member member) {
 		this.gameSession = gameSession;
 		this.member = member;
-		this.status = PenaltyStatus.ASSIGNED;
+		this.status = gameSession.chargesMoney() ? PenaltyStatus.APPLIED : PenaltyStatus.ASSIGNED;
 	}
 
 	/**
-	 * 벌칙자를 확정한다. 금액 조건은 아직 없는 ASSIGNED 상태로 만든다.
+	 * 벌칙자를 확정한다. 금액이 정해진 금액형 게임이면 바로 정산에 반영되는 APPLIED,
+	 * 행동형·벌칙 없음(금액 없음)이면 ASSIGNED로 만든다.
 	 */
 	public static Penalty assign(GameSession gameSession, Member member) {
 		return new Penalty(gameSession, member);
 	}
 
 	/**
-	 * 금액 조건을 적용한다(ASSIGNED·WAIVED → APPLIED). 면제 상태였다면 면제 정보를 비운다.
+	 * 금액 벌칙을 면제한다(APPLIED → WAIVED).
 	 *
-	 * @throws BusinessException ASSIGNED·WAIVED가 아니면 PENALTY_NOT_CONFIGURABLE
-	 */
-	public void apply() {
-		requireStatus(PenaltyStatus.ASSIGNED, PenaltyStatus.WAIVED);
-		this.status = PenaltyStatus.APPLIED;
-		clearWaiver();
-	}
-
-	/**
-	 * 금액 벌칙 없음으로 면제한다(ASSIGNED·APPLIED → WAIVED).
-	 *
-	 * @throws BusinessException ASSIGNED·APPLIED가 아니면 PENALTY_NOT_CONFIGURABLE
+	 * @throws BusinessException APPLIED가 아니면 PENALTY_NOT_CONFIGURABLE
 	 */
 	public void waive(Long waivedBy, LocalDateTime waivedAt) {
-		requireStatus(PenaltyStatus.ASSIGNED, PenaltyStatus.APPLIED);
+		requireStatus(PenaltyStatus.APPLIED);
 		this.status = PenaltyStatus.WAIVED;
 		this.waivedBy = waivedBy;
 		this.waivedAt = waivedAt;
 	}
 
 	/**
-	 * 면제를 취소한다(WAIVED → ASSIGNED).
+	 * 면제를 취소해 다시 정산에 반영한다(WAIVED → APPLIED).
 	 *
 	 * @throws BusinessException WAIVED가 아니면 PENALTY_NOT_CONFIGURABLE
 	 */
 	public void unwaive() {
 		requireStatus(PenaltyStatus.WAIVED);
-		this.status = PenaltyStatus.ASSIGNED;
+		this.status = PenaltyStatus.APPLIED;
 		clearWaiver();
-	}
-
-	/**
-	 * 금액 조건 적용을 되돌린다(APPLIED → ASSIGNED). 조건 해제나 대상 지출 삭제 때 쓴다.
-	 *
-	 * @throws BusinessException APPLIED가 아니면 PENALTY_NOT_CONFIGURABLE
-	 */
-	public void unapply() {
-		requireStatus(PenaltyStatus.APPLIED);
-		this.status = PenaltyStatus.ASSIGNED;
 	}
 
 	/**

@@ -54,7 +54,7 @@ public class GameRerunService {
 			reflectToSettlement(rerun, originalId, requesterId);
 		}
 		GameStateResponse state = gameStateAssembler.assemble(rerun);
-		eventPublisher.publishEvent(GameStateChangedEvent.toMeeting(rerun.getRound().getMeeting().getId(), state));
+		eventPublisher.publishEvent(GameStateChangedEvent.toMeeting(rerun.getMeeting().getId(), state));
 		return state;
 	}
 
@@ -84,7 +84,7 @@ public class GameRerunService {
 	}
 
 	private void reflectToSettlement(GameSession rerun, Long originalId, Long requesterId) {
-		Long meetingId = rerun.getRound().getMeeting().getId();
+		Long meetingId = rerun.getMeeting().getId();
 		settlementGuard.lockForAmountChange(meetingId);
 		settlementGuard.markAmountChanged(meetingId, requesterId, List.of(
 				new SettlementChangeSummary(ChangeLogEntityType.GAME_SESSION, rerun.getId(), ChangeType.CREATE)));

@@ -13,6 +13,5 @@ import java.util.List;
  */
 public record RoundHistoryResponse(Long roundId, int seq, String name, ConfirmedPlaceResponse place,
 		List<HistoryMemberResponse> attendees, List<HistoryMemberResponse> noShows,
-		List<GameHistoryResponse> games,
 		List<BoardGameHistoryResponse> boardGames) {
 }

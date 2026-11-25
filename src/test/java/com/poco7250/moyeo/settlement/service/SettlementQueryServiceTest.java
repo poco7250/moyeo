@@ -12,12 +12,7 @@ import com.poco7250.moyeo.game.domain.GameSession;
 import com.poco7250.moyeo.game.domain.GameType;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.penalty.domain.Penalty;
-import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
-import com.poco7250.moyeo.penalty.domain.PenaltyRule;
 import com.poco7250.moyeo.penalty.domain.PenaltyStatus;
-import com.poco7250.moyeo.settlement.calc.PenalizedMember;
-import com.poco7250.moyeo.settlement.calc.PenaltyRuleInput;
-import com.poco7250.moyeo.settlement.domain.Expense;
 import com.poco7250.moyeo.settlement.dto.SettlementPenaltyResponse;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
@@ -164,7 +159,7 @@ class SettlementQueryServiceTest {
 	}
 
 	@Test
-	@DisplayName("벌칙 반영 내역: APPLIED는 출처·대상 지출·부담액·설정자·시각, ASSIGNED는 금액 없음, WAIVED는 면제자·시각")
+	@DisplayName("벌칙 반영 내역: APPLIED는 게임 금액·부담액·나눠 받는 사람, 게스트는 표시만(부담액 없음), WAIVED는 면제자·시각")
 	void penaltyItemsByStatus() {
 		givenSettlement();
 		PenaltyScenario scenario = new PenaltyScenario();
@@ -173,7 +168,7 @@ class SettlementQueryServiceTest {
 
 		List<SettlementPenaltyResponse> items = service.get(MEETING_ID, MEMBER_ID).penalties();
 
-		assertThat(items).containsExactly(scenario.appliedItem(), scenario.assignedItem(), scenario.waivedItem());
+		assertThat(items).containsExactly(scenario.appliedItem(), scenario.guestItem(), scenario.waivedItem());
 	}
 
 	@ParameterizedTest
@@ -195,7 +190,7 @@ class SettlementQueryServiceTest {
 
 		assertThat(response.preview()).isFalse();
 		assertThat(response.penalties())
-				.containsExactly(scenario.appliedItem(), scenario.assignedItem(), scenario.waivedItem());
+				.containsExactly(scenario.appliedItem(), scenario.guestItem(), scenario.waivedItem());
 	}
 
 	@Test
@@ -242,58 +237,57 @@ class SettlementQueryServiceTest {
 	}
 
 	/**
-	 * 예 1 기반: 2차 "볼링" 100,000원(결제 철수=1, 참석 1~4). 사다리 3판 — 민수(2) RATIO 30% APPLIED,
-	 * 영희(3) ASSIGNED, 지수(4) WAIVED.
+	 * 2차 "볼링" 100,000원(결제 철수=1, 참석 1~4). 사다리(12,000원, 참가 1~4·게스트 9) — 민수(2)·게스트(9) 당첨,
+	 * 꽝뽑기(10,000원, 참가 1·4) — 지수(4) 당첨 후 면제.
 	 */
 	private static final class PenaltyScenario {
 
-		static final LocalDateTime SET_AT = LocalDateTime.of(2026, 12, 20, 21, 30);
 		static final LocalDateTime WAIVED_AT = LocalDateTime.of(2026, 12, 20, 21, 40);
 
 		final Round round = PenaltyFixtures.round(5L, 2, "볼링장");
-		final Expense bowling = PenaltyFixtures.expense(31L, round, 1L, 100_000L, "볼링");
-		final GameSession appliedGame = PenaltyFixtures.revealedMoneyGame(70L, round,
-				LocalDateTime.of(2026, 12, 20, 21, 0));
-		final GameSession assignedGame = PenaltyFixtures.revealedMoneyGame(71L, round,
-				LocalDateTime.of(2026, 12, 20, 21, 5));
+		final GameSession ladder = PenaltyFixtures.revealedMoneyGame(70L, round,
+				LocalDateTime.of(2026, 12, 20, 21, 0), 12_000L);
 		final GameSession waivedGame = PenaltyFixtures.revealedMoneyGame(72L, round,
 				LocalDateTime.of(2026, 12, 20, 21, 10));
-		final Penalty applied = PenaltyFixtures.penalty(80L, appliedGame, 2L);
-		final Penalty assigned = PenaltyFixtures.penalty(81L, assignedGame, 3L);
+		final Member guest = Member.guest("게스트");
+		final Penalty applied = PenaltyFixtures.penalty(80L, ladder, 2L);
+		final Penalty guestPenalty;
 		final Penalty waived = PenaltyFixtures.penalty(82L, waivedGame, 4L);
-		final PenaltyRule rule = PenaltyFixtures.ratioRule(90L, appliedGame, 30, bowling, 1L, SET_AT);
 		final MeetingPenalties penalties;
 
 		PenaltyScenario() {
-			applied.apply();
+			ReflectionTestUtils.setField(guest, "id", 9L);
+			guestPenalty = Penalty.assign(ladder, guest);
+			ReflectionTestUtils.setField(guestPenalty, "id", 81L);
 			waived.waive(1L, WAIVED_AT);
-			penalties = new MeetingPenalties(List.of(applied, assigned, waived), Map.of(70L, rule));
+			penalties = new MeetingPenalties(List.of(applied, guestPenalty, waived), Map.of(
+					70L, List.of(PenaltyFixtures.member(1L), PenaltyFixtures.member(2L), PenaltyFixtures.member(3L),
+							PenaltyFixtures.member(4L), guest),
+					72L, List.of(PenaltyFixtures.member(1L), PenaltyFixtures.member(4L))));
 		}
 
 		SettlementInput input() {
 			return new SettlementInput(
 					List.of(new ExpenseInput(31L, 100_000L, 1L, Set.of(1L, 2L, 3L, 4L), List.of())),
-					List.of(new PenaltyRuleInput(31L, PenaltyMoneyType.RATIO, null, 30,
-							appliedGame.getApplyOrderAt(), 70L, List.of(new PenalizedMember(80L, 2L)))));
+					penalties.toGameInputs());
 		}
 
 		SettlementPenaltyResponse appliedItem() {
 			return new SettlementPenaltyResponse(80L, 2L, PenaltyStatus.APPLIED,
-					new SettlementPenaltyResponse.Game(70L, GameType.LADDER, 2, "볼링장"),
-					new SettlementPenaltyResponse.Rule(PenaltyMoneyType.RATIO, null, 30,
-							new SettlementPenaltyResponse.TargetExpense(31L, 2, "볼링장", "볼링", 100_000L),
-							1L, SET_AT),
-					30_000L, null, null);
+					new SettlementPenaltyResponse.Game(70L, GameType.LADDER, 12_000L), false, 12_000L,
+					List.of(1L, 3L, 4L), null, null);
 		}
 
-		SettlementPenaltyResponse assignedItem() {
-			return new SettlementPenaltyResponse(81L, 3L, PenaltyStatus.ASSIGNED,
-					new SettlementPenaltyResponse.Game(71L, GameType.LADDER, 2, "볼링장"), null, null, null, null);
+		SettlementPenaltyResponse guestItem() {
+			return new SettlementPenaltyResponse(81L, 9L, PenaltyStatus.APPLIED,
+					new SettlementPenaltyResponse.Game(70L, GameType.LADDER, 12_000L), true, null,
+					List.of(1L, 3L, 4L), null, null);
 		}
 
 		SettlementPenaltyResponse waivedItem() {
 			return new SettlementPenaltyResponse(82L, 4L, PenaltyStatus.WAIVED,
-					new SettlementPenaltyResponse.Game(72L, GameType.LADDER, 2, "볼링장"), null, null, 1L, WAIVED_AT);
+					new SettlementPenaltyResponse.Game(72L, GameType.LADDER, 10_000L), false, null,
+					List.of(1L), 1L, WAIVED_AT);
 		}
 	}
 }

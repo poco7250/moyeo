@@ -11,9 +11,7 @@ import com.poco7250.moyeo.game.domain.GameSession;
 import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.penalty.domain.Penalty;
 import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
-import com.poco7250.moyeo.penalty.domain.PenaltyRule;
 import com.poco7250.moyeo.settlement.calc.PenaltyChargeResult;
-import com.poco7250.moyeo.settlement.domain.Expense;
 import com.poco7250.moyeo.settlement.domain.PenaltyCharge;
 import com.poco7250.moyeo.settlement.domain.SettlementRevision;
 import com.poco7250.moyeo.settlement.repository.PenaltyChargeRepository;
@@ -43,64 +41,47 @@ class PenaltyChargeRecorderTest {
 	private PenaltyChargeRecorder recorder;
 	private SettlementRevision revision;
 	private Round round;
-	private Expense bowling;
 
 	@BeforeEach
 	void setUp() {
 		recorder = new PenaltyChargeRecorder(penaltyChargeRepository);
 		revision = SettlementRevision.create(null, 1, null, AT, false);
 		round = PenaltyFixtures.round(5L, 2, "볼링장");
-		bowling = PenaltyFixtures.expense(31L, round, 1L, 87_650L, "볼링");
 	}
 
 	@Test
-	@DisplayName("조건 종류별 값과 대상 지출 금액·메모를 복사하고, 0원 부담액도 저장한다")
-	void copiesRuleValues() {
-		GameSession fixedGame = PenaltyFixtures.revealedMoneyGame(70L, round, AT);
-		GameSession ratioGame = PenaltyFixtures.revealedMoneyGame(71L, round, AT.plusMinutes(1));
-		GameSession fullGame = PenaltyFixtures.revealedMoneyGame(72L, round, AT.plusMinutes(2));
-		Penalty fixed = applied(100L, fixedGame, 2L);
-		Penalty ratio = applied(101L, ratioGame, 3L);
-		Penalty full = applied(102L, fullGame, 4L);
-		MeetingPenalties penalties = new MeetingPenalties(List.of(fixed, ratio, full), Map.of(
-				70L, PenaltyRule.create(fixedGame, PenaltyMoneyType.FIXED_AMOUNT, 50_000L, null, bowling, 1L, AT),
-				71L, PenaltyRule.create(ratioGame, PenaltyMoneyType.RATIO, null, 30, bowling, 1L, AT),
-				72L, PenaltyRule.create(fullGame, PenaltyMoneyType.FULL, null, null, bowling, 1L, AT)));
+	@DisplayName("게임 금액을 고정 금액으로 복사하고 대상 지출 값은 비우며, 0원 부담액도 저장한다")
+	void copiesGameAmount() {
+		GameSession tenThousand = PenaltyFixtures.revealedMoneyGame(70L, round, AT, 10_000L);
+		GameSession fiveThousand = PenaltyFixtures.revealedMoneyGame(71L, round, AT.plusMinutes(1), 5_000L);
+		Penalty first = PenaltyFixtures.penalty(100L, tenThousand, 2L);
+		Penalty second = PenaltyFixtures.penalty(101L, fiveThousand, 3L);
+		MeetingPenalties penalties = new MeetingPenalties(List.of(first, second), Map.of());
 		given(penaltyChargeRepository.saveAll(any())).willAnswer(invocation -> invocation.getArgument(0));
 
 		recorder.record(revision, penalties, List.of(
-				new PenaltyChargeResult(100L, 2L, 31L, 50_000L),
-				new PenaltyChargeResult(101L, 3L, 31L, 26_300L),
-				new PenaltyChargeResult(102L, 4L, 31L, 0L)));
+				new PenaltyChargeResult(100L, 2L, 70L, 10_000L),
+				new PenaltyChargeResult(101L, 3L, 71L, 0L)));
 
 		verify(penaltyChargeRepository).saveAll(chargesCaptor.capture());
 		assertThat(chargesCaptor.getValue())
 				.allSatisfy(charge -> {
 					assertThat(charge.getRevision()).isSameAs(revision);
-					assertThat(charge.getTargetExpenseId()).isEqualTo(31L);
-					assertThat(charge.getTargetExpenseAmount()).isEqualTo(87_650L);
-					assertThat(charge.getTargetExpenseMemo()).isEqualTo("볼링");
+					assertThat(charge.getMoneyType()).isEqualTo(PenaltyMoneyType.FIXED_AMOUNT);
+					assertThat(charge.getTargetExpenseId()).isNull();
+					assertThat(charge.getRatioPct()).isNull();
 				})
 				.extracting(charge -> charge.getPenalty().getId(), PenaltyCharge::getAmount,
-						PenaltyCharge::getMoneyType, PenaltyCharge::getFixedAmount, PenaltyCharge::getRatioPct)
-				.containsExactly(
-						tuple(100L, 50_000L, PenaltyMoneyType.FIXED_AMOUNT, 50_000L, null),
-						tuple(101L, 26_300L, PenaltyMoneyType.RATIO, null, 30),
-						tuple(102L, 0L, PenaltyMoneyType.FULL, null, null));
+						PenaltyCharge::getFixedAmount)
+				.containsExactly(tuple(100L, 10_000L, 10_000L), tuple(101L, 0L, 5_000L));
 	}
 
 	@Test
 	@DisplayName("계산 결과의 벌칙이 묶음에 없으면 조립 버그로 IllegalStateException")
 	void unknownPenalty() {
-		List<PenaltyChargeResult> charges = List.of(new PenaltyChargeResult(999L, 2L, 31L, 1_000L));
+		List<PenaltyChargeResult> charges = List.of(new PenaltyChargeResult(999L, 2L, 70L, 1_000L));
 
 		assertThatThrownBy(() -> recorder.record(revision, MeetingPenalties.empty(), charges))
 				.isInstanceOf(IllegalStateException.class);
-	}
-
-	private Penalty applied(Long id, GameSession game, Long memberId) {
-		Penalty penalty = PenaltyFixtures.penalty(id, game, memberId);
-		penalty.apply();
-		return penalty;
 	}
 }

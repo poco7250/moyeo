@@ -4,13 +4,15 @@ import com.poco7250.moyeo.penalty.domain.PenaltyMoneyType;
 import com.poco7250.moyeo.settlement.domain.PenaltyCharge;
 
 /**
- * 리비전에 고정된 벌칙 부담액과 그 시점 조건 스냅샷. 대상 지출이 나중에 삭제돼도 값이 남는다.
+ * 리비전에 고정된 벌칙 부담액과 그 시점 금액 스냅샷. 값이 나중에 바뀌어도 남는다.
  *
- * @param fixedAmount 고정 금액 조건일 때만 값이 있다
- * @param ratioPct    비율 조건일 때만 값이 있다
+ * @param fixedAmount         고정 금액(새 리비전은 게임 1인 금액)
+ * @param ratioPct            옛 비율 조건일 때만 값이 있다
+ * @param targetExpenseId     옛 조건의 대상 지출. 2026-11-24 이후 리비전은 null
+ * @param targetExpenseAmount 옛 조건의 대상 지출 금액. 2026-11-24 이후 리비전은 null
  */
 public record RevisionPenaltyChargeResponse(Long penaltyId, Long memberId, long amount, PenaltyMoneyType moneyType,
-		Long fixedAmount, Integer ratioPct, Long targetExpenseId, long targetExpenseAmount, String targetExpenseMemo) {
+		Long fixedAmount, Integer ratioPct, Long targetExpenseId, Long targetExpenseAmount, String targetExpenseMemo) {
 
 	/**
 	 * 저장된 스냅샷을 응답으로 변환한다. 벌칙은 함께 읽어 둔 상태여야 한다.

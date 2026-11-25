@@ -117,14 +117,15 @@ class GameSessionRepositoryTest {
 	}
 
 	@Test
-	@DisplayName("차수의 게임을 최근에 만든 순으로 조회하고 다른 차수 게임은 제외한다")
-	void findAllByRoundIdOrderByIdDesc() {
+	@DisplayName("모임의 게임을 최근에 만든 순으로 조회하고 다른 모임 게임은 제외한다")
+	void findAllByMeetingIdOrderByIdDesc() {
 		GameSession first = save(newGame());
 		GameSession second = save(newGame());
-		Round otherRound = roundRepository.saveAndFlush(Round.create(round.getMeeting(), 2, "노래방"));
-		save(GameSession.create(otherRound, GameType.DRAW, 1L, PenaltyKind.NONE, null, 1));
+		Meeting otherMeeting = meetingRepository.saveAndFlush(
+				Meeting.create(group, "다른 모임", LocalDateTime.of(2026, 12, 21, 18, 0), null, null, 1L));
+		save(GameSession.create(otherMeeting, GameType.DRAW, 1L, PenaltyKind.NONE, null, null, 1));
 
-		assertThat(gameSessionRepository.findAllByRoundIdOrderByIdDesc(round.getId()))
+		assertThat(gameSessionRepository.findAllByMeetingIdOrderByIdDesc(round.getMeeting().getId()))
 				.extracting(GameSession::getId)
 				.containsExactly(second.getId(), first.getId());
 	}
@@ -161,12 +162,11 @@ class GameSessionRepositoryTest {
 		GameSession canceled = newGame();
 		canceled.cancel();
 		save(canceled);
-		save(GameSession.create(round, GameType.LADDER, 1L, PenaltyKind.ACTION, null, 1));
-		save(GameSession.create(round, GameType.DRAW, 1L, PenaltyKind.NONE, null, 1));
+		save(GameSession.create(round.getMeeting(), GameType.LADDER, 1L, PenaltyKind.ACTION, null, null, 1));
+		save(GameSession.create(round.getMeeting(), GameType.DRAW, 1L, PenaltyKind.NONE, null, null, 1));
 		Meeting otherMeeting = meetingRepository.saveAndFlush(
 				Meeting.create(group, "다른 모임", LocalDateTime.of(2026, 12, 21, 18, 0), null, null, 1L));
-		Round otherRound = roundRepository.saveAndFlush(Round.create(otherMeeting, 1, "밥"));
-		save(GameSession.create(otherRound, GameType.LADDER, 1L, PenaltyKind.MONEY, null, 1));
+		save(GameSession.create(otherMeeting, GameType.LADDER, 1L, PenaltyKind.MONEY, 10_000L, null, 1));
 		entityManager.clear();
 
 		assertThat(gameSessionRepository.findAllMoneyInProgressByMeetingId(round.getMeeting().getId()))
@@ -175,7 +175,7 @@ class GameSessionRepositoryTest {
 	}
 
 	private GameSession newGame() {
-		return GameSession.create(round, GameType.LADDER, 1L, PenaltyKind.MONEY, null, 1);
+		return GameSession.create(round.getMeeting(), GameType.LADDER, 1L, PenaltyKind.MONEY, 10_000L, null, 1);
 	}
 
 	private GameSession rerunOf(GameSession original) {

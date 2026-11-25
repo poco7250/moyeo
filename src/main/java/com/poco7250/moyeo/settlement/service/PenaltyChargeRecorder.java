@@ -1,7 +1,6 @@
 package com.poco7250.moyeo.settlement.service;
 
 import com.poco7250.moyeo.penalty.domain.Penalty;
-import com.poco7250.moyeo.penalty.domain.PenaltyRule;
 import com.poco7250.moyeo.settlement.calc.PenaltyChargeResult;
 import com.poco7250.moyeo.settlement.domain.PenaltyCharge;
 import com.poco7250.moyeo.settlement.domain.SettlementRevision;
@@ -27,7 +26,7 @@ public class PenaltyChargeRecorder {
 	 *
 	 * @param penalties 계산 입력을 만든 벌칙 묶음
 	 * @param charges   그 입력으로 계산한 벌칙 부담액
-	 * @throws IllegalStateException 계산 결과의 벌칙이나 조건이 묶음에 없으면(조립 버그)
+	 * @throws IllegalStateException 계산 결과의 벌칙이 묶음에 없거나 게임 금액이 없으면(조립 버그)
 	 */
 	public List<PenaltyCharge> record(SettlementRevision revision, MeetingPenalties penalties,
 			List<PenaltyChargeResult> charges) {
@@ -43,8 +42,10 @@ public class PenaltyChargeRecorder {
 		if (penalty == null) {
 			throw new IllegalStateException("계산 입력에 없는 벌칙: " + charge.penaltyId());
 		}
-		PenaltyRule rule = penalties.ruleOf(penalty.getGameSession().getId())
-				.orElseThrow(() -> new IllegalStateException("조건 없는 벌칙: " + charge.penaltyId()));
-		return PenaltyCharge.create(revision, penalty, charge.amount(), rule);
+		Long gameAmount = penalty.getGameSession().getPenaltyAmount();
+		if (gameAmount == null) {
+			throw new IllegalStateException("금액 없는 게임의 벌칙: " + charge.penaltyId());
+		}
+		return PenaltyCharge.create(revision, penalty, charge.amount(), gameAmount);
 	}
 }

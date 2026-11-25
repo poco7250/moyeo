@@ -101,7 +101,6 @@ public enum ErrorCode {
 	// 정산
 	EXPENSE_NOT_FOUND(HttpStatus.NOT_FOUND, "지출을 찾을 수 없습니다."),
 	// 벌칙 조건의 대상 지출이 게임과 다른 모임의 지출
-	EXPENSE_NOT_IN_MEETING(HttpStatus.BAD_REQUEST, "이 모임에 등록된 지출만 고를 수 있습니다."),
 	// 영수증 사진(S-1 확장): 형식은 파일 앞부분 바이트로 판별한다
 	RECEIPT_INVALID_TYPE(HttpStatus.BAD_REQUEST, "영수증 사진은 JPEG·PNG·WEBP 이미지만 올릴 수 있습니다."),
 	RECEIPT_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "영수증 사진은 10MB까지 올릴 수 있습니다."),
@@ -110,7 +109,6 @@ public enum ErrorCode {
 	SETTLEMENT_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "이미 확정된 정산입니다."),
 	WARNING_UNCONFIRMED(HttpStatus.CONFLICT, "정산 경고를 확인한 뒤 다시 확정해 주세요."),
 	// 조건 미설정(ASSIGNED) 금액형 벌칙이 남아 확정할 수 없음
-	PENALTY_CONDITION_UNSET(HttpStatus.CONFLICT, "금액 조건을 정하지 않은 벌칙이 있습니다. 조건을 입력하거나 금액 벌칙 없음을 골라 주세요."),
 	// 대기·진행 중인 금액형 게임(다시 돌린 회차 포함)이 있어 확정할 수 없음
 	MONEY_GAME_IN_PROGRESS(HttpStatus.CONFLICT, "진행 중인 금액 벌칙 게임이 있습니다. 결과를 공개하거나 취소한 뒤 확정해 주세요."),
 
@@ -121,14 +119,14 @@ public enum ErrorCode {
 	GAME_NOT_CANCELABLE(HttpStatus.CONFLICT, "지금 상태에서는 취소할 수 없는 게임입니다."),
 	GAME_NOT_RERUNNABLE(HttpStatus.CONFLICT, "다시 돌릴 수 없는 게임입니다."),
 	RERUN_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 다시 돌리기가 요청된 게임입니다."),
-	GAME_PARTICIPANT_NOT_ATTENDING(HttpStatus.BAD_REQUEST, "차수 참석자만 게임 참가자로 고를 수 있습니다."),
+	GAME_PARTICIPANT_NOT_ATTENDING(HttpStatus.BAD_REQUEST, "모임 참석자와 게스트만 게임 참가자로 고를 수 있습니다."),
 
 	// 보드게임 기록
 	NOT_BOARD_GAME_RECORDER(HttpStatus.FORBIDDEN, "기록한 사람이나 모임 호스트만 할 수 있습니다."),
 
 	// 벌칙
 	// 벌칙 상태 전이 표에 없는 전이(예: 무효가 된 벌칙에 조건 설정)
-	PENALTY_NOT_CONFIGURABLE(HttpStatus.CONFLICT, "지금 상태에서는 벌칙 조건을 바꿀 수 없습니다."),
+	PENALTY_NOT_CONFIGURABLE(HttpStatus.CONFLICT, "지금 상태에서는 벌칙 면제를 바꿀 수 없습니다."),
 
 	// 웹 푸시
 	// VAPID 키가 설정되지 않은 서버(로컬 개발 등)

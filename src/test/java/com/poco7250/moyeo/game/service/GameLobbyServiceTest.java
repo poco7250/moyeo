@@ -29,7 +29,6 @@ import com.poco7250.moyeo.global.auth.MeetingAccessChecker;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import com.poco7250.moyeo.meeting.domain.Meeting;
-import com.poco7250.moyeo.meeting.domain.Round;
 import com.poco7250.moyeo.meeting.repository.AttendanceRepository;
 import com.poco7250.moyeo.meeting.repository.MeetingGuestRepository;
 import com.poco7250.moyeo.member.domain.Member;
@@ -59,13 +58,12 @@ import org.springframework.test.util.ReflectionTestUtils;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class GameLobbyServiceTest {
 
-	private static final Long ROUND_ID = 100L;
 	private static final Long GAME_ID = 300L;
 	private static final Long MEETING_ID = 50L;
 	private static final Long ACTOR_ID = 1L;
 	private static final LocalDateTime NOW = LocalDateTime.of(2026, 12, 20, 21, 0);
-	private static final GameStateResponse STATE = new GameStateResponse(GAME_ID, ROUND_ID, GameType.LADDER,
-			GameStatus.WAITING, ACTOR_ID, PenaltyKind.MONEY, "꼴찌가 2차 30%", 1, GAME_ID, null, null, List.of(), null);
+	private static final GameStateResponse STATE = new GameStateResponse(GAME_ID, MEETING_ID, GameType.LADDER,
+			GameStatus.WAITING, ACTOR_ID, PenaltyKind.MONEY, 10_000L, "꼴찌가 2차 30%", 1, GAME_ID, null, null, List.of(), null);
 
 	@Mock
 	MeetingAccessChecker meetingAccessChecker;
@@ -116,7 +114,7 @@ class GameLobbyServiceTest {
 	ArgumentCaptor<List<Member>> penalizedCaptor;
 
 	GameLobbyService service;
-	Round round;
+	Meeting meeting;
 
 	@BeforeEach
 	void setUp() {
@@ -124,18 +122,15 @@ class GameLobbyServiceTest {
 				gameParticipantRepository, meetingGuestRepository, memberRepository, gameResultRepository,
 				attendanceRepository, gameStateAssembler,
 				gameSeedGenerator, penaltyAssigner, settlementGuard, changeLogRecorder, eventPublisher, TestClocks.fixed(NOW));
-		Meeting meeting = mock(Meeting.class);
-		given(meeting.getId()).willReturn(MEETING_ID);
-		round = mock(Round.class);
-		given(round.getMeeting()).willReturn(meeting);
-		lenient().when(round.getId()).thenReturn(ROUND_ID);
+		meeting = mock(Meeting.class);
+		lenient().when(meeting.getId()).thenReturn(MEETING_ID);
 		given(gameStateAssembler.assemble(any())).willReturn(STATE);
 	}
 
 	@Test
 	@DisplayName("고른 참석자로 게임을 만들고 만든 회원이 진행자, 자기 id가 원 회차가 된다")
 	void createSavesSelectedParticipants() {
-		givenRoundAccess();
+		givenMeetingAccess();
 		givenAttending(List.of(2L, 3L), member(2L), member(3L));
 		given(gameSessionRepository.save(any())).willAnswer(invocation -> {
 			GameSession game = invocation.getArgument(0);
@@ -143,7 +138,7 @@ class GameLobbyServiceTest {
 			return game;
 		});
 
-		service.create(ROUND_ID, ACTOR_ID, request(GameType.LADDER, List.of(2L, 3L)));
+		service.create(MEETING_ID, ACTOR_ID, request(GameType.LADDER, List.of(2L, 3L)));
 
 		ArgumentCaptor<GameSession> gameCaptor = ArgumentCaptor.forClass(GameSession.class);
 		verify(gameSessionRepository).save(gameCaptor.capture());
@@ -151,6 +146,8 @@ class GameLobbyServiceTest {
 		assertThat(saved.getCreatedBy()).isEqualTo(ACTOR_ID);
 		assertThat(saved.getRootSessionId()).isEqualTo(GAME_ID);
 		assertThat(saved.getPenaltyKind()).isEqualTo(PenaltyKind.MONEY);
+		assertThat(saved.getPenaltyAmount()).isEqualTo(10_000L);
+		assertThat(saved.getMeeting()).isSameAs(meeting);
 		assertThat(saved.getPenaltyNote()).isEqualTo("꼴찌가 2차 30%");
 		assertThat(saved.getPenaltyCount()).isEqualTo(1);
 		ArgumentCaptor<Iterable<GameParticipant>> participants = participantCaptor();
@@ -160,12 +157,12 @@ class GameLobbyServiceTest {
 	}
 
 	@Test
-	@DisplayName("차수 참석자가 아닌 회원이 섞이면 게임을 만들지 않는다")
+	@DisplayName("모임 참석자가 아닌 회원이 섞이면 게임을 만들지 않는다")
 	void createRejectsNonAttending() {
-		givenRoundAccess();
+		givenMeetingAccess();
 		givenAttending(List.of(2L, 3L), member(2L));
 
-		assertRejected(() -> service.create(ROUND_ID, ACTOR_ID, request(GameType.LADDER, List.of(2L, 3L))),
+		assertRejected(() -> service.create(MEETING_ID, ACTOR_ID, request(GameType.LADDER, List.of(2L, 3L))),
 				ErrorCode.GAME_PARTICIPANT_NOT_ATTENDING);
 		verify(gameSessionRepository, never()).save(any());
 	}
@@ -173,7 +170,7 @@ class GameLobbyServiceTest {
 	@Test
 	@DisplayName("룰렛도 사다리처럼 게임 방을 만들 수 있다")
 	void createRoulette() {
-		givenRoundAccess();
+		givenMeetingAccess();
 		givenAttending(List.of(2L, 3L), member(2L), member(3L));
 		given(gameSessionRepository.save(any())).willAnswer(invocation -> {
 			GameSession game = invocation.getArgument(0);
@@ -181,7 +178,7 @@ class GameLobbyServiceTest {
 			return game;
 		});
 
-		service.create(ROUND_ID, ACTOR_ID, request(GameType.ROULETTE, List.of(2L, 3L)));
+		service.create(MEETING_ID, ACTOR_ID, request(GameType.ROULETTE, List.of(2L, 3L)));
 
 		ArgumentCaptor<GameSession> gameCaptor = ArgumentCaptor.forClass(GameSession.class);
 		verify(gameSessionRepository).save(gameCaptor.capture());
@@ -192,7 +189,7 @@ class GameLobbyServiceTest {
 	@Test
 	@DisplayName("순서 정하기를 시작하면 seed로 정한 순서대로 전원에게 1번부터 순번을 저장하고 벌칙자는 없다")
 	void startOrderSavesOrderNumbers() {
-		GameSession game = GameSession.create(round, GameType.ORDER, ACTOR_ID, PenaltyKind.NONE, null, 0);
+		GameSession game = GameSession.create(meeting, GameType.ORDER, ACTOR_ID, PenaltyKind.NONE, null, null, 0);
 		ReflectionTestUtils.setField(game, "id", GAME_ID);
 		givenOperator(game);
 		given(gameParticipantRepository.findAllByGameSessionIdOrderByIdAsc(GAME_ID))
@@ -323,12 +320,12 @@ class GameLobbyServiceTest {
 		throw new AssertionError("벌칙자 결과가 없습니다.");
 	}
 
-	private void givenRoundAccess() {
-		given(meetingAccessChecker.requireRoundMember(ROUND_ID, ACTOR_ID)).willReturn(round);
+	private void givenMeetingAccess() {
+		given(meetingAccessChecker.requireMember(MEETING_ID, ACTOR_ID)).willReturn(meeting);
 	}
 
 	private void givenAttending(List<Long> memberIds, Member... members) {
-		given(attendanceRepository.findAttendingMembers(ROUND_ID, memberIds)).willReturn(List.of(members));
+		given(attendanceRepository.findMeetingAttendingMembers(MEETING_ID, memberIds)).willReturn(List.of(members));
 	}
 
 	private void givenOperator(GameSession game) {
@@ -341,11 +338,11 @@ class GameLobbyServiceTest {
 	}
 
 	private GameCreateRequest request(GameType type, List<Long> memberIds) {
-		return new GameCreateRequest(type, PenaltyKind.MONEY, "꼴찌가 2차 30%", memberIds, null);
+		return new GameCreateRequest(type, PenaltyKind.MONEY, 10_000L, "꼴찌가 2차 30%", memberIds, null);
 	}
 
 	private GameSession gameWith(GameStatus status, PenaltyKind penaltyKind) {
-		GameSession game = GameSession.create(round, GameType.LADDER, ACTOR_ID, penaltyKind, null, 1);
+		GameSession game = GameSession.create(meeting, GameType.LADDER, ACTOR_ID, penaltyKind, penaltyKind == PenaltyKind.MONEY ? 10_000L : null, null, 1);
 		ReflectionTestUtils.setField(game, "id", GAME_ID);
 		ReflectionTestUtils.setField(game, "status", status);
 		return game;

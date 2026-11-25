@@ -7,7 +7,7 @@ import java.util.List;
 
 /**
  * 변경 로그에 남기는 게임 단위 면제 상태. 면제·면제 취소의 전/후 값으로 쓴다.
- * 금액 조건의 설정·해제는 따로 PenaltyRuleSnapshot으로 남기므로 여기 상태는 ASSIGNED(면제 아님) 아니면 WAIVED다.
+ * 상태는 APPLIED(면제 아님, 정산 반영) 아니면 WAIVED다. 2026-11-24 이전 로그의 "면제 아님"은 ASSIGNED로 남아 있다.
  *
  * @param waivedBy 면제한 회원 id. 면제가 아니면 null
  * @param waivedAt 면제한 시각. 면제가 아니면 null
@@ -28,6 +28,6 @@ public record PenaltyWaiverSnapshot(Long gameSessionId, PenaltyStatus status, Lo
 	 * 면제가 아닌 상태의 스냅샷을 만든다.
 	 */
 	public static PenaltyWaiverSnapshot notWaived(Long gameSessionId, List<Long> penaltyMemberIds) {
-		return new PenaltyWaiverSnapshot(gameSessionId, PenaltyStatus.ASSIGNED, null, null, penaltyMemberIds);
+		return new PenaltyWaiverSnapshot(gameSessionId, PenaltyStatus.APPLIED, null, null, penaltyMemberIds);
 	}
 }
