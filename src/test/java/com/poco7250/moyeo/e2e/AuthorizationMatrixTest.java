@@ -225,6 +225,7 @@ class AuthorizationMatrixTest {
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/settlement/revisions", Access.MEMBER),
 			new Endpoint(HttpMethod.POST, "/api/meetings/{meetingId}/settlement/confirm", Access.HOST,
 					"{\"acknowledgeWarnings\":false}"),
+			endpoint(HttpMethod.POST, "/api/meetings/{meetingId}/settlement/reopen", Access.HOST),
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/change-logs", Access.MEMBER),
 			// 게임·벌칙
 			endpoint(HttpMethod.GET, "/api/meetings/{meetingId}/games", Access.MEMBER),

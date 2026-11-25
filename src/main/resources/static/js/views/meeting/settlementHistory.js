@@ -9,7 +9,7 @@ import {html, raw} from '../../ui.js';
 
 const LOG_PAGE_SIZE = 20;
 const ENTITY_LABELS = {EXPENSE: '지출', EXPENSE_SHARE: '지출 나누기', ATTENDANCE: '참석', GAME_SESSION: '게임',
-	PENALTY_RULE: '벌칙 조건', PENALTY: '벌칙'};
+	PENALTY_RULE: '벌칙 조건', PENALTY: '벌칙', SETTLEMENT: '정산'};
 const CHANGE_LABELS = {CREATE: '추가', UPDATE: '변경', DELETE: '삭제'};
 
 /**
@@ -78,12 +78,24 @@ function revisionCard(revision, directory) {
 async function loadLogs(area, state, logs) {
 	const data = await api.get(`/api/meetings/${state.ctx.meetingId}/change-logs?page=${logs.page}&size=${LOG_PAGE_SIZE}`);
 	const items = data.items.map((log) => html`<li><small>${formatDate(log.changedAt)}</small>
-		${raw(nameOf(state.directory, log.actorId))} · ${ENTITY_LABELS[log.entityType] ?? log.entityType} ${CHANGE_LABELS[log.changeType] ?? log.changeType}
+		${raw(nameOf(state.directory, log.actorId))} · ${logLabel(log)}
 		<details><summary>전/후</summary><pre>${JSON.stringify(log.before, null, 1)}\n→ ${JSON.stringify(log.after, null, 1)}</pre></details></li>`);
 	area.querySelector('.change-logs').insertAdjacentHTML('beforeend',
 		items.join('') || (logs.page === 0 ? html`<li class="muted">변경 로그가 없어요</li>` : ''));
 	area.querySelector('.logs-more').hidden = !data.hasNext;
 	logs.page += 1;
+}
+
+/**
+ * 변경 로그 한 줄의 제목을 만든다. 정산 로그는 호스트의 확정 되돌리기뿐이라 따로 부른다(Task 075).
+ * @param {{entityType: string, changeType: string}} log 변경 로그 항목
+ * @returns {string} 제목
+ */
+function logLabel(log) {
+	if (log.entityType === 'SETTLEMENT') {
+		return '정산 확정 되돌림';
+	}
+	return `${ENTITY_LABELS[log.entityType] ?? log.entityType} ${CHANGE_LABELS[log.changeType] ?? log.changeType}`;
 }
 
 /**

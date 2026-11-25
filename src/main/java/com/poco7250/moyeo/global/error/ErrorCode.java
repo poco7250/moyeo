@@ -107,6 +107,8 @@ public enum ErrorCode {
 	RECEIPT_NOT_FOUND(HttpStatus.NOT_FOUND, "영수증 사진이 없습니다."),
 	RECEIPT_STORAGE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "영수증 사진을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."),
 	SETTLEMENT_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "이미 확정된 정산입니다."),
+	// 확정 되돌리기(Task 075)는 CONFIRMED에서만 할 수 있음
+	SETTLEMENT_NOT_CONFIRMED(HttpStatus.CONFLICT, "확정된 정산만 되돌릴 수 있습니다."),
 	WARNING_UNCONFIRMED(HttpStatus.CONFLICT, "정산 경고를 확인한 뒤 다시 확정해 주세요."),
 	// 조건 미설정(ASSIGNED) 금액형 벌칙이 남아 확정할 수 없음
 	// 대기·진행 중인 금액형 게임(다시 돌린 회차 포함)이 있어 확정할 수 없음

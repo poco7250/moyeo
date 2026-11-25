@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.poco7250.moyeo.global.error.BusinessException;
 import com.poco7250.moyeo.global.error.ErrorCode;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -94,6 +95,18 @@ class SettlementTest {
 		settlement.reopen();
 
 		assertThat(settlement.hasBeenConfirmed()).isTrue();
+	}
+
+	@Test
+	@DisplayName("CONFIRMED 정산만 되돌릴 수 있다")
+	void reopenableOnlyWhenConfirmed() {
+		settlementWith(SettlementStatus.CONFIRMED).requireReopenable();
+
+		for (SettlementStatus status : List.of(SettlementStatus.DRAFT, SettlementStatus.REOPENED)) {
+			assertThatThrownBy(() -> settlementWith(status).requireReopenable())
+					.isInstanceOf(BusinessException.class)
+					.extracting("errorCode").isEqualTo(ErrorCode.SETTLEMENT_NOT_CONFIRMED);
+		}
 	}
 
 	private Settlement settlementWith(SettlementStatus status) {
